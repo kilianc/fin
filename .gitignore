@@ -16,9 +16,14 @@
 !/mascot-plaid.png
 !/.claude-plugin/
 !/.claude-plugin/*.json
-!/skills/
-!/skills/*/
-!/skills/*/SKILL.md
+!/plugins/
+!/plugins/*/
+!/plugins/*/.claude-plugin/
+!/plugins/*/.claude-plugin/plugin.json
+!/plugins/*/.claude-plugin/icon.png
+!/plugins/*/skills/
+!/plugins/*/skills/*/
+!/plugins/*/skills/*/SKILL.md
 !/.agents/
 !/.agents/skills/
 !/.agents/skills/*
