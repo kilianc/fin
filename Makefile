@@ -17,7 +17,7 @@ test:
 # Regenerate the GitHub Pages setup and try pages from their prompts.
 .PHONY: docs
 docs:
-	go test ./internal/fin -run 'Test(SetupPages|TryPages|SitePages)' -update
+	go test ./internal/fin -run 'Test(SetupPages|TryPages|PrivacyPage|SitePages)' -update
 
 # Re-render the README gallery from docs/examples/index.html.
 .PHONY: gallery

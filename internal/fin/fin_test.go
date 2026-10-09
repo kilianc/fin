@@ -711,6 +711,7 @@ func TestSitePagesShareOneStyle(t *testing.T) {
 	for _, e := range Examples {
 		pages["../../docs/try/"+e.Slug+"/index.html"] = "../../"
 	}
+	pages["../../docs/privacy/index.html"] = "../"
 	for path, root := range pages {
 		b, err := os.ReadFile(path)
 		if err != nil {
@@ -779,4 +780,8 @@ func TestSkillShipsAsAPlugin(t *testing.T) {
 			t.Errorf("README is missing %q", line)
 		}
 	}
+}
+
+func TestPrivacyPage(t *testing.T) {
+	checkGenerated(t, "../../docs/privacy/index.html", PrivacyPage())
 }

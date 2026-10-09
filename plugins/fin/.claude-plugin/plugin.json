@@ -18,5 +18,9 @@
     "portfolio",
     "cli"
   ],
-  "icon": "./.claude-plugin/icon.png"
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://github.com/kilianc/fin#readme",
+  "supportUrl": "https://github.com/kilianc/fin/issues",
+  "privacyPolicyUrl": "https://kilianc.github.io/fin/privacy/",
+  "termsOfServiceUrl": "https://github.com/kilianc/fin/blob/main/LICENSE"
 }
