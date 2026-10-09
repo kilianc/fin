@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1200, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>fin · social preview artwork (render with scripts/social-card.sh)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../docs/site.css">
+<style>
+html, body { width: 1200px; height: 630px; overflow: hidden; }
+.wrap { max-width: 1120px; }
+.site-header { padding-top: 42px; }
+.section.first { padding-top: 120px; }
+.hero { grid-template-columns: minmax(0, 1fr) 240px; gap: 48px; }
+.display { white-space: nowrap; }
+.site-footer { position: absolute; bottom: 28px; left: 64px; right: 64px; margin: 0; padding: 20px 0 0; }
+</style>
+</head>
+<body>
+<header class="site-header wrap">
+<a class="brand" href="./"><img src="../mascot.png" alt=""><b>fin</b></a><span class="where">~ local</span>
+<span class="sp"></span>
+<nav><a href="./#examples">examples</a><a href="./#security">security</a><a href="https://github.com/kilianc/fin">github ↗</a></nav>
+</header>
+<main><section class="section first wrap hero">
+<div>
+<h1 class="display">A CLI for your financial<br class="lg"> data, built for the AI era.</h1>
+<p class="lede"><b><span class="fin">fin</span></b> connects your banks, cards and brokerages through <a href="https://plaid.com/docs/">Plaid</a>. It <b>runs locally on your laptop</b>, keeps its keys in your Keychain, and <b>costs nothing</b> on Plaid's free Trial plan.</p>
+<div class="buttons">
+<a href="claude/"><img src="../docs/setup-with-claude.svg" alt="Set up with Claude"></a>
+<a href="codex/"><img src="../docs/setup-with-codex.svg" alt="Set up with Codex"></a>
+<button class="copy-prompt" id="copy-setup" type="button"><img src="../docs/copy-prompt.svg" alt="Copy the setup prompt"></button>
+</div>
+</div>
+<img class="hero-logo" src="../mascot.png" alt="fin mascot">
+</section></main>
+<footer class="site-footer"><span>fin · MIT</span><span class="sp"></span><a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a></footer>
+</body>
+</html>
