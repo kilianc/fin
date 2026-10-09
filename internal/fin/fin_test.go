@@ -638,19 +638,50 @@ func TestSetupPagesMatchThePrompt(t *testing.T) {
 		if !strings.Contains(string(readme), `href="`+PagesURL+agent.Slug+`/"`) {
 			t.Errorf("README has no button linking to %s%s/", PagesURL, agent.Slug)
 		}
-		path := "../../docs/" + agent.Slug + "/index.html"
-		want := SetupPage(agent)
-		if *update {
-			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(path, []byte(want), 0o644); err != nil {
-				t.Fatal(err)
-			}
-			continue
+		checkGenerated(t, "../../docs/"+agent.Slug+"/index.html", SetupPage(agent))
+	}
+}
+
+// The gallery's try pages carry each example prompt into Claude Code and
+// Codex. Regenerate with: make docs
+func TestTryPagesMatchTheExamples(t *testing.T) {
+	files := map[string]string{}
+	for _, name := range []string{"README.md", "docs/index.html", "docs/examples/index.html"} {
+		data, err := os.ReadFile("../../" + name)
+		if err != nil {
+			t.Fatal(err)
 		}
-		if got, err := os.ReadFile(path); err != nil || string(got) != want {
-			t.Errorf("%s is out of date with the agent prompt; regenerate it with: make docs", path)
+		files[name] = string(data)
+	}
+	for _, e := range Examples {
+		if n := len(e.agentPrompt()); n > 500 {
+			t.Errorf("%s prompt is %d characters; Claude Code stalls typing long deep-link prompts", e.Slug, n)
 		}
+		if !strings.Contains(files["README.md"], `href="`+e.TryURL()+`"`) {
+			t.Errorf("README has no try link for %s", e.Slug)
+		}
+		if !strings.Contains(files["docs/index.html"], `href="try/`+e.Slug+`/"`) {
+			t.Errorf("docs/index.html has no try link for %s", e.Slug)
+		}
+		if !strings.Contains(files["docs/examples/index.html"], e.Prompt) {
+			t.Errorf("docs/examples/index.html doesn't show the %s prompt verbatim", e.Slug)
+		}
+		checkGenerated(t, "../../docs/try/"+e.Slug+"/index.html", TryPage(e))
+	}
+}
+
+func checkGenerated(t *testing.T, path, want string) {
+	t.Helper()
+	if *update {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(want), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	if got, err := os.ReadFile(path); err != nil || string(got) != want {
+		t.Errorf("%s is out of date; regenerate it with: make docs", path)
 	}
 }

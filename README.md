@@ -25,15 +25,32 @@ you get tables; when an agent such as Claude runs it, it gets JSON.
 
 ## What you can ask
 
-Ask your agent in plain words; it runs fin and writes the report. The numbers
-below are made up.
+Ask your agent in plain words; it runs fin and writes the report. Each "Try
+it" link opens the prompt in Claude Code or Codex. The numbers below are made
+up.
 
-<p>
-  <a href="https://kilianc.github.io/fin/examples/#card-1"><img src="docs/examples/1.png" alt="Spending report: September spending by category compared with August" width="49%"></a>
-  <a href="https://kilianc.github.io/fin/examples/#card-2"><img src="docs/examples/2.png" alt="Subscription audit: 14 subscriptions with price increases and duplicates flagged" width="49%"></a>
-  <a href="https://kilianc.github.io/fin/examples/#card-3"><img src="docs/examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages" width="49%"></a>
-  <a href="https://kilianc.github.io/fin/examples/#card-4"><img src="docs/examples/4.png" alt="Net worth: monthly chart for the year and what moved it" width="49%"></a>
-</p>
+<table>
+<tr>
+<td width="50%" valign="top">
+<a href="https://kilianc.github.io/fin/try/spending/"><img src="docs/examples/1.png" alt="Spending report: last month by category compared with the month before"></a>
+<p><b>“Where did my money go last month? Compare it to the month before.”</b><br><a href="https://kilianc.github.io/fin/try/spending/">Try it in Claude Code or Codex →</a></p>
+</td>
+<td width="50%" valign="top">
+<a href="https://kilianc.github.io/fin/try/subscriptions/"><img src="docs/examples/2.png" alt="Subscription audit: 14 subscriptions with price increases and duplicates flagged"></a>
+<p><b>“Find every subscription I'm paying for. Flag price increases, trials that turned paid, and anything I'm paying for twice.”</b><br><a href="https://kilianc.github.io/fin/try/subscriptions/">Try it in Claude Code or Codex →</a></p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="https://kilianc.github.io/fin/try/portfolio/"><img src="docs/examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages"></a>
+<p><b>“How is my money invested across my brokerages? What's my unrealized gain?”</b><br><a href="https://kilianc.github.io/fin/try/portfolio/">Try it in Claude Code or Codex →</a></p>
+</td>
+<td width="50%" valign="top">
+<a href="https://kilianc.github.io/fin/try/net-worth/"><img src="docs/examples/4.png" alt="Net worth: monthly chart for the year and what moved it"></a>
+<p><b>“Chart my net worth this year and tell me what moved it.”</b><br><a href="https://kilianc.github.io/fin/try/net-worth/">Try it in Claude Code or Codex →</a></p>
+</td>
+</tr>
+</table>
 
 ## What you need
 

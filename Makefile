@@ -14,10 +14,10 @@ test:
 	go vet ./...
 	go test -race ./...
 
-# Regenerate the GitHub Pages setup pages from the agent prompt.
+# Regenerate the GitHub Pages setup and try pages from their prompts.
 .PHONY: docs
 docs:
-	go test ./internal/fin -run TestSetupPagesMatchThePrompt -update
+	go test ./internal/fin -run 'Test(SetupPages|TryPages)' -update
 
 # Re-render the README gallery from docs/examples/index.html.
 .PHONY: gallery

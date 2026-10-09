@@ -41,8 +41,9 @@ body.single .card { border: 0; border-radius: 0; box-shadow: none; }
 .top b { font-size: 15px; letter-spacing: -.01em; }
 .top .sp { flex: 1; }
 .label { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-.ask { margin: 22px 0 10px; padding: 16px 20px; background: var(--bg); border: 1px solid var(--rule); border-radius: 10px; font-size: 21px; line-height: 1.4; font-weight: 500; letter-spacing: -.01em; }
-.ask .label { display: block; margin-bottom: 6px; }
+.ask { margin: 20px 0 12px; padding: 18px 24px; background: #EEF4F8; border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; font-size: 25px; line-height: 1.35; font-weight: 600; letter-spacing: -.015em; }
+.ask .label { display: block; margin-bottom: 6px; color: var(--accent); }
+.foot .try { color: var(--accent); font-weight: 600; }
 .ran { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 6px; }
 .ran code { font: 12.5px var(--mono); color: var(--ink2); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 2px 8px; }
 .ran .ok { color: var(--good); font-weight: 600; }
@@ -95,7 +96,7 @@ td.r, th.r { text-align: right; }
 <!-- 1 · spending -->
 <div class="scroll"><section class="card" id="card-1">
   <div class="top"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b><span class="sp"></span><span class="label">Spending report</span></div>
-  <div class="ask"><span class="label">You ask</span>Where did my money go in September? Compare it to August.</div>
+  <div class="ask"><span class="label">You ask</span>Where did my money go last month? Compare it to the month before.</div>
   <div class="ran"><span class="ok">✓</span> Your agent ran <code>fin transactions --since 2026-08-01 --json</code></div>
   <hr>
   <div class="result">
@@ -129,7 +130,7 @@ td.r, th.r { text-align: right; }
       </div>
     </div>
   </div>
-  <div class="foot"><span>Read-only data from your own accounts, via Plaid</span><span class="sp"></span><span>Illustrative data</span></div>
+  <div class="foot"><span>Illustrative data · read-only, from your own accounts via Plaid</span><span class="sp"></span><span class="try">Try it → kilianc.github.io/fin/try/spending</span></div>
 </section></div>
 
 <!-- 2 · subscriptions -->
@@ -157,13 +158,13 @@ td.r, th.r { text-align: right; }
       </tbody>
     </table>
   </div>
-  <div class="foot"><span>Read-only data from your own accounts, via Plaid</span><span class="sp"></span><span>Illustrative data</span></div>
+  <div class="foot"><span>Illustrative data · read-only, from your own accounts via Plaid</span><span class="sp"></span><span class="try">Try it → kilianc.github.io/fin/try/subscriptions</span></div>
 </section></div>
 
 <!-- 3 · portfolio -->
 <div class="scroll"><section class="card" id="card-3">
   <div class="top"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b><span class="sp"></span><span class="label">Portfolio review</span></div>
-  <div class="ask"><span class="label">You ask</span>How is my money invested across Fidelity, Schwab and Robinhood? What's my unrealized gain?</div>
+  <div class="ask"><span class="label">You ask</span>How is my money invested across my brokerages? What's my unrealized gain?</div>
   <div class="ran"><span class="ok">✓</span> Your agent ran <code>fin holdings --json</code></div>
   <hr>
   <div class="result">
@@ -193,7 +194,7 @@ td.r, th.r { text-align: right; }
       </tbody>
     </table>
   </div>
-  <div class="foot"><span>Read-only data from your own accounts, via Plaid</span><span class="sp"></span><span>Illustrative data</span></div>
+  <div class="foot"><span>Illustrative data · read-only, from your own accounts via Plaid</span><span class="sp"></span><span class="try">Try it → kilianc.github.io/fin/try/portfolio</span></div>
 </section></div>
 
 <!-- 4 · net worth -->
@@ -223,7 +224,7 @@ td.r, th.r { text-align: right; }
       </div>
     </div>
   </div>
-  <div class="foot"><span>Read-only data from your own accounts, via Plaid</span><span class="sp"></span><span>Illustrative data</span></div>
+  <div class="foot"><span>Illustrative data · read-only, from your own accounts via Plaid</span><span class="sp"></span><span class="try">Try it → kilianc.github.io/fin/try/net-worth</span></div>
 </section></div>
 </div>
 

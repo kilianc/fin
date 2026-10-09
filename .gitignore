@@ -18,5 +18,7 @@
 !/docs/*/
 !/docs/*/index.html
 !/docs/*/*.png
+!/docs/try/*/
+!/docs/try/*/index.html
 
 !*/
