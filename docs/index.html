@@ -10,70 +10,120 @@
 <meta property="og:image" content="https://kilianc.github.io/fin/examples/1.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   color-scheme: light;
-  --bg: #F4F5F7; --paper: #FFFFFF; --ink: #0E1B2E; --ink2: #3B4757; --muted: #6A7686;
-  --rule: #E4E7EB; --accent: #356B8D; --accent2: #81B1CF; --good: #23855B;
-  --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --bg: #F5F6F8; --paper: #FFFFFF; --ink: #0B1626; --ink2: #3A4656; --muted: #6A7686;
+  --rule: #E3E6EB; --accent: #356B8D; --accent2: #81B1CF; --tint: #EEF4F8; --good: #23855B;
+  --sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 var(--sans); }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
 a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+code { font-family: var(--mono); font-size: .9em; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
 
-nav { border-bottom: 1px solid var(--rule); background: var(--paper); }
+nav { position: sticky; top: 0; z-index: 5; background: rgba(255, 255, 255, .82); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--rule); }
 nav .wrap { display: flex; align-items: center; gap: 10px; height: 60px; }
-nav img { width: 30px; height: 30px; }
-nav b { font-size: 18px; letter-spacing: -.01em; }
+nav img { width: 28px; height: 28px; }
+nav b { font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
 nav .sp { flex: 1; }
-nav a { color: var(--ink2); font-size: 15px; margin-left: 20px; }
+nav a { color: var(--ink2); font-size: 15px; margin-left: 22px; }
+nav a.gh { color: var(--ink); font-weight: 500; border: 1px solid var(--rule); border-radius: 8px; padding: 6px 12px; background: var(--paper); }
+nav a.gh:hover { text-decoration: none; border-color: #C8D0DA; }
 
-.hero { padding: 72px 0 56px; display: grid; grid-template-columns: 1fr 220px; gap: 48px; align-items: center; }
-.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-h1 { font-size: 52px; line-height: 1.08; letter-spacing: -.03em; font-weight: 700; margin: 14px 0 18px; }
-.lede { font-size: 19px; color: var(--ink2); margin: 0 0 28px; max-width: 640px; }
-.mark { width: 220px; height: 220px; }
-.buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.hero-bg { background: radial-gradient(900px 420px at 78% 10%, #E4EEF5 0%, rgba(228, 238, 245, 0) 70%), linear-gradient(180deg, #FFFFFF, var(--bg)); border-bottom: 1px solid var(--rule); }
+.hero { padding: 76px 0 72px; display: grid; grid-template-columns: 1.02fr 1fr; gap: 56px; align-items: center; }
+.hero > * { min-width: 0; }
+.cmd code { min-width: 0; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--ink2); background: var(--paper); border: 1px solid var(--rule); border-radius: 999px; padding: 5px 12px 5px 8px; }
+.eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px rgba(35, 133, 91, .15); }
+h1 { font-size: 56px; line-height: 1.04; letter-spacing: -.045em; font-weight: 650; margin: 20px 0 18px; }
+h1 span { color: var(--accent); }
+.lede { font-size: 19px; line-height: 1.55; color: var(--ink2); margin: 0 0 30px; max-width: 540px; }
+.buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.buttons a { display: block; border-radius: 12px; transition: transform .15s, box-shadow .15s; }
+.buttons a:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(11, 22, 38, .14); }
 .buttons img { height: 52px; width: auto; display: block; }
-.cmd { display: flex; align-items: center; gap: 12px; max-width: 640px; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 8px 8px 16px; }
-.cmd code { flex: 1; font: 14px var(--mono); color: var(--ink); overflow-x: auto; white-space: nowrap; }
-.cmd button { font: 600 13px var(--sans); padding: 7px 14px; border-radius: 7px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink2); cursor: pointer; }
+.cmd { display: flex; align-items: center; gap: 12px; max-width: 540px; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 7px 7px 7px 14px; }
+.cmd .p { color: var(--muted); font-family: var(--mono); font-size: 14px; }
+.cmd code { flex: 1; font-size: 14px; color: var(--ink); overflow-x: auto; white-space: nowrap; }
+.cmd button { font: 500 13px var(--sans); padding: 7px 14px; border-radius: 7px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink2); cursor: pointer; }
 .cmd button:hover { border-color: var(--accent); color: var(--accent); }
 .note { font-size: 14px; color: var(--muted); margin: 10px 0 0; }
 
-section { padding: 56px 0; border-top: 1px solid var(--rule); }
-h2 { font-size: 28px; letter-spacing: -.02em; margin: 0 0 6px; }
-.sub { color: var(--muted); margin: 0 0 28px; }
-.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.gallery figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
-.gallery .shot { display: block; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; background: var(--paper); box-shadow: 0 1px 2px rgba(14, 27, 46, .04); transition: box-shadow .15s, border-color .15s; }
-.gallery .shot:hover { border-color: #C9D3DD; box-shadow: 0 6px 20px rgba(14, 27, 46, .08); }
-.gallery img { width: 100%; height: auto; display: block; }
-.gallery figcaption { flex: 1; display: flex; align-items: flex-end; gap: 16px; }
-.gallery .q { flex: 1; font-size: 17px; font-weight: 600; line-height: 1.4; letter-spacing: -.01em; }
-.gallery .go { flex: none; font-size: 15px; font-weight: 600; }
+.shotstack { position: relative; height: 430px; }
+.shotstack img { position: absolute; width: 92%; border-radius: 12px; border: 1px solid var(--rule); background: var(--paper); }
+.shotstack .back { right: 0; top: 0; opacity: .9; box-shadow: 0 10px 30px rgba(11, 22, 38, .08); }
+.shotstack .front { left: 0; bottom: 0; box-shadow: 0 30px 60px -12px rgba(11, 22, 38, .22), 0 12px 24px -8px rgba(11, 22, 38, .10); }
 
-.points { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
-.point { border-top: 2px solid var(--accent); padding-top: 14px; }
-.point h3 { font-size: 16px; margin: 0 0 6px; }
+.strip { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--rule); border-radius: 12px; background: var(--paper); margin: -36px 0 0; position: relative; }
+.strip div { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-left: 1px solid var(--rule); font-size: 15px; color: var(--ink2); }
+.strip div:first-child { border-left: 0; }
+.strip svg { flex: none; width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.strip b { display: block; color: var(--ink); font-weight: 600; font-size: 15px; }
+
+section { padding: 88px 0 0; }
+.kicker { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+h2 { font-size: 38px; line-height: 1.12; letter-spacing: -.035em; font-weight: 650; margin: 0 0 12px; }
+.sub { color: var(--ink2); font-size: 18px; margin: 0 0 36px; max-width: 640px; }
+
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: step; }
+.step { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 24px; }
+.step::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--tint); color: var(--accent); font-weight: 600; font-size: 14px; margin-bottom: 16px; }
+.step h3 { margin: 0 0 6px; font-size: 18px; letter-spacing: -.02em; font-weight: 600; }
+.step p { margin: 0; color: var(--ink2); font-size: 15px; }
+.step code { background: var(--bg); border: 1px solid var(--rule); border-radius: 5px; padding: 1px 6px; }
+
+.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 40px 28px; }
+.gallery figure { margin: 0; display: flex; flex-direction: column; gap: 14px; }
+.gallery figcaption { flex: 1; display: flex; align-items: flex-end; gap: 16px; }
+.gallery .q { flex: 1; font-size: 19px; font-weight: 600; line-height: 1.35; letter-spacing: -.02em; }
+.gallery .go { flex: none; font-size: 14px; font-weight: 500; color: var(--accent); border: 1px solid var(--rule); background: var(--paper); border-radius: 999px; padding: 5px 12px; }
+.gallery .go:hover { text-decoration: none; border-color: var(--accent); }
+.gallery .shot { display: block; border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; background: var(--paper); box-shadow: 0 1px 2px rgba(11, 22, 38, .04); transition: box-shadow .2s, transform .2s; }
+.gallery .shot:hover { transform: translateY(-2px); box-shadow: 0 20px 40px -12px rgba(11, 22, 38, .18); }
+.gallery img { width: 100%; height: auto; display: block; }
+
+.points { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.point { border-top: 1px solid var(--ink); padding-top: 16px; }
+.point h3 { font-size: 17px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 6px; }
 .point p { margin: 0; font-size: 15px; color: var(--ink2); }
 
-footer { border-top: 1px solid var(--rule); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
-footer .wrap { display: flex; gap: 16px; flex-wrap: wrap; }
+.cta { margin: 96px 0 0; padding: 48px; border-radius: 16px; background: #0B1626; color: #E8EEF4; display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center; }
+.cta h2 { color: #FFFFFF; font-size: 32px; margin: 0 0 8px; }
+.cta p { margin: 0; color: #A9B6C4; }
+.cta .buttons { margin: 0; }
+
+footer { padding: 40px 0 48px; color: var(--muted); font-size: 14px; }
+footer .wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+footer img { width: 22px; height: 22px; }
 footer .sp { flex: 1; }
 
-@media (max-width: 860px) {
-  .hero { grid-template-columns: 1fr; padding: 48px 0 40px; }
-  .mark { display: none; }
-  h1 { font-size: 38px; }
-  .gallery { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; padding: 48px 0 64px; }
+  .shotstack { height: auto; }
+  .shotstack .back { display: none; }
+  .shotstack .front { position: static; width: 100%; }
+  h1 { font-size: 40px; }
+  h2 { font-size: 30px; }
+  .strip { grid-template-columns: 1fr 1fr; margin-top: -28px; }
+  .strip div:nth-child(3) { border-left: 0; }
+  .strip div:nth-child(n+3) { border-top: 1px solid var(--rule); }
+  .steps, .gallery { grid-template-columns: 1fr; }
   .points { grid-template-columns: 1fr 1fr; }
+  .cta { grid-template-columns: 1fr; padding: 32px 24px; }
 }
 @media (max-width: 520px) {
-  .points { grid-template-columns: 1fr; }
+  .strip, .points { grid-template-columns: 1fr; }
+  .strip div { border-left: 0; border-top: 1px solid var(--rule); }
+  .strip div:first-child { border-top: 0; }
   nav a.hide-sm { display: none; }
 }
 </style>
@@ -82,30 +132,55 @@ footer .sp { flex: 1; }
 <nav><div class="wrap">
   <img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b>
   <span class="sp"></span>
+  <a class="hide-sm" href="#how">How it works</a>
   <a class="hide-sm" href="#examples">Examples</a>
   <a class="hide-sm" href="#trust">Security</a>
-  <a href="https://github.com/kilianc/fin">GitHub</a>
+  <a class="gh" href="https://github.com/kilianc/fin">GitHub</a>
 </div></nav>
 
-<main class="wrap">
+<div class="hero-bg"><div class="wrap">
   <div class="hero">
     <div>
-      <div class="eyebrow">Open source · Read-only · Runs on your Mac</div>
-      <h1>Your bank and brokerage data, on your own machine.</h1>
-      <p class="lede">fin connects to your accounts through Plaid and answers you and your AI agents from your laptop. Your keys stay in your macOS Keychain, and you own all of it end to end.</p>
+      <span class="eyebrow"><i></i>Open source · read-only · runs on your Mac</span>
+      <h1>Your money, <span>on your machine.</span></h1>
+      <p class="lede">fin pulls your bank, card and brokerage data through Plaid and answers you and your AI agents from your laptop. No server, no third party, keys in your Keychain.</p>
       <div class="buttons">
         <a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude"></a>
         <a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex"></a>
       </div>
-      <div class="cmd"><code id="install">go install github.com/kilianc/fin/cmd/fin@latest</code><button type="button" data-copy="install">Copy</button></div>
+      <div class="cmd"><span class="p">$</span><code id="install">go install github.com/kilianc/fin/cmd/fin@latest</code><button type="button" data-copy="install">Copy</button></div>
       <p class="note">Needs a Mac and <a href="https://go.dev/dl/">Go</a> 1.26 or newer. Then run <code>fin init</code>.</p>
     </div>
-    <img class="mark" src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="Fin, the shark mascot, in a navy badge">
+    <div class="shotstack">
+      <img class="back" src="examples/3.png" alt="">
+      <img class="front" src="examples/1.png" alt="A spending report an agent wrote with fin">
+    </div>
+  </div>
+</div></div>
+
+<main class="wrap">
+  <div class="strip">
+    <div><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span><b>Read-only</b>Cannot move money</span></div>
+    <div><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/></svg><span><b>Local</b>No server, nothing hosted</span></div>
+    <div><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/></svg><span><b>Keychain</b>Keys never leave your Mac</span></div>
+    <div><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg><span><b>Open source</b>MIT licensed</span></div>
   </div>
 
+  <section id="how">
+    <div class="kicker">How it works</div>
+    <h2>Three steps, about fifteen minutes.</h2>
+    <p class="sub">Your agent can do most of it for you; you only type passwords and sign in to your banks.</p>
+    <div class="steps">
+      <div class="step"><h3>Install</h3><p><code>go install</code> puts <code>fin</code> on your Mac. <code>fin init</code> shows what's left.</p></div>
+      <div class="step"><h3>Connect</h3><p>Sign up for Plaid's free Trial plan, then link up to 10 banks, cards and brokerages with <code>fin link</code>.</p></div>
+      <div class="step"><h3>Ask</h3><p>Ask your agent in plain words. It runs fin, reads JSON, and writes you a report.</p></div>
+    </div>
+  </section>
+
   <section id="examples">
+    <div class="kicker">Examples</div>
     <h2>What you can ask</h2>
-    <p class="sub">Ask in plain words; your agent runs fin and writes the report. Click a prompt to open it in Claude Code or Codex. The numbers are made up.</p>
+    <p class="sub">Each prompt opens in Claude Code or Codex with one click. The numbers below are made up.</p>
     <div class="gallery">
       <figure>
         <figcaption><span class="q">“Where did my money go last month? Compare it to the month before.”</span><a class="go" href="try/spending/">Try it →</a></figcaption>
@@ -127,19 +202,28 @@ footer .sp { flex: 1; }
   </section>
 
   <section id="trust">
-    <h2>Built to be trusted</h2>
-    <p class="sub">Your financial data never passes through anyone but Plaid and you.</p>
+    <div class="kicker">Security</div>
+    <h2>Built to be trusted.</h2>
+    <p class="sub">Your financial data goes from Plaid to your laptop and nowhere else.</p>
     <div class="points">
-      <div class="point"><h3>Read-only</h3><p>Balances, transactions and investments. fin never asks Plaid for account numbers or identity, and cannot move money.</p></div>
-      <div class="point"><h3>Local</h3><p>No server, nothing to deploy. Keys live in your Keychain, state in one file only you can read.</p></div>
-      <div class="point"><h3>Made for agents</h3><p>Tables in your terminal, JSON for your agent, clear exit codes, and errors that say what to run next.</p></div>
-      <div class="point"><h3>Free</h3><p>Plaid's Trial plan connects up to 10 institutions at no cost. fin is MIT licensed.</p></div>
+      <div class="point"><h3>Read-only by design</h3><p>Balances, transactions and investments. fin never asks Plaid for account numbers or identity, and has no way to move money.</p></div>
+      <div class="point"><h3>Nothing hosted</h3><p>No server and no account with anyone but Plaid. fin talks to Plaid's API from your laptop and prints the answer.</p></div>
+      <div class="point"><h3>Secrets in the Keychain</h3><p>Your Plaid keys and access tokens live in the macOS Keychain. State is one file only you can read.</p></div>
+      <div class="point"><h3>Made for agents</h3><p>Tables for you, JSON for your agent, clear exit codes, and errors that say exactly what to run next.</p></div>
     </div>
   </section>
+
+  <div class="cta">
+    <div><h2>Own your financial data.</h2><p>Free to use with Plaid's Trial plan. Set up in minutes with your AI agent.</p></div>
+    <div class="buttons">
+      <a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude"></a>
+      <a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex"></a>
+    </div>
+  </div>
 </main>
 
 <footer><div class="wrap">
-  <span>fin · MIT license</span><span class="sp"></span>
+  <img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><span>fin · MIT license</span><span class="sp"></span>
   <a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a>
 </div></footer>
 <script>
