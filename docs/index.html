@@ -26,7 +26,9 @@ a{color:#2C5F80}a:hover{color:#173F59}
 .insts{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-top:1px solid #E1E4E8;border-left:1px solid #E1E4E8}
 .inst{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;height:104px;border-right:1px solid #E1E4E8;border-bottom:1px solid #E1E4E8;color:#7D8794;background:#FFFFFF}
 .inst span{font-size:12px;color:#7D8794;letter-spacing:0.01em}
-@media (max-width:820px){.terms,.gal,.help{grid-template-columns:minmax(0,1fr)}.insts{grid-template-columns:repeat(3,minmax(0,1fr))}.hide-sm{display:none}}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:48px;align-items:center}
+.hero-logo{width:240px;height:240px;display:block}
+@media (max-width:820px){.hero{grid-template-columns:minmax(0,1fr);gap:24px}.hero-logo{order:-1;width:96px;height:96px}.terms,.gal,.help{grid-template-columns:minmax(0,1fr)}.insts{grid-template-columns:repeat(3,minmax(0,1fr))}.hide-sm{display:none}}
 </style>
 </head>
 <body>
@@ -40,13 +42,16 @@ a{color:#2C5F80}a:hover{color:#173F59}
   </header>
 
   <main>
-    <section style="max-width: 1040px; margin: 0 auto; padding: 80px 24px 0">
+    <section class="hero" style="max-width: 1040px; margin: 0 auto; padding: 80px 24px 0">
+      <div>
       <h1 style="font-size: 52px; line-height: 1.06; letter-spacing: -0.04em; font-weight: 600; color: #111A26; margin: 0 0 20px; max-width: 820px">Your financial data for your AI agent. Read-only, local, free.</h1>
       <p style="font-size: 19px; color: #4A5666; margin: 0 0 32px; max-width: 640px">fin connects your banks, cards and brokerages through Plaid and can't move a dollar. It runs on your laptop with no fin server in between, keeps its keys in your Keychain, and costs nothing on Plaid's free Trial plan.</p>
       <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
         <a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude" style="height: 52px; display: block"></a>
         <a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex" style="height: 52px; display: block"></a>
       </div>
+      </div>
+      <img class="hero-logo" src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="fin mascot">
     </section>
 
     <section style="max-width: 1040px; margin: 0 auto; padding: 56px 24px 0">
