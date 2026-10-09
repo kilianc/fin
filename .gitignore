@@ -1,0 +1,16 @@
+# Allowlist: ignore everything, then admit source files only. This keeps
+# state files, exports and binaries out of a repository about money.
+*
+
+!/.gitignore
+!*.go
+!go.mod
+!go.sum
+!README.md
+!LICENSE
+!Makefile
+!/scripts/
+!/scripts/*.sh
+!/mascot.png
+
+!*/

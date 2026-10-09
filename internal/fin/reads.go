@@ -1,0 +1,615 @@
+package fin
+
+import (
+	"cmp"
+	"context"
+	"flag"
+	"fmt"
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/kilianc/fin/internal/plaid"
+	"github.com/kilianc/fin/internal/state"
+	"github.com/kilianc/fin/internal/ui"
+)
+
+// --- accounts ---
+
+type accountView struct {
+	Item         string         `json:"item"`
+	Institution  string         `json:"institution"`
+	AccountID    string         `json:"account_id"`
+	Name         string         `json:"name"`
+	OfficialName *string        `json:"official_name"`
+	Mask         *string        `json:"mask"`
+	Type         string         `json:"type"`
+	Subtype      *string        `json:"subtype"`
+	Balances     plaid.Balances `json:"balances"`
+}
+
+func (a *App) cmdAccounts(ctx context.Context, args []string) (*result, error) {
+	fs := flag.NewFlagSet("accounts", flag.ContinueOnError)
+	live := fs.Bool("live", false, "fetch live balances from the institution (slower, billed per call)")
+	if pos, err := parseArgs(fs, args); err != nil {
+		return nil, err
+	} else if len(pos) > 0 {
+		return nil, usageErr("usage: fin accounts [--live]")
+	}
+	_, items, api, err := a.readSetup("")
+	if err != nil {
+		return nil, err
+	}
+	parts := make([][]accountView, len(items))
+	errs := a.forEachItem(ctx, items, func(ctx context.Context, i int, token string) error {
+		get := api.AccountsGet
+		if *live {
+			get = api.AccountsBalanceGet
+		}
+		resp, err := get(ctx, token)
+		if err != nil {
+			return err
+		}
+		for _, acc := range resp.Accounts {
+			parts[i] = append(parts[i], accountView{
+				Item:         items[i].Name,
+				Institution:  items[i].InstitutionName,
+				AccountID:    acc.AccountID,
+				Name:         acc.Name,
+				OfficialName: acc.OfficialName,
+				Mask:         acc.Mask,
+				Type:         acc.Type,
+				Subtype:      acc.Subtype,
+				Balances:     acc.Balances,
+			})
+		}
+		return nil
+	})
+	accounts := flatten(parts)
+	currencies := make([]*string, len(accounts))
+	for i, v := range accounts {
+		currencies[i] = v.Balances.IsoCurrencyCode
+	}
+	t := &ui.Table{
+		Title:   fmt.Sprintf("Accounts · %d across %d Items", len(accounts), len(items)),
+		Headers: []string{"Item", "Account", "Mask", "Type", "Current", "Available", "Limit", "Ccy"},
+		Right:   []int{4, 5, 6},
+		Footer:  "Balances from Plaid's daily refresh. Use --live to ask each bank now (billed per call).",
+		Tone: func(row, col int) ui.Tone {
+			if col == 2 || col == 3 || col == 7 {
+				return ui.Dim
+			}
+			return ui.Plain
+		},
+	}
+	if *live {
+		t.Footer = "Live balances, straight from each institution."
+	}
+	for _, v := range accounts {
+		t.Rows = append(t.Rows, []string{
+			v.Item, v.Name, deref(v.Mask), strings.TrimSpace(deref(v.Subtype) + " " + v.Type),
+			fmtMoney(v.Balances.Current), fmtMoney(v.Balances.Available), fmtMoney(v.Balances.Limit),
+			deref(v.Balances.IsoCurrencyCode),
+		})
+	}
+	if onlyUSD(currencies) {
+		dropColumn(t, 7)
+	}
+	body := map[string]any{"env": a.Env, "live": *live, "accounts": accounts, "errors": errs}
+	return &result{body: body, table: t, errors: errs}, nil
+}
+
+// --- transactions ---
+
+type transactionView struct {
+	TransactionID    string  `json:"transaction_id"`
+	Item             string  `json:"item"`
+	Institution      string  `json:"institution"`
+	AccountID        string  `json:"account_id"`
+	AccountName      string  `json:"account_name"`
+	AccountMask      *string `json:"account_mask"`
+	Date             string  `json:"date"`
+	AuthorizedDate   *string `json:"authorized_date"`
+	Name             string  `json:"name"`
+	MerchantName     *string `json:"merchant_name"`
+	Amount           float64 `json:"amount"`
+	IsoCurrencyCode  *string `json:"iso_currency_code"`
+	Pending          bool    `json:"pending"`
+	Category         *string `json:"category"`
+	CategoryDetailed *string `json:"category_detailed"`
+	PaymentChannel   string  `json:"payment_channel"`
+}
+
+type syncView struct {
+	Item                     string     `json:"item"`
+	TransactionsUpdateStatus string     `json:"transactions_update_status"`
+	LastSync                 *time.Time `json:"last_sync"`
+}
+
+func (a *App) cmdTransactions(ctx context.Context, args []string) (*result, error) {
+	fs := flag.NewFlagSet("transactions", flag.ContinueOnError)
+	since := fs.String("since", "", "first date, YYYY-MM-DD (required)")
+	until := fs.String("until", "", "last date, YYYY-MM-DD (default today)")
+	account := fs.String("account", "", "account_id, mask or name")
+	from, to, err := a.dateRange(fs, args, since, until)
+	if err != nil {
+		return nil, err
+	}
+	st, items, api, err := a.readSetup("transactions")
+	if err != nil {
+		return nil, err
+	}
+	parts := make([][]transactionView, len(items))
+	syncs := make([]*syncView, len(items))
+	cursors := make([]string, len(items))
+	errs := a.forEachItem(ctx, items, func(ctx context.Context, i int, token string) error {
+		it := items[i]
+		res, err := syncTransactions(ctx, api, token, "")
+		if err != nil {
+			return err
+		}
+		if res.status == "NOT_READY" {
+			return &itemIssue{"TRANSACTIONS_NOT_READY", "Plaid is still pulling this Item's transactions; try again in a few minutes"}
+		}
+		now := a.Now().UTC()
+		syncs[i] = &syncView{Item: it.Name, TransactionsUpdateStatus: res.status, LastSync: &now}
+		cursors[i] = res.cursor
+		for _, t := range res.transactions {
+			acc := res.accounts[t.AccountID]
+			if t.Date < from || t.Date > to || (*account != "" && !matchAccount(*account, t.AccountID, acc)) {
+				continue
+			}
+			v := transactionView{
+				TransactionID:   t.TransactionID,
+				Item:            it.Name,
+				Institution:     it.InstitutionName,
+				AccountID:       t.AccountID,
+				AccountName:     acc.Name,
+				AccountMask:     acc.Mask,
+				Date:            t.Date,
+				AuthorizedDate:  t.AuthorizedDate,
+				Name:            t.Name,
+				MerchantName:    t.MerchantName,
+				Amount:          t.Amount,
+				IsoCurrencyCode: t.IsoCurrencyCode,
+				Pending:         t.Pending,
+				PaymentChannel:  t.PaymentChannel,
+			}
+			if c := t.PersonalFinanceCategory; c != nil {
+				v.Category, v.CategoryDetailed = &c.Primary, &c.Detailed
+			}
+			parts[i] = append(parts[i], v)
+		}
+		return nil
+	})
+
+	syncList := []syncView{}
+	for i, s := range syncs {
+		if s == nil {
+			continue
+		}
+		syncList = append(syncList, *s)
+		it := items[i]
+		it.TransactionsCursor = cursors[i]
+		it.LastSync = s.LastSync
+		st.Put(it)
+	}
+	if len(syncList) > 0 {
+		if err := a.saveState(st); err != nil {
+			return nil, err
+		}
+	}
+
+	txs := flatten(parts)
+	slices.SortStableFunc(txs, func(x, y transactionView) int {
+		return cmp.Or(strings.Compare(y.Date, x.Date), strings.Compare(x.Item, y.Item), strings.Compare(x.TransactionID, y.TransactionID))
+	})
+	var out, in float64
+	t := &ui.Table{
+		Title:   fmt.Sprintf("Transactions · %s → %s · %d", from, to, len(txs)),
+		Headers: []string{"Date", "Item", "Account", "Description", "Amount", "Ccy", "Category"},
+		Right:   []int{4},
+		Tone: func(row, col int) ui.Tone {
+			v := txs[row]
+			switch {
+			case col == 4 && v.Amount < 0:
+				return ui.Good
+			case v.Pending:
+				return ui.Dim
+			case col == 5 || col == 6:
+				return ui.Dim
+			}
+			return ui.Plain
+		},
+	}
+	for _, v := range txs {
+		name := v.Name
+		if v.MerchantName != nil {
+			name = *v.MerchantName
+		}
+		if v.Pending {
+			name += " (pending)"
+		}
+		if v.Amount >= 0 {
+			out += v.Amount
+		} else {
+			in -= v.Amount
+		}
+		category := strings.ToLower(strings.ReplaceAll(deref(v.Category), "_", " "))
+		t.Rows = append(t.Rows, []string{v.Date, v.Item, v.AccountName, truncate(name, 40), fmtNum2(-v.Amount), deref(v.IsoCurrencyCode), category})
+	}
+	t.Footer = fmt.Sprintf("Out %s · in %s  (spending shows as negative)", fmtNum2(out), fmtNum2(in))
+	currencies := make([]*string, len(txs))
+	for i, v := range txs {
+		currencies[i] = v.IsoCurrencyCode
+	}
+	if onlyUSD(currencies) {
+		dropColumn(t, 5)
+	}
+	body := map[string]any{
+		"env": a.Env, "since": from, "until": to, "account": *account,
+		"transactions": txs, "sync": syncList, "errors": errs,
+	}
+	return &result{body: body, table: t, errors: errs}, nil
+}
+
+// --- holdings ---
+
+type holdingView struct {
+	Item            string         `json:"item"`
+	Institution     string         `json:"institution"`
+	AccountID       string         `json:"account_id"`
+	AccountName     string         `json:"account_name"`
+	SecurityID      string         `json:"security_id"`
+	Ticker          *string        `json:"ticker"`
+	SecurityName    *string        `json:"security_name"`
+	SecurityType    *string        `json:"security_type"`
+	Quantity        float64        `json:"quantity"`
+	Price           float64        `json:"price"`
+	PriceAsOf       *string        `json:"price_as_of"`
+	Value           float64        `json:"value"`
+	CostBasis       *float64       `json:"cost_basis"`
+	IsoCurrencyCode *string        `json:"iso_currency_code"`
+	TaxLots         []plaid.TaxLot `json:"tax_lots"`
+}
+
+func (a *App) cmdHoldings(ctx context.Context, args []string) (*result, error) {
+	fs := flag.NewFlagSet("holdings", flag.ContinueOnError)
+	account := fs.String("account", "", "account_id, mask or name")
+	if pos, err := parseArgs(fs, args); err != nil {
+		return nil, err
+	} else if len(pos) > 0 {
+		return nil, usageErr("usage: fin holdings [--account X]")
+	}
+	_, items, api, err := a.readSetup("investments")
+	if err != nil {
+		return nil, err
+	}
+	parts := make([][]holdingView, len(items))
+	errs := a.forEachItem(ctx, items, func(ctx context.Context, i int, token string) error {
+		resp, err := api.InvestmentsHoldingsGet(ctx, token)
+		if err != nil {
+			return err
+		}
+		accounts := indexAccounts(resp.Accounts)
+		securities := indexSecurities(resp.Securities)
+		for _, h := range resp.Holdings {
+			acc := accounts[h.AccountID]
+			if *account != "" && !matchAccount(*account, h.AccountID, acc) {
+				continue
+			}
+			sec := securities[h.SecurityID]
+			lots := h.TaxLots
+			if lots == nil {
+				lots = []plaid.TaxLot{}
+			}
+			parts[i] = append(parts[i], holdingView{
+				Item:            items[i].Name,
+				Institution:     items[i].InstitutionName,
+				AccountID:       h.AccountID,
+				AccountName:     acc.Name,
+				SecurityID:      h.SecurityID,
+				Ticker:          sec.TickerSymbol,
+				SecurityName:    sec.Name,
+				SecurityType:    sec.Type,
+				Quantity:        h.Quantity,
+				Price:           h.InstitutionPrice,
+				PriceAsOf:       h.InstitutionPriceAsOf,
+				Value:           h.InstitutionValue,
+				CostBasis:       h.CostBasis,
+				IsoCurrencyCode: h.IsoCurrencyCode,
+				TaxLots:         lots,
+			})
+		}
+		return nil
+	})
+	holdings := flatten(parts)
+	var total, basis float64
+	t := &ui.Table{
+		Headers: []string{"Item", "Account", "Security", "Quantity", "Price", "Value", "Cost basis", "Gain", "Lots"},
+		Right:   []int{3, 4, 5, 6, 7, 8},
+		Tone: func(row, col int) ui.Tone {
+			v := holdings[row]
+			if col == 7 && v.CostBasis != nil {
+				if v.Value >= *v.CostBasis {
+					return ui.Good
+				}
+				return ui.Bad
+			}
+			if col == 8 {
+				return ui.Dim
+			}
+			return ui.Plain
+		},
+	}
+	for _, v := range holdings {
+		security := deref(v.Ticker)
+		if security == "" {
+			security = truncate(deref(v.SecurityName), 28)
+		}
+		gain := ""
+		if v.CostBasis != nil {
+			gain = fmtNum2(v.Value - *v.CostBasis)
+			basis += *v.CostBasis
+		}
+		total += v.Value
+		t.Rows = append(t.Rows, []string{
+			v.Item, v.AccountName, security, fmtNum(v.Quantity), fmtNum2(v.Price), fmtNum2(v.Value),
+			fmtMoney(v.CostBasis), gain, fmtNum(float64(len(v.TaxLots))),
+		})
+	}
+	t.Title = fmt.Sprintf("Holdings · %d positions · %s", len(holdings), fmtNum2(total))
+	t.Footer = fmt.Sprintf("Total value %s, cost basis %s where known.", fmtNum2(total), fmtNum2(basis))
+	body := map[string]any{"env": a.Env, "holdings": holdings, "errors": errs}
+	return &result{body: body, table: t, errors: errs}, nil
+}
+
+// --- investment transactions ---
+
+type investmentTransactionView struct {
+	InvestmentTransactionID string   `json:"investment_transaction_id"`
+	Item                    string   `json:"item"`
+	Institution             string   `json:"institution"`
+	AccountID               string   `json:"account_id"`
+	AccountName             string   `json:"account_name"`
+	Date                    string   `json:"date"`
+	Name                    string   `json:"name"`
+	Type                    string   `json:"type"`
+	Subtype                 string   `json:"subtype"`
+	SecurityID              *string  `json:"security_id"`
+	Ticker                  *string  `json:"ticker"`
+	SecurityName            *string  `json:"security_name"`
+	Quantity                float64  `json:"quantity"`
+	Price                   float64  `json:"price"`
+	Amount                  float64  `json:"amount"`
+	Fees                    *float64 `json:"fees"`
+	IsoCurrencyCode         *string  `json:"iso_currency_code"`
+}
+
+// invPageSize is Plaid's maximum page size for /investments/transactions/get.
+var invPageSize = 500
+
+func (a *App) cmdInvestments(ctx context.Context, args []string) (*result, error) {
+	fs := flag.NewFlagSet("investments", flag.ContinueOnError)
+	since := fs.String("since", "", "first date, YYYY-MM-DD (required)")
+	until := fs.String("until", "", "last date, YYYY-MM-DD (default today)")
+	account := fs.String("account", "", "account_id, mask or name")
+	from, to, err := a.dateRange(fs, args, since, until)
+	if err != nil {
+		return nil, err
+	}
+	_, items, api, err := a.readSetup("investments")
+	if err != nil {
+		return nil, err
+	}
+	parts := make([][]investmentTransactionView, len(items))
+	errs := a.forEachItem(ctx, items, func(ctx context.Context, i int, token string) error {
+		accounts := map[string]plaid.Account{}
+		securities := map[string]plaid.Security{}
+		var txs []plaid.InvestmentTransaction
+		for {
+			page, err := api.InvestmentsTransactionsGet(ctx, token, from, to, len(txs), invPageSize)
+			if err != nil {
+				return err
+			}
+			txs = append(txs, page.InvestmentTransactions...)
+			for _, acc := range page.Accounts {
+				accounts[acc.AccountID] = acc
+			}
+			for _, sec := range page.Securities {
+				securities[sec.SecurityID] = sec
+			}
+			if len(page.InvestmentTransactions) == 0 || len(txs) >= page.TotalInvestmentTransactions {
+				break
+			}
+		}
+		for _, t := range txs {
+			acc := accounts[t.AccountID]
+			if *account != "" && !matchAccount(*account, t.AccountID, acc) {
+				continue
+			}
+			v := investmentTransactionView{
+				InvestmentTransactionID: t.InvestmentTransactionID,
+				Item:                    items[i].Name,
+				Institution:             items[i].InstitutionName,
+				AccountID:               t.AccountID,
+				AccountName:             acc.Name,
+				Date:                    t.Date,
+				Name:                    t.Name,
+				Type:                    t.Type,
+				Subtype:                 t.Subtype,
+				SecurityID:              t.SecurityID,
+				Quantity:                t.Quantity,
+				Price:                   t.Price,
+				Amount:                  t.Amount,
+				Fees:                    t.Fees,
+				IsoCurrencyCode:         t.IsoCurrencyCode,
+			}
+			if t.SecurityID != nil {
+				sec := securities[*t.SecurityID]
+				v.Ticker, v.SecurityName = sec.TickerSymbol, sec.Name
+			}
+			parts[i] = append(parts[i], v)
+		}
+		return nil
+	})
+	txs := flatten(parts)
+	slices.SortStableFunc(txs, func(x, y investmentTransactionView) int {
+		return cmp.Or(strings.Compare(y.Date, x.Date), strings.Compare(x.Item, y.Item), strings.Compare(x.InvestmentTransactionID, y.InvestmentTransactionID))
+	})
+	t := &ui.Table{
+		Title:   fmt.Sprintf("Investment transactions · %s → %s · %d", from, to, len(txs)),
+		Headers: []string{"Date", "Item", "Account", "Type", "Security", "Quantity", "Price", "Amount"},
+		Right:   []int{5, 6, 7},
+		Tone: func(row, col int) ui.Tone {
+			if col == 3 {
+				return ui.Dim
+			}
+			return ui.Plain
+		},
+	}
+	for _, v := range txs {
+		security := deref(v.Ticker)
+		if security == "" {
+			security = truncate(deref(v.SecurityName), 28)
+		}
+		kind := v.Type
+		if v.Subtype != "" && v.Subtype != v.Type {
+			kind += " · " + v.Subtype
+		}
+		t.Rows = append(t.Rows, []string{
+			v.Date, v.Item, v.AccountName, kind, security,
+			fmtNum(v.Quantity), fmtNum2(v.Price), fmtNum2(v.Amount),
+		})
+	}
+	body := map[string]any{
+		"env": a.Env, "since": from, "until": to, "account": *account,
+		"investment_transactions": txs, "errors": errs,
+	}
+	return &result{body: body, table: t, errors: errs}, nil
+}
+
+// --- shared helpers ---
+
+// readSetup loads state, picks the Items with product, and builds a client.
+// With no matching Items it skips the Keychain entirely.
+func (a *App) readSetup(product string) (*state.State, []state.Item, Plaid, error) {
+	st, err := a.loadState()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	items := a.itemsWith(st, product)
+	if len(items) == 0 {
+		return st, items, nil, nil
+	}
+	api, err := a.plaid()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return st, items, api, nil
+}
+
+func (a *App) dateRange(fs *flag.FlagSet, args []string, since, until *string) (string, string, error) {
+	pos, err := parseArgs(fs, args)
+	if err != nil {
+		return "", "", err
+	}
+	if len(pos) > 0 {
+		return "", "", usageErr("unexpected argument %q", pos[0])
+	}
+	if *since == "" {
+		return "", "", usageErr("--since is required, e.g. --since 2026-01-01")
+	}
+	from, err := parseDate("since", *since)
+	if err != nil {
+		return "", "", err
+	}
+	to := a.Now().Format(dateLayout)
+	if *until != "" {
+		if to, err = parseDate("until", *until); err != nil {
+			return "", "", err
+		}
+	}
+	if to < from {
+		return "", "", usageErr("--until %s is before --since %s", to, from)
+	}
+	return from, to, nil
+}
+
+// matchAccount matches an --account value against an account_id, the last
+// four digits, or the account name (case-insensitive).
+func matchAccount(filter, accountID string, acc plaid.Account) bool {
+	return filter == accountID || filter == deref(acc.Mask) || strings.EqualFold(filter, acc.Name)
+}
+
+func indexAccounts(accounts []plaid.Account) map[string]plaid.Account {
+	m := make(map[string]plaid.Account, len(accounts))
+	for _, acc := range accounts {
+		m[acc.AccountID] = acc
+	}
+	return m
+}
+
+func indexSecurities(securities []plaid.Security) map[string]plaid.Security {
+	m := make(map[string]plaid.Security, len(securities))
+	for _, sec := range securities {
+		m[sec.SecurityID] = sec
+	}
+	return m
+}
+
+func flatten[T any](parts [][]T) []T {
+	out := []T{}
+	for _, p := range parts {
+		out = append(out, p...)
+	}
+	return out
+}
+
+func fmtNum2(v float64) string { return fmtMoney(&v) }
+
+// onlyUSD reports whether every amount is in US dollars, so the currency
+// column adds nothing.
+func onlyUSD(codes []*string) bool {
+	for _, c := range codes {
+		if c != nil && *c != "USD" {
+			return false
+		}
+	}
+	return true
+}
+
+// dropColumn removes a column from a table, keeping tones and alignment
+// pointed at the right cells.
+func dropColumn(t *ui.Table, col int) {
+	t.Headers = slices.Delete(slices.Clone(t.Headers), col, col+1)
+	for i, row := range t.Rows {
+		t.Rows[i] = slices.Delete(slices.Clone(row), col, col+1)
+	}
+	var right []int
+	for _, c := range t.Right {
+		switch {
+		case c < col:
+			right = append(right, c)
+		case c > col:
+			right = append(right, c-1)
+		}
+	}
+	t.Right = right
+	if tone := t.Tone; tone != nil {
+		t.Tone = func(row, c int) ui.Tone {
+			if c >= col {
+				c++
+			}
+			return tone(row, c)
+		}
+	}
+}
+
+func truncate(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n-1]) + "…"
+}
