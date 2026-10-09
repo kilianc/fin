@@ -7,29 +7,45 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./site.css">
+<link rel="stylesheet" href="./site.css?v=ed6fe40e90">
 <title>fin · a CLI for your financial data, built for the AI era</title>
-<meta name="description" content="Read-only, local, free: fin gives your AI agent your bank, card and brokerage data through Plaid, with no server in between.">
+<meta name="description" content="A CLI for your financial data, built for the AI era: fin gives your AI agent your bank, card and brokerage data through Plaid, locally and for free.">
 <meta property="og:title" content="fin">
-<meta property="og:description" content="A CLI for your financial data, built for the AI era. Read-only, local, free.">
+<meta property="og:description" content="A CLI for your financial data, built for the AI era.">
 <meta property="og:image" content="https://kilianc.github.io/fin/examples/1.png">
 <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
 <header class="site-header wrap">
-<a class="brand" href="./"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b></a><span class="where">~ local · read-only</span>
+<a class="brand" href="./"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b></a><span class="where">~ local</span>
 <span class="sp"></span>
 <nav><a href="./#examples">examples</a><a href="./#security">security</a><a href="https://github.com/kilianc/fin">github ↗</a></nav>
 </header>
 <main>
 <section class="section first wrap hero">
 <div>
-<h1 class="display">A CLI for your financial<br class="lg"> data, built for the AI era.<br><span class="soft">Read-only, local, free.</span></h1>
-<p class="lede">fin connects your banks, cards and brokerages through Plaid and can't move a dollar. It runs on your laptop with no fin server in between, keeps its keys in your Keychain, and costs nothing on Plaid's free Trial plan.</p>
+<h1 class="display">A CLI for your financial<br class="lg"> data, built for the AI era.</h1>
+<p class="lede"><b><span class="fin">fin</span></b> connects your banks, cards and brokerages through <a href="https://plaid.com/docs/">Plaid</a>. It <b>runs locally on your laptop</b>, keeps its keys in your Keychain, and <b>costs nothing</b> on Plaid's free Trial plan.</p>
 <div class="buttons">
 <a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude"></a>
 <a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex"></a>
+<button class="copy-prompt" id="copy-setup" type="button"><img src="copy-prompt.svg" alt="Copy the setup prompt"></button>
 </div>
+<template id="setup-prompt">Help me set up fin, a local command-line tool that reads my own bank and brokerage data through Plaid. fin is already installed; run `fin help` to see its commands. Use my web browser to do the navigating, clicking and form-filling for me, and leave me only the parts that need me personally.
+
+Ground rules:
+- Never type my passwords, verification codes or API secrets, and never accept terms, agreements or attestations for me. When one is needed, stop, tell me exactly what to click or paste and where, and wait.
+- Never put my Plaid secret in this chat, in a file, or anywhere except the hidden prompt of `fin setup` in my terminal.
+- Each institution I connect permanently uses one of my 10 free Plaid slots. Ask me before every `fin link`.
+
+Steps:
+1. Open https://dashboard.plaid.com/signup. Fill in the non-secret fields (ask me for anything you don&#39;t know). When asked how I&#39;ll use Plaid, choose personal use (building something for myself). Let me set the password, accept the terms and verify my email.
+2. Open https://dashboard.plaid.com/trial-plan and fill in the free Trial plan application. Describe the use as: &#34;Personal, read-only access to my own bank and brokerage accounts with a local command-line tool.&#34; Let me review and submit it. It is usually approved right away and allows 10 connected institutions. Do NOT apply for full Production access: once that is submitted, the Trial plan is no longer available.
+3. Open https://dashboard.plaid.com/developers/keys. Run `fin env production`. Then have me run `fin setup` in my terminal (it needs my keyboard): I copy the Client ID into its first prompt and the Production secret into its second. fin checks them with Plaid and saves them only in my macOS Keychain.
+4. Brand Plaid Link with fin&#39;s look, so the consent screen I see when connecting shows fin&#39;s mascot and colors. Download https://raw.githubusercontent.com/kilianc/fin/main/mascot.png; it is already the 1024 x 1024 PNG Plaid requires. Open https://dashboard.plaid.com/link and edit the customization named &#34;default&#34; (fin uses the default). In its settings (gear icon, upper right), set language English and countries United States only, or Plaid will ignore it. On the Consent pane choose co-branded, upload mascot.png as the logo (ask me to pick the file if you can&#39;t upload it yourself), set the brand color to #81B1CF and the background color to #00184B, then click Publish.
+5. Ask me which banks, credit cards and brokerages I want to connect. For each, run `fin institutions &lt;name&gt;` to confirm Plaid supports it, and tell me which slot count that leaves.
+6. For each one I approve, run `fin link --yes --open` in the background. It opens Plaid Link in my browser, where I pick the institution and sign in; fin collects transactions and investments, whichever the institution supports. Only if `fin institutions` shows an institution as brokerage-only, use `fin link brokerage --yes --open` instead.
+7. Finish with `fin items` and `fin accounts`, and summarize what is connected and healthy.</template>
 </div>
 <img class="hero-logo" src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="fin mascot">
 </section>
@@ -228,7 +244,7 @@
 }</pre>
   </div>
 </div>
-<p class="note">Made-up numbers in fin's real output format. In a terminal fin prints tables; when an agent runs it, JSON.</p>
+<p class="note">Made-up numbers in <span class="fin">fin</span>'s real output format. In a terminal <span class="fin">fin</span> prints tables; when an agent runs it, JSON.</p>
 </section>
 
 <section class="section wrap">
@@ -248,7 +264,7 @@
           <div class="inst"><span class="more">+ 12,000 more</span></div>
       
 </div>
-<p class="fine">Logos are trademarks of their owners. fin is independent and not affiliated with them or with Plaid.</p>
+<p class="fine">Logos are trademarks of their owners. <span class="fin">fin</span> is independent and not affiliated with them or with Plaid.</p>
 </section>
 
 <section id="examples" class="section wrap">
@@ -276,12 +292,12 @@
 
 <section id="security" class="section wrap">
 <p class="kicker">// fin help security</p>
-<h2 class="title">Read-only, local, yours.</h2>
+<h2 class="title">Local and yours.</h2>
 <dl class="help">
 <dt>reads</dt><dd>Balances, transactions, holdings with tax lots, investment activity.</dd>
 <dt>never requests</dt><dd>Plaid Auth or Identity: no account numbers, no personal details. Cannot move money.</dd>
-<dt>secrets</dt><dd>macOS Keychain, service "fin". State in ~/.config/fin/state.json, mode 0600.</dd>
-<dt>servers</dt><dd>None. fin calls Plaid's API from your laptop and prints the answer.</dd>
+<dt>secrets</dt><dd>macOS Keychain, service <code>fin</code>. State in <code>~/.config/fin/state.json</code>, mode 0600.</dd>
+<dt>servers</dt><dd>None. <span class="fin">fin</span> calls Plaid's API from your laptop and prints the answer.</dd>
 <dt>cost</dt><dd>Free on Plaid's Trial plan, up to 10 institutions. MIT licensed.</dd>
 </dl>
 <div class="install"><span class="p">$</span> go install github.com/kilianc/fin/cmd/fin@latest <span class="p">&amp;&amp;</span> fin init</div>
@@ -302,6 +318,16 @@
   tabs.forEach(function(t){t.addEventListener('click',function(){show(t.dataset.tab);});});
   modes.forEach(function(b){b.addEventListener('click',function(){setMode(b.dataset.mode);});});
   show('agent');
+})();
+</script>
+<script>
+(function(){
+  var b=document.getElementById('copy-setup');
+  b.onclick=function(){
+    navigator.clipboard.writeText(document.getElementById('setup-prompt').content.textContent);
+    var img=b.querySelector('img');img.src='copied-prompt.svg';img.alt='Copied to clipboard';
+    setTimeout(function(){img.src='copy-prompt.svg';img.alt='Copy the setup prompt';},2400);
+  };
 })();
 </script>
 </body>

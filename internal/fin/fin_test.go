@@ -2,9 +2,13 @@ package fin
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"flag"
+	"html/template"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -624,6 +628,15 @@ func TestTablesHideCurrencyWhenAllUSD(t *testing.T) {
 
 var update = flag.Bool("update", false, "rewrite docs/ from the agent prompt")
 
+func init() {
+	b, err := os.ReadFile("../../docs/site.css")
+	if err != nil {
+		panic(err)
+	}
+	sum := sha256.Sum256(b)
+	SiteCSSVersion = hex.EncodeToString(sum[:])[:10]
+}
+
 // The README's buttons open docs/<agent>/index.html on GitHub Pages, which
 // carries the agent prompt. Regenerate with: make docs
 func TestSetupPagesMatchThePrompt(t *testing.T) {
@@ -703,10 +716,20 @@ func TestSitePagesShareOneStyle(t *testing.T) {
 			t.Fatal(err)
 		}
 		page := string(b)
+		if *update && root == "./" {
+			// the landing page is hand-written; keep its stylesheet link current
+			page = regexp.MustCompile(`href="\./site\.css[^"]*"`).ReplaceAllString(page, `href="./site.css?v=`+SiteCSSVersion+`"`)
+			if err := os.WriteFile(path, []byte(page), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
 		for _, part := range []string{"head", "header", "footer"} {
 			if !strings.Contains(page, sitePart(part, root)) {
 				t.Errorf("%s doesn't carry the shared %s", path, part)
 			}
+		}
+		if root == "./" && !strings.Contains(page, `<template id="setup-prompt">`+template.HTMLEscapeString(agentPrompt)+`</template>`) {
+			t.Errorf("%s doesn't copy the current setup prompt", path)
 		}
 		if strings.Contains(page, "<style") || strings.Contains(page, ` style="`) {
 			t.Errorf("%s has styles of its own; put them in docs/site.css", path)

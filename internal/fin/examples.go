@@ -69,7 +69,7 @@ var tryPage = pageTemplate("try", `<!doctype html>
 <div class="shell-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="label">what your agent receives</span><button class="copy" id="copy" type="button">copy</button></div>
 <pre class="prose" id="prompt"><span class="you">you ›</span> {{.Lead}}<span class="hi">{{.Prompt}}</span></pre>
 </div>
-<p class="note">The app opens with this prompt filled in; read it, then press Enter. It needs fin installed and connected to your accounts, so <a href="{{.Root}}">set it up first</a> if you haven't.</p>
+<p class="note">The app opens with this prompt filled in; read it, then press Enter. It needs <span class="fin">fin</span> installed and connected to your accounts, so <a href="{{.Root}}">set it up first</a> if you haven't.</p>
 </section>
 <section class="section wrap">
 <p class="kicker">// what you might get · made-up numbers</p>
