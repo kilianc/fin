@@ -48,11 +48,11 @@ section { padding: 56px 0; border-top: 1px solid var(--rule); }
 h2 { font-size: 28px; letter-spacing: -.02em; margin: 0 0 6px; }
 .sub { color: var(--muted); margin: 0 0 28px; }
 .gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.gallery figure { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.gallery figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
 .gallery .shot { display: block; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; background: var(--paper); box-shadow: 0 1px 2px rgba(14, 27, 46, .04); transition: box-shadow .15s, border-color .15s; }
 .gallery .shot:hover { border-color: #C9D3DD; box-shadow: 0 6px 20px rgba(14, 27, 46, .08); }
 .gallery img { width: 100%; height: auto; display: block; }
-.gallery figcaption { display: flex; align-items: baseline; gap: 16px; }
+.gallery figcaption { flex: 1; display: flex; align-items: flex-end; gap: 16px; }
 .gallery .q { flex: 1; font-size: 17px; font-weight: 600; line-height: 1.4; letter-spacing: -.01em; }
 .gallery .go { flex: none; font-size: 15px; font-weight: 600; }
 
@@ -108,20 +108,20 @@ footer .sp { flex: 1; }
     <p class="sub">Ask in plain words; your agent runs fin and writes the report. Click a prompt to open it in Claude Code or Codex. The numbers are made up.</p>
     <div class="gallery">
       <figure>
-        <a class="shot" href="try/spending/"><img src="examples/1.png" alt="Spending report: last month by category compared with the month before"></a>
         <figcaption><span class="q">“Where did my money go last month? Compare it to the month before.”</span><a class="go" href="try/spending/">Try it →</a></figcaption>
+        <a class="shot" href="try/spending/"><img src="examples/1.png" alt="Spending report: last month by category compared with the month before"></a>
       </figure>
       <figure>
-        <a class="shot" href="try/subscriptions/"><img src="examples/2.png" alt="Subscription audit: 14 subscriptions with price increases and duplicates flagged"></a>
         <figcaption><span class="q">“Find every subscription I'm paying for. Flag price increases, trials that turned paid, and anything I'm paying for twice.”</span><a class="go" href="try/subscriptions/">Try it →</a></figcaption>
+        <a class="shot" href="try/subscriptions/"><img src="examples/2.png" alt="Subscription audit: 14 subscriptions with price increases and duplicates flagged"></a>
       </figure>
       <figure>
-        <a class="shot" href="try/portfolio/"><img src="examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages"></a>
         <figcaption><span class="q">“How is my money invested across my brokerages? What's my unrealized gain?”</span><a class="go" href="try/portfolio/">Try it →</a></figcaption>
+        <a class="shot" href="try/portfolio/"><img src="examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages"></a>
       </figure>
       <figure>
-        <a class="shot" href="try/net-worth/"><img src="examples/4.png" alt="Net worth: monthly chart for the year and what moved it"></a>
         <figcaption><span class="q">“Chart my net worth this year and tell me what moved it.”</span><a class="go" href="try/net-worth/">Try it →</a></figcaption>
+        <a class="shot" href="try/net-worth/"><img src="examples/4.png" alt="Net worth: monthly chart for the year and what moved it"></a>
       </figure>
     </div>
   </section>
