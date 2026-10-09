@@ -52,20 +52,21 @@ var setupPage = template.Must(template.New("setup").Parse(`<!doctype html>
 <title>Set up fin with {{.Name}}</title>
 <link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
 <style>
-:root { color-scheme: dark; }
-body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #00184B; color: #E8F4FC; font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
-main { box-sizing: border-box; width: 100%; max-width: 680px; padding: 48px 16px; text-align: center; }
-img { width: 128px; height: 128px; }
-h1 { font-size: 28px; margin: 16px 0 8px; }
-p { color: #9FC3DD; margin: 8px 0; }
-a { color: #81B1CF; }
-code { font: 14px ui-monospace, Menlo, monospace; color: #8CD9D6; }
-.open { display: inline-block; margin: 24px 0 16px; padding: 12px 28px; border-radius: 12px; background: #81B1CF; color: #00184B; font-weight: 600; text-decoration: none; }
-.open:hover { background: #8CD9D6; }
-details { margin-top: 32px; text-align: left; }
-summary { cursor: pointer; color: #9FC3DD; text-align: center; }
-pre { white-space: pre-wrap; background: #04245F; border: 1px solid #356B8D; border-radius: 12px; padding: 16px; font: 13px/1.5 ui-monospace, Menlo, monospace; color: #E8F4FC; }
-button { font: inherit; padding: 6px 16px; border-radius: 8px; border: 1px solid #81B1CF; background: transparent; color: #81B1CF; cursor: pointer; }
+:root { color-scheme: light; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #F4F5F7; color: #0E1B2E; font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Helvetica, Arial, sans-serif; }
+main { box-sizing: border-box; width: 100%; max-width: 640px; margin: 48px 16px; padding: 40px 36px; background: #FFFFFF; border: 1px solid #E4E7EB; border-radius: 12px; text-align: center; }
+img { width: 72px; height: 72px; }
+h1 { font-size: 26px; letter-spacing: -.02em; margin: 14px 0 8px; }
+p { color: #3B4757; margin: 8px 0; }
+p.small { color: #6A7686; font-size: 14px; }
+a { color: #356B8D; }
+code { font: 13.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: #0E1B2E; background: #F4F5F7; border: 1px solid #E4E7EB; border-radius: 5px; padding: 1px 6px; }
+.open { display: inline-block; margin: 22px 0 14px; padding: 11px 26px; border-radius: 8px; background: #0E1B2E; color: #FFFFFF; font-weight: 600; text-decoration: none; }
+.open:hover { background: #356B8D; }
+details { margin-top: 24px; padding-top: 20px; border-top: 1px solid #E4E7EB; text-align: left; }
+summary { cursor: pointer; color: #3B4757; text-align: center; }
+pre { white-space: pre-wrap; background: #F4F5F7; border: 1px solid #E4E7EB; border-radius: 8px; padding: 16px; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; color: #0E1B2E; }
+button { font: 600 13px -apple-system, BlinkMacSystemFont, sans-serif; padding: 7px 14px; border-radius: 7px; border: 1px solid #E4E7EB; background: #F4F5F7; color: #3B4757; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -74,13 +75,13 @@ button { font: inherit; padding: 6px 16px; border-radius: 8px; border: 1px solid
 <h1>Opening {{.Name}}…</h1>
 <p>Your browser asks to open {{.Name}} with fin's setup prompt filled in. Read the prompt, then press Enter.</p>
 <a class="open" href="{{.Link}}">Open {{.Name}}</a>
-<p>{{.Help}}</p>
+<p class="small">{{.Help}}</p>
 <details>
 <summary>Or copy the prompt into another agent</summary>
 <pre id="prompt">{{.Prompt}}</pre>
 <button id="copy" type="button">Copy</button>
 </details>
-<p><a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a></p>
+<p class="small"><a href="https://kilianc.github.io/fin/">kilianc.github.io/fin</a></p>
 </main>
 <script>
 location.href = {{.Link}};

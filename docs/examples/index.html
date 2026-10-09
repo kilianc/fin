@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fin · what you can ask</title>
+<link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
+<!--
+  The source of the gallery in the README and on the landing page. Each card
+  renders on its own at ?card=N, 1200 x 800; scripts/gallery.sh screenshots
+  them into docs/examples/N.png. All numbers are made up.
+-->
+<style>
+:root {
+  color-scheme: light;
+  --bg: #F4F5F7; --paper: #FFFFFF; --ink: #0E1B2E; --ink2: #3B4757; --muted: #6A7686;
+  --rule: #E4E7EB; --track: #EDEFF2; --accent: #356B8D; --accent2: #81B1CF;
+  --good: #23855B; --bad: #B4473E; --warn: #A26A12;
+  --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--sans); }
+.page { max-width: 1248px; margin: 0 auto; padding: 48px 24px; }
+.page > h1 { font-size: 32px; font-weight: 650; letter-spacing: -.02em; margin: 0 0 6px; }
+.page > p { color: var(--muted); margin: 0 0 32px; }
+.page .scroll { margin-bottom: 32px; overflow-x: auto; }
+body.single { width: 1200px; height: 800px; overflow: hidden; background: var(--paper); }
+body.single .page { padding: 0; max-width: none; }
+body.single .page > h1, body.single .page > p { display: none; }
+body.single .page .scroll { margin: 0; }
+body.single .card { border: 0; border-radius: 0; box-shadow: none; }
+
+.card {
+  width: 1200px; height: 800px; padding: 40px 52px 24px; background: var(--paper);
+  border: 1px solid var(--rule); border-radius: 12px; box-shadow: 0 1px 2px rgba(14, 27, 46, .04);
+  display: flex; flex-direction: column;
+}
+.top { display: flex; align-items: center; gap: 10px; }
+.top img { width: 26px; height: 26px; }
+.top b { font-size: 15px; letter-spacing: -.01em; }
+.top .sp { flex: 1; }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.ask { margin: 22px 0 10px; padding: 16px 20px; background: var(--bg); border: 1px solid var(--rule); border-radius: 10px; font-size: 21px; line-height: 1.4; font-weight: 500; letter-spacing: -.01em; }
+.ask .label { display: block; margin-bottom: 6px; }
+.ran { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.ran code { font: 12.5px var(--mono); color: var(--ink2); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 2px 8px; }
+.ran .ok { color: var(--good); font-weight: 600; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 22px 0; width: 100%; }
+.result { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 22px; }
+h2 { margin: 0; font-size: 26px; font-weight: 650; letter-spacing: -.02em; }
+h2 small { font-size: 16px; font-weight: 400; color: var(--muted); margin-left: 10px; letter-spacing: 0; }
+.figures { display: flex; border: 1px solid var(--rule); border-radius: 10px; }
+.figure { flex: 1; padding: 14px 20px; border-left: 1px solid var(--rule); }
+.figure:first-child { border-left: 0; }
+.figure b { display: block; font-size: 26px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.figure span { color: var(--muted); font-size: 13px; }
+.good { color: var(--good); } .bad { color: var(--bad); } .warn { color: var(--warn); } .muted { color: var(--muted); }
+.cols { display: flex; gap: 48px; flex: 1; min-height: 0; }
+.cols > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.notes { margin: 0; padding: 0; list-style: none; }
+.notes li { position: relative; padding: 11px 0 11px 18px; border-top: 1px solid var(--rule); font-size: 15px; color: var(--ink2); }
+.notes li:first-child { border-top: 0; padding-top: 0; }
+.notes li::before { content: ""; position: absolute; left: 0; top: 19px; width: 6px; height: 6px; border-radius: 1px; background: var(--accent2); }
+.notes li:first-child::before { top: 8px; }
+.foot { display: flex; align-items: center; color: var(--muted); font-size: 12px; border-top: 1px solid var(--rule); padding-top: 12px; margin-top: 20px; }
+.foot .sp { flex: 1; }
+
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.bars.stretch { flex: 1; justify-content: space-between; }
+.bar { display: grid; grid-template-columns: 150px 1fr 80px 56px; align-items: center; gap: 14px; font-size: 15px; }
+.bar .track { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 4px; background: var(--accent); }
+.bar .fill.hot { background: var(--warn); }
+.bar .fill.neg { background: var(--bad); }
+.bar .amt { text-align: right; font-variant-numeric: tabular-nums; }
+.bar .chg { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+table { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; padding: 0 12px 9px 0; border-bottom: 1px solid var(--rule); }
+td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule); }
+td.r, th.r { text-align: right; }
+.flag { font-size: 13px; font-weight: 500; }
+
+.stack { display: flex; height: 12px; gap: 2px; border-radius: 4px; overflow: hidden; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 13px; color: var(--ink2); margin-top: 10px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+</style>
+</head>
+<body>
+<div class="page">
+<h1>What you can ask</h1>
+<p>Four things an agent can do with fin. The numbers are made up.</p>
+
+<!-- 1 · spending -->
+<div class="scroll"><section class="card" id="card-1">
+  <div class="top"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b><span class="sp"></span><span class="label">Spending report</span></div>
+  <div class="ask"><span class="label">You ask</span>Where did my money go in September? Compare it to August.</div>
+  <div class="ran"><span class="ok">✓</span> Your agent ran <code>fin transactions --since 2026-08-01 --json</code></div>
+  <hr>
+  <div class="result">
+    <h2>September spending: $6,482 <small>down 9% from August ($7,121)</small></h2>
+    <div class="figures">
+      <div class="figure"><b>$9,850</b><span>came in: paychecks and a $310 refund</span></div>
+      <div class="figure"><b>$6,482</b><span>went out across 4 cards and checking</span></div>
+      <div class="figure"><b class="good">$3,368</b><span>saved, 34% of what came in</span></div>
+    </div>
+    <div class="cols">
+      <div style="flex:1.35">
+        <div class="label">By category</div>
+        <div class="bars stretch">
+          <div class="bar"><span>Rent &amp; utilities</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="amt">$2,850</span><span class="chg muted">0%</span></div>
+          <div class="bar"><span>Groceries</span><div class="track"><div class="fill" style="width:28.5%"></div></div><span class="amt">$812</span><span class="chg good">−6%</span></div>
+          <div class="bar"><span>Dining out</span><div class="track"><div class="fill hot" style="width:24.4%"></div></div><span class="amt">$694</span><span class="chg warn">+31%</span></div>
+          <div class="bar"><span>Travel</span><div class="track"><div class="fill" style="width:18.9%"></div></div><span class="amt">$540</span><span class="chg muted">new</span></div>
+          <div class="bar"><span>Shopping</span><div class="track"><div class="fill" style="width:17.1%"></div></div><span class="amt">$488</span><span class="chg good">−71%</span></div>
+          <div class="bar"><span>Transport</span><div class="track"><div class="fill" style="width:12.7%"></div></div><span class="amt">$361</span><span class="chg good">−4%</span></div>
+          <div class="bar"><span>Subscriptions</span><div class="track"><div class="fill" style="width:7.5%"></div></div><span class="amt">$214</span><span class="chg muted">+2%</span></div>
+          <div class="bar"><span>Everything else</span><div class="track"><div class="fill" style="width:18.4%"></div></div><span class="amt">$523</span><span class="chg good">−11%</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="label">What changed</div>
+        <ul class="notes">
+          <li>Dining out is up $165. Six weekend orders from Sushi Ota account for $212 of it.</li>
+          <li>Travel is one Alaska Airlines fare for October. August had none.</li>
+          <li>Shopping fell $1,216: August included a $1,180 standing desk.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Read-only data from your own accounts, via Plaid</span><span class="sp"></span><span>Illustrative data</span></div>
+</section></div>
+
+<!-- 2 · subscriptions -->
+<div class="scroll"><section class="card" id="card-2">
+  <div class="top"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b><span class="sp"></span><span class="label">Subscription audit</span></div>
+  <div class="ask"><span class="label">You ask</span>Find every subscription I'm paying for. Flag price increases, trials that turned paid, and anything I'm paying for twice.</div>
+  <div class="ran"><span class="ok">✓</span> Your agent ran <code>fin transactions --since 2025-10-01 --json</code></div>
+  <hr>
+  <div class="result">
+    <div class="figures">
+      <div class="figure"><b>14</b><span>subscriptions across 3 cards</span></div>
+      <div class="figure"><b>$312.47</b><span>per month, $3,749.64 a year</span></div>
+      <div class="figure"><b class="good">$34.99</b><span>per month you could cut ($419.88 a year)</span></div>
+    </div>
+    <table>
+      <thead><tr><th>Merchant</th><th>Card</th><th class="r">Monthly</th><th>Since</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Adobe Creative Cloud</td><td class="muted">Amex ••1009</td><td class="r">$59.99</td><td class="muted">Mar 2024</td><td></td></tr>
+        <tr><td>New York Times</td><td class="muted">Chase ••4242</td><td class="r">$25.00</td><td class="muted">Sep 2026</td><td class="flag warn">$1 trial became paid on Sep 3</td></tr>
+        <tr><td>Netflix</td><td class="muted">Chase ••4242</td><td class="r">$24.99</td><td class="muted">Jan 2019</td><td class="flag warn">Up $2.00 since July</td></tr>
+        <tr><td>Spotify Family</td><td class="muted">Amex ••1009</td><td class="r">$19.99</td><td class="muted">Jun 2021</td><td></td></tr>
+        <tr><td>iCloud+ 2 TB</td><td class="muted">Citi ••7781</td><td class="r">$9.99</td><td class="muted">Feb 2022</td><td class="flag bad">Same storage as Google One</td></tr>
+        <tr><td>Google One 2 TB</td><td class="muted">Chase ••4242</td><td class="r">$9.99</td><td class="muted">Aug 2025</td><td class="flag bad">Same storage as iCloud+</td></tr>
+        <tr><td class="muted">8 more</td><td></td><td class="r muted">$162.52</td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="foot"><span>Read-only data from your own accounts, via Plaid</span><span class="sp"></span><span>Illustrative data</span></div>
+</section></div>
+
+<!-- 3 · portfolio -->
+<div class="scroll"><section class="card" id="card-3">
+  <div class="top"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b><span class="sp"></span><span class="label">Portfolio review</span></div>
+  <div class="ask"><span class="label">You ask</span>How is my money invested across Fidelity, Schwab and Robinhood? What's my unrealized gain?</div>
+  <div class="ran"><span class="ok">✓</span> Your agent ran <code>fin holdings --json</code></div>
+  <hr>
+  <div class="result">
+    <div class="figures">
+      <div class="figure"><b>$284,316</b><span>invested across 3 brokerages</span></div>
+      <div class="figure"><b class="good">+$41,207</b><span>unrealized gain, +17.0% on cost</span></div>
+      <div class="figure"><b>62%</b><span>of the gain is long-term (held over a year)</span></div>
+    </div>
+    <div>
+      <div class="label" style="margin-bottom:10px">Allocation</div>
+      <div class="stack">
+        <div style="width:58%;background:#356B8D"></div><div style="width:14%;background:#81B1CF"></div><div style="width:12%;background:#A7B4C2"></div><div style="width:9%;background:#D5DAE0"></div><div style="width:7%;background:#C9A45C"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#356B8D"></i>US stocks 58%</span><span><i style="background:#81B1CF"></i>International 14%</span><span><i style="background:#A7B4C2"></i>Bonds 12%</span><span><i style="background:#D5DAE0"></i>Cash 9%</span><span><i style="background:#C9A45C"></i>Crypto 7%</span>
+        <span class="muted" style="margin-left:auto">Fidelity $162,540 · Schwab $96,215 · Robinhood $25,561</span>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Top holdings</th><th>Where</th><th class="r">Value</th><th class="r">Gain</th><th class="r">Share</th></tr></thead>
+      <tbody>
+        <tr><td>VTI · Vanguard Total Stock Market</td><td class="muted">Fidelity</td><td class="r">$71,880</td><td class="r good">+$14,210</td><td class="r">25%</td></tr>
+        <tr><td>FXAIX · Fidelity 500 Index</td><td class="muted">Fidelity</td><td class="r">$48,320</td><td class="r good">+$11,045</td><td class="r">17%</td></tr>
+        <tr><td>VXUS · Vanguard Total International</td><td class="muted">Schwab</td><td class="r">$39,800</td><td class="r good">+$3,120</td><td class="r">14%</td></tr>
+        <tr><td>BND · Vanguard Total Bond Market</td><td class="muted">Schwab</td><td class="r">$34,110</td><td class="r bad">−$1,290</td><td class="r">12%</td></tr>
+        <tr><td>BTC · Bitcoin</td><td class="muted">Robinhood</td><td class="r">$19,900</td><td class="r good">+$8,760</td><td class="r">7%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="foot"><span>Read-only data from your own accounts, via Plaid</span><span class="sp"></span><span>Illustrative data</span></div>
+</section></div>
+
+<!-- 4 · net worth -->
+<div class="scroll"><section class="card" id="card-4">
+  <div class="top"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b><span class="sp"></span><span class="label">Net worth</span></div>
+  <div class="ask"><span class="label">You ask</span>Chart my net worth this year and tell me what moved it.</div>
+  <div class="ran"><span class="ok">✓</span> Your agent ran <code>fin accounts --json</code> <code>fin holdings --json</code> <code>fin transactions --since 2026-01-01 --json</code></div>
+  <hr>
+  <div class="result">
+    <h2>Net worth: $326,940 <small><span class="good">+$38,410</span> since January (+13.3%)</small></h2>
+    <div class="cols">
+      <div style="flex:1.45;justify-content:center">
+        <svg id="chart" viewBox="0 0 660 330" width="100%" role="img" aria-label="Net worth by month, January to September"></svg>
+      </div>
+      <div>
+        <div class="label">What moved it</div>
+        <div class="bars" style="margin-bottom:8px">
+          <div class="bar" style="grid-template-columns:110px 1fr 86px"><span>Market gains</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="amt good">+$27,960</span></div>
+          <div class="bar" style="grid-template-columns:110px 1fr 86px"><span>Saved cash</span><div class="track"><div class="fill" style="width:53%"></div></div><span class="amt good">+$14,850</span></div>
+          <div class="bar" style="grid-template-columns:110px 1fr 86px"><span>Card balances</span><div class="track"><div class="fill neg" style="width:16%"></div></div><span class="amt bad">−$4,400</span></div>
+        </div>
+        <ul class="notes">
+          <li>March's dip was the market: holdings fell $6,200 in two weeks.</li>
+          <li>September's jump includes a $9,000 bonus deposit to checking.</li>
+          <li>Card balances are up $4,400, mostly the Amex since July.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Read-only data from your own accounts, via Plaid</span><span class="sp"></span><span>Illustrative data</span></div>
+</section></div>
+</div>
+
+<script>
+(function () {
+  var card = new URLSearchParams(location.search).get("card");
+  if (card) {
+    document.body.classList.add("single");
+    document.querySelectorAll(".page > .scroll").forEach(function (el) {
+      if (!el.querySelector("#card-" + card)) el.remove();
+    });
+  }
+  // Net worth by month, in thousands of dollars.
+  var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
+  var values = [288.5, 291.2, 285.0, 290.8, 298.4, 304.9, 312.6, 309.7, 326.9];
+  var W = 660, H = 330, left = 52, right = 18, top = 18, bottom = 34, lo = 280, hi = 330;
+  var x = function (i) { return left + i * (W - left - right) / (values.length - 1); };
+  var y = function (v) { return top + (hi - v) / (hi - lo) * (H - top - bottom); };
+  var s = "";
+  for (var v = lo; v <= hi; v += 10) {
+    s += '<line x1="' + left + '" x2="' + (W - right) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="' + (v === lo ? "#C9CFD6" : "#EDEFF2") + '"/>';
+    s += '<text x="' + (left - 10) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="12" fill="#6A7686">$' + v + 'k</text>';
+  }
+  months.forEach(function (m, i) {
+    s += '<text x="' + x(i) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="12" fill="#6A7686">' + m + '</text>';
+  });
+  var pts = values.map(function (v, i) { return x(i) + "," + y(v); });
+  s += '<defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#356B8D" stop-opacity=".14"/><stop offset="1" stop-color="#356B8D" stop-opacity="0"/></linearGradient></defs>';
+  s += '<polygon points="' + x(0) + ',' + y(lo) + ' ' + pts.join(" ") + ' ' + x(values.length - 1) + ',' + y(lo) + '" fill="url(#area)"/>';
+  s += '<polyline points="' + pts.join(" ") + '" fill="none" stroke="#356B8D" stroke-width="2.25" stroke-linejoin="round"/>';
+  values.forEach(function (v, i) {
+    s += '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="3" fill="#FFFFFF" stroke="#356B8D" stroke-width="1.75"/>';
+  });
+  var note = function (i, text, color, dy, anchor) {
+    s += '<text x="' + x(i) + '" y="' + (y(values[i]) + dy) + '" text-anchor="' + anchor + '" font-size="12.5" font-weight="600" fill="' + color + '">' + text + '</text>';
+  };
+  note(2, "−$6.2k", "#B4473E", 22, "middle");
+  note(8, "$326.9k", "#0E1B2E", -12, "end");
+  document.getElementById("chart").innerHTML = s;
+})();
+</script>
+</body>
+</html>

@@ -7,102 +7,125 @@
 <meta name="description" content="A local, read-only command-line tool for your bank and brokerage data, for you and your AI agents.">
 <meta property="og:title" content="fin">
 <meta property="og:description" content="Your bank and brokerage data, on your own machine, for you and your AI agents.">
-<meta property="og:image" content="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://kilianc.github.io/fin/examples/1.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
 <style>
 :root {
-  color-scheme: dark;
-  --blue: #81B1CF; --deep: #356B8D; --navy: #00184B; --glow: #8CD9D6;
-  --ink: #E8F4FC; --muted: #9FC3DD; --panel: #04245F; --good: #3FB97A;
+  color-scheme: light;
+  --bg: #F4F5F7; --paper: #FFFFFF; --ink: #0E1B2E; --ink2: #3B4757; --muted: #6A7686;
+  --rule: #E4E7EB; --accent: #356B8D; --accent2: #81B1CF; --good: #23855B;
+  --sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 * { box-sizing: border-box; }
-body {
-  margin: 0; color: var(--ink);
-  background: radial-gradient(1200px 600px at 50% -10%, #0A3A7A 0%, var(--navy) 60%) var(--navy);
-  font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 var(--sans); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+nav { border-bottom: 1px solid var(--rule); background: var(--paper); }
+nav .wrap { display: flex; align-items: center; gap: 10px; height: 60px; }
+nav img { width: 30px; height: 30px; }
+nav b { font-size: 18px; letter-spacing: -.01em; }
+nav .sp { flex: 1; }
+nav a { color: var(--ink2); font-size: 15px; margin-left: 20px; }
+
+.hero { padding: 72px 0 56px; display: grid; grid-template-columns: 1fr 220px; gap: 48px; align-items: center; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: 52px; line-height: 1.08; letter-spacing: -.03em; font-weight: 700; margin: 14px 0 18px; }
+.lede { font-size: 19px; color: var(--ink2); margin: 0 0 28px; max-width: 640px; }
+.mark { width: 220px; height: 220px; }
+.buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.buttons img { height: 52px; width: auto; display: block; }
+.cmd { display: flex; align-items: center; gap: 12px; max-width: 640px; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 8px 8px 16px; }
+.cmd code { flex: 1; font: 14px var(--mono); color: var(--ink); overflow-x: auto; white-space: nowrap; }
+.cmd button { font: 600 13px var(--sans); padding: 7px 14px; border-radius: 7px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink2); cursor: pointer; }
+.cmd button:hover { border-color: var(--accent); color: var(--accent); }
+.note { font-size: 14px; color: var(--muted); margin: 10px 0 0; }
+
+section { padding: 56px 0; border-top: 1px solid var(--rule); }
+h2 { font-size: 28px; letter-spacing: -.02em; margin: 0 0 6px; }
+.sub { color: var(--muted); margin: 0 0 28px; }
+.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.gallery a { display: block; border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; background: var(--paper); box-shadow: 0 1px 2px rgba(14, 27, 46, .04); transition: box-shadow .15s, border-color .15s; }
+.gallery a:hover { border-color: #C9D3DD; box-shadow: 0 6px 20px rgba(14, 27, 46, .08); }
+.gallery img { width: 100%; height: auto; display: block; }
+
+.points { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+.point { border-top: 2px solid var(--accent); padding-top: 14px; }
+.point h3 { font-size: 16px; margin: 0 0 6px; }
+.point p { margin: 0; font-size: 15px; color: var(--ink2); }
+
+footer { border-top: 1px solid var(--rule); padding: 28px 0 40px; color: var(--muted); font-size: 14px; }
+footer .wrap { display: flex; gap: 16px; flex-wrap: wrap; }
+footer .sp { flex: 1; }
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; padding: 48px 0 40px; }
+  .mark { display: none; }
+  h1 { font-size: 38px; }
+  .gallery { grid-template-columns: 1fr; }
+  .points { grid-template-columns: 1fr 1fr; }
 }
-a { color: var(--blue); }
-main { max-width: 880px; margin: 0 auto; padding: 56px 16px 32px; }
-.hero { text-align: center; }
-.hero img.mascot { width: 220px; height: 220px; animation: bob 4s ease-in-out infinite; filter: drop-shadow(0 12px 32px rgba(15, 255, 246, .18)); }
-@keyframes bob { 50% { transform: translateY(-10px); } }
-@media (prefers-reduced-motion: reduce) { .hero img.mascot { animation: none; } }
-h1 { font-size: 64px; line-height: 1; margin: 16px 0 12px; letter-spacing: -1px; }
-.lede { font-size: 22px; font-weight: 600; margin: 0 auto 12px; max-width: 640px; }
-.sub { color: var(--muted); max-width: 640px; margin: 0 auto; }
-.buttons { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin: 36px 0 8px; }
-.buttons a { display: block; transition: transform .15s; }
-.buttons a:hover { transform: translateY(-2px); }
-.buttons img { height: 64px; width: auto; display: block; }
-.note { color: var(--muted); font-size: 14px; text-align: center; margin: 0; }
-h2 { font-size: 24px; margin: 56px 0 16px; }
-pre, .cmd {
-  background: var(--panel); border: 1px solid var(--deep); border-radius: 12px;
-  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink);
-}
-pre { padding: 16px; overflow-x: auto; margin: 0; }
-.cmd { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; font-size: 15px; }
-.cmd code { flex: 1; overflow-x: auto; white-space: nowrap; }
-.cmd button {
-  font: 600 13px/1 -apple-system, BlinkMacSystemFont, sans-serif; padding: 8px 14px; border-radius: 8px;
-  border: 1px solid var(--blue); background: transparent; color: var(--blue); cursor: pointer;
-}
-.cmd button:hover { background: var(--blue); color: var(--navy); }
-.dim { color: #7D8A99; } .hl { color: var(--blue); font-weight: 700; } .g { color: var(--good); }
-.cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-.card { background: rgba(4, 36, 95, .6); border: 1px solid rgba(77, 173, 233, .35); border-radius: 16px; padding: 20px; }
-.card h3 { margin: 0 0 8px; font-size: 18px; color: var(--blue); }
-.card p { margin: 0; color: var(--muted); font-size: 15px; }
-footer { text-align: center; color: var(--muted); font-size: 14px; padding: 48px 16px; }
-@media (max-width: 560px) {
-  h1 { font-size: 48px; }
-  .lede { font-size: 19px; }
-  .hero img.mascot { width: 168px; height: 168px; }
-  .buttons img { height: 56px; }
-  .cards { grid-template-columns: 1fr; }
+@media (max-width: 520px) {
+  .points { grid-template-columns: 1fr; }
+  nav a.hide-sm { display: none; }
 }
 </style>
 </head>
 <body>
-<main>
-  <section class="hero">
-    <img class="mascot" src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="Fin, a blue shark in round glasses, popping out of a navy badge that says FIN">
-    <h1>fin</h1>
-    <p class="lede">Your bank and brokerage data, on your own machine, for you and your AI agents.</p>
-    <p class="sub">A local, read-only tool: your financial data goes from Plaid straight to your Mac, your keys stay in your macOS Keychain, and you own all of it end to end.</p>
-    <div class="buttons">
-      <a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude"></a>
-      <a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex"></a>
+<nav><div class="wrap">
+  <img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b>
+  <span class="sp"></span>
+  <a class="hide-sm" href="#examples">Examples</a>
+  <a class="hide-sm" href="#trust">Security</a>
+  <a href="https://github.com/kilianc/fin">GitHub</a>
+</div></nav>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Open source · Read-only · Runs on your Mac</div>
+      <h1>Your bank and brokerage data, on your own machine.</h1>
+      <p class="lede">fin connects to your accounts through Plaid and answers you and your AI agents from your laptop. Your keys stay in your macOS Keychain, and you own all of it end to end.</p>
+      <div class="buttons">
+        <a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude"></a>
+        <a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex"></a>
+      </div>
+      <div class="cmd"><code id="install">go install github.com/kilianc/fin/cmd/fin@latest</code><button type="button" data-copy="install">Copy</button></div>
+      <p class="note">Needs a Mac and <a href="https://go.dev/dl/">Go</a> 1.26 or newer. Then run <code>fin init</code>.</p>
     </div>
-    <p class="note">Your agent does the clicking. You only type passwords, accept terms and sign in to your banks.</p>
+    <img class="mark" src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="Fin, the shark mascot, in a navy badge">
+  </div>
+
+  <section id="examples">
+    <h2>What you can ask</h2>
+    <p class="sub">Ask in plain words. Your agent runs fin and writes the report. These numbers are made up.</p>
+    <div class="gallery">
+      <a href="examples/#card-1"><img src="examples/1.png" alt="Spending report: September spending by category compared with August"></a>
+      <a href="examples/#card-2"><img src="examples/2.png" alt="Subscription audit: 14 subscriptions with price increases and duplicates flagged"></a>
+      <a href="examples/#card-3"><img src="examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages"></a>
+      <a href="examples/#card-4"><img src="examples/4.png" alt="Net worth: monthly chart for the year and what moved it"></a>
+    </div>
   </section>
 
-  <h2>Install</h2>
-  <div class="cmd"><code id="install">go install github.com/kilianc/fin/cmd/fin@latest</code><button type="button" data-copy="install">Copy</button></div>
-  <p class="note" style="text-align:left;margin-top:8px">Needs a Mac and <a href="https://go.dev/dl/">Go</a> 1.26 or newer. Then run <code>fin init</code>.</p>
-
-  <h2>See everything in one place</h2>
-<pre><span class="dim">$</span> fin accounts
-<span class="hl">Accounts · 18 across 6 Items</span>
-<span class="dim">╭──────────┬────────────────────┬──────┬─────────────────┬──────────┬───────────╮</span>
-<span class="dim">│</span> <span class="hl">Item</span>     <span class="dim">│</span> <span class="hl">Account</span>            <span class="dim">│</span> <span class="hl">Mask</span> <span class="dim">│</span> <span class="hl">Type</span>            <span class="dim">│</span>  <span class="hl">Current</span> <span class="dim">│</span> <span class="hl">Available</span> <span class="dim">│</span>
-<span class="dim">├──────────┼────────────────────┼──────┼─────────────────┼──────────┼───────────┤</span>
-<span class="dim">│</span> chase    <span class="dim">│</span> Sapphire Preferred <span class="dim">│</span> 4242 <span class="dim">│</span> credit card     <span class="dim">│</span>  1834.12 <span class="dim">│</span>  13165.88 <span class="dim">│</span>
-<span class="dim">│</span> fidelity <span class="dim">│</span> Roth IRA           <span class="dim">│</span> 0917 <span class="dim">│</span> roth investment <span class="dim">│</span> <span class="g">48210.55</span> <span class="dim">│</span>           <span class="dim">│</span>
-<span class="dim">╰──────────┴────────────────────┴──────┴─────────────────┴──────────┴───────────╯</span></pre>
-
-  <h2>Built to be trusted</h2>
-  <div class="cards">
-    <div class="card"><h3>Read-only</h3><p>Balances, transactions and investments. fin never asks Plaid for account numbers or identity, and can't move money.</p></div>
-    <div class="card"><h3>Local</h3><p>No server, nothing to deploy. Keys live in your Keychain, state in one file only you can read.</p></div>
-    <div class="card"><h3>Made for agents</h3><p>Tables in your terminal, JSON for your agent, with clear exit codes and errors that say what to run next.</p></div>
-    <div class="card"><h3>Free</h3><p>Plaid's Trial plan connects up to 10 institutions at no cost. fin is MIT licensed.</p></div>
-  </div>
+  <section id="trust">
+    <h2>Built to be trusted</h2>
+    <p class="sub">Your financial data never passes through anyone but Plaid and you.</p>
+    <div class="points">
+      <div class="point"><h3>Read-only</h3><p>Balances, transactions and investments. fin never asks Plaid for account numbers or identity, and cannot move money.</p></div>
+      <div class="point"><h3>Local</h3><p>No server, nothing to deploy. Keys live in your Keychain, state in one file only you can read.</p></div>
+      <div class="point"><h3>Made for agents</h3><p>Tables in your terminal, JSON for your agent, clear exit codes, and errors that say what to run next.</p></div>
+      <div class="point"><h3>Free</h3><p>Plaid's Trial plan connects up to 10 institutions at no cost. fin is MIT licensed.</p></div>
+    </div>
+  </section>
 </main>
-<footer>
-  <a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a> · MIT license
-</footer>
+
+<footer><div class="wrap">
+  <span>fin · MIT license</span><span class="sp"></span>
+  <a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a>
+</div></footer>
 <script>
 document.querySelectorAll("[data-copy]").forEach(function (b) {
   b.onclick = function () {

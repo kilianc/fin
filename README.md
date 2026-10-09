@@ -23,6 +23,18 @@ There is no server, no account with anyone but Plaid, and nothing to deploy.
 fin talks to Plaid's API from your laptop and prints the answer. In a terminal
 you get tables; when an agent such as Claude runs it, it gets JSON.
 
+## What you can ask
+
+Ask your agent in plain words; it runs fin and writes the report. The numbers
+below are made up.
+
+<p>
+  <a href="https://kilianc.github.io/fin/examples/#card-1"><img src="docs/examples/1.png" alt="Spending report: September spending by category compared with August" width="49%"></a>
+  <a href="https://kilianc.github.io/fin/examples/#card-2"><img src="docs/examples/2.png" alt="Subscription audit: 14 subscriptions with price increases and duplicates flagged" width="49%"></a>
+  <a href="https://kilianc.github.io/fin/examples/#card-3"><img src="docs/examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages" width="49%"></a>
+  <a href="https://kilianc.github.io/fin/examples/#card-4"><img src="docs/examples/4.png" alt="Net worth: monthly chart for the year and what moved it" width="49%"></a>
+</p>
+
 ## What you need
 
 - A Mac. fin keeps your keys in the macOS Keychain.
@@ -433,6 +445,8 @@ Common codes:
 ```bash
 make test        # unit tests against a fake Plaid client
 make e2e         # end-to-end run against the real Plaid sandbox
+make docs        # regenerate the setup pages after changing the agent prompt
+make gallery     # re-render docs/examples/*.png with headless Chrome
 ```
 
 The end-to-end script needs sandbox keys (`PLAID_ENV=sandbox fin setup`). It
