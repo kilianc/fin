@@ -2,6 +2,9 @@ package fin
 
 import (
 	"context"
+	"flag"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -616,5 +619,38 @@ func TestTablesHideCurrencyWhenAllUSD(t *testing.T) {
 	ta.Run(context.Background(), []string{"accounts", "--table"})
 	if !strings.Contains(ta.stdout.String(), "CAD") {
 		t.Errorf("non-USD table hides the currency:\n%s", ta.stdout)
+	}
+}
+
+var update = flag.Bool("update", false, "rewrite docs/ from the agent prompt")
+
+// The README's buttons open docs/<agent>/index.html on GitHub Pages, which
+// carries the agent prompt. Regenerate with: make docs
+func TestSetupPagesMatchThePrompt(t *testing.T) {
+	readme, err := os.ReadFile("../../README.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(shortPrompt) > 500 {
+		t.Errorf("short prompt is %d characters; Claude Code stalls typing long deep-link prompts", len(shortPrompt))
+	}
+	for _, agent := range Agents() {
+		if !strings.Contains(string(readme), `href="`+PagesURL+agent.Slug+`/"`) {
+			t.Errorf("README has no button linking to %s%s/", PagesURL, agent.Slug)
+		}
+		path := "../../docs/" + agent.Slug + "/index.html"
+		want := SetupPage(agent)
+		if *update {
+			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, []byte(want), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			continue
+		}
+		if got, err := os.ReadFile(path); err != nil || string(got) != want {
+			t.Errorf("%s is out of date with the agent prompt; regenerate it with: make docs", path)
+		}
 	}
 }

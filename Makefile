@@ -14,6 +14,11 @@ test:
 	go vet ./...
 	go test -race ./...
 
+# Regenerate the GitHub Pages setup pages from the agent prompt.
+.PHONY: docs
+docs:
+	go test ./internal/fin -run TestSetupPagesMatchThePrompt -update
+
 .PHONY: e2e
 e2e:
 	./scripts/sandbox-e2e.sh

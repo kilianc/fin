@@ -40,16 +40,22 @@ That puts `fin` in `~/go/bin`; make sure that directory is on your `PATH`.
 
 ## Get started
 
-```bash
-fin init
-```
+Let an AI agent do the setup. Pick one, read the prompt it opens with, and
+press Enter:
 
-`fin init` shows what's done and what's next, and prints a prompt you can
-paste into an AI agent that can use your browser, such as Claude with Claude
-in Chrome (`fin init --copy` puts it on your clipboard). The agent opens the
-pages, fills in the forms and brands Plaid Link with fin's look. You do only
-what needs you: set your password, verify your email, accept Plaid's terms,
-paste your secret key, and sign in to your banks.
+<p>
+  <a href="https://kilianc.github.io/fin/claude/"><img src="docs/claude.svg" alt="Set up fin with Claude Code" height="56"></a>
+  &nbsp;
+  <a href="https://kilianc.github.io/fin/codex/"><img src="docs/codex.svg" alt="Set up fin with Codex" height="56"></a>
+</p>
+
+The agent opens the pages, fills in the forms and brands Plaid Link with
+fin's look. You do only what needs you: set your password, verify your email,
+accept Plaid's terms, paste your secret key, and sign in to your banks. Claude
+Code drives your browser through [Claude in Chrome](https://claude.com/chrome).
+
+Using another agent? `fin init` shows what's done and what's next, and prints
+the same prompt (`fin init --copy` puts it on your clipboard).
 
 If you'd rather do it yourself, here's the whole flow:
 

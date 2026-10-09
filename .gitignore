@@ -12,5 +12,10 @@
 !/scripts/
 !/scripts/*.sh
 !/mascot.png
+!/docs/
+!/docs/*.svg
+!/docs/index.html
+!/docs/*/
+!/docs/*/index.html
 
 !*/

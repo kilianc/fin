@@ -82,7 +82,14 @@ func (a *App) cmdInit(ctx context.Context, args []string) (*result, error) {
 		}
 		copied = true
 	}
-	body := map[string]any{"tagline": Tagline, "status": status, "prompt": agentPrompt, "copied": copied}
+	openIn := map[string]string{}
+	for _, agent := range Agents() {
+		openIn[agent.Slug] = agent.Link
+	}
+	body := map[string]any{
+		"tagline": Tagline, "status": status, "prompt": agentPrompt, "copied": copied,
+		"open_in": openIn,
+	}
 	return &result{body: body, message: a.renderInit(status, copied)}, nil
 }
 
@@ -116,7 +123,13 @@ func (a *App) renderInit(s initStatus, copied bool) string {
 	check(s.Items > 0, fmt.Sprintf("Institutions connected (%d of %d slots used)", s.Items, SlotsTotal))
 	b.WriteString("\n" + ui.Bold.Render("Next: ") + s.Next + "\n\n")
 
-	b.WriteString(ui.Bold.Render("Let your AI agent do the clicking.") + " Paste this into an agent that can use your browser, such as Claude with Claude in Chrome:\n")
+	b.WriteString(ui.Bold.Render("Let your AI agent do the clicking.") + "\n")
+	var links []string
+	for _, agent := range Agents() {
+		links = append(links, ui.Link(agent.Name, agent.Link))
+	}
+	b.WriteString("Open it prefilled: " + strings.Join(links, ui.Muted.Render(" · ")) + "\n")
+	b.WriteString("Or paste this into any agent that can use your browser:\n")
 	b.WriteString(ui.Box(agentPrompt, width) + "\n")
 	if copied {
 		b.WriteString(ui.Line(ui.Good, "Copied to your clipboard.") + "\n")

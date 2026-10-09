@@ -139,6 +139,11 @@ func Line(tone Tone, msg string) string {
 	return tone.Style().Bold(true).Render(symbol) + " " + msg
 }
 
+// Link renders clickable text in terminals that support hyperlinks.
+func Link(text, url string) string {
+	return lipgloss.NewStyle().Foreground(accent).Underline(true).Hyperlink(url).Render(text)
+}
+
 // Box frames text, for example a prompt to copy.
 func Box(text string, width int) string {
 	return lipgloss.NewStyle().
