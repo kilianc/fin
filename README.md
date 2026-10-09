@@ -2,7 +2,7 @@
 
 # fin
 
-**Your bank and brokerage data, on your own machine, for you and your AI agents.**
+**A CLI for your financial data, built for the AI era. Read-only, local, free.**
 
 fin is a local, read-only tool for you and your AI agents: your financial data
 goes from Plaid straight to this machine, your keys stay in your macOS
