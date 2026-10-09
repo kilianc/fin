@@ -3,75 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./site.css">
 <title>fin · a CLI for your financial data, built for the AI era</title>
 <meta name="description" content="Read-only, local, free: fin gives your AI agent your bank, card and brokerage data through Plaid, with no server in between.">
 <meta property="og:title" content="fin">
 <meta property="og:description" content="A CLI for your financial data, built for the AI era. Read-only, local, free.">
 <meta property="og:image" content="https://kilianc.github.io/fin/examples/1.png">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-body{margin:0}
-a{color:#2C5F80}a:hover{color:#173F59}
-.gal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 28px}
-.try{display:inline-flex;align-items:center;gap:8px;padding:5px 14px 5px 6px;border-radius:999px;background:#EAF2F7;border:1px solid #D3E3EE;color:#356B8D;font-size:14px;font-weight:500;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
-.try:hover{background:#DDEBF3;border-color:#B9D3E3;color:#24526E;transform:translateY(-1px)}
-.try .arr{transition:transform .15s}.try:hover .arr{transform:translateX(3px)}
-.shell{background:#131B26;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(17,26,38,0.06),0 12px 32px -12px rgba(17,26,38,0.18)}
-.shell-bar{display:flex;align-items:center;gap:12px;padding:8px 10px 0 16px;border-bottom:1px solid #243041}
-.dots{display:flex;gap:8px;flex:none}.dots i{width:10px;height:10px;border-radius:50%;background:#2D394A}
-.shell-tabs{display:flex;gap:2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
-.shell-tabs button,.shell-mode button{font:12.5px "Geist Mono",ui-monospace,monospace;color:#8292A5;background:none;border:0;cursor:pointer;white-space:nowrap}
-.shell-tabs button{padding:9px 12px 10px;border-radius:8px 8px 0 0}
-.shell-tabs button:hover{color:#D8E0E8}
-.shell-tabs button[aria-selected="true"]{color:#FFFFFF;background:#1C2633;box-shadow:inset 0 2px 0 #81B1CF}
-.shell-mode{display:flex;flex:none;margin-bottom:6px;padding:2px;border:1px solid #2D394A;border-radius:7px}
-.shell-mode button{padding:3px 10px;border-radius:5px}
-.shell-mode button[aria-pressed="true"]{color:#131B26;background:#81B1CF}
-.shell-mode.off{visibility:hidden}
-.shell-pane pre{margin:0;padding:18px 20px 22px;min-height:360px;box-sizing:border-box;font:12.5px/1.45 ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;color:#D8E0E8;overflow-x:auto;background:#1C2633}
-.shell-pane pre.wrap{white-space:pre-wrap;font-size:14px;line-height:1.7}
-@media (max-width:640px){.shell-bar{flex-wrap:wrap;padding:8px 10px 0}.dots{display:none}.shell-tabs{flex:1 1 100%}.shell-mode{margin:2px 0 8px auto}}
-.shell-note{font-size:13px;color:#7D8794;margin:12px 0 0}
-.terms{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start}
-.tw{background:#131B26;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(17,26,38,0.06),0 12px 32px -12px rgba(17,26,38,0.18)}
-.tw pre{margin:0;padding:16px 18px 20px;font-family:"Geist Mono",ui-monospace,monospace;font-size:12.5px;line-height:1.55;color:#D8E0E8;overflow-x:auto}
-.help{display:grid;grid-template-columns:200px minmax(0,1fr);row-gap:10px;column-gap:24px}
-.insts{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-top:1px solid #E1E4E8;border-left:1px solid #E1E4E8}
-.inst{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;height:104px;border-right:1px solid #E1E4E8;border-bottom:1px solid #E1E4E8;color:#7D8794;background:#FFFFFF}
-.inst span{font-size:12px;color:#7D8794;letter-spacing:0.01em}
-.hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:48px;align-items:center}
-.hero-logo{width:240px;height:240px;display:block}
-br.lg{display:block}
-@media (max-width:820px){br.lg{display:none}.hero{grid-template-columns:minmax(0,1fr);gap:24px}.hero-logo{order:-1;width:96px;height:96px}.terms,.gal,.help{grid-template-columns:minmax(0,1fr)}.insts{grid-template-columns:repeat(3,minmax(0,1fr))}.hide-sm{display:none}}
-</style>
 </head>
 <body>
-<div style="background: #F6F7F9; color: #111A26; font-family: 'Geist', -apple-system, sans-serif; font-size: 17px; line-height: 1.6; min-height: 100vh">
-  <header style="max-width: 1040px; margin: 0 auto; padding: 24px 24px 0; display: flex; align-items: center; gap: 10px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px">
-    <img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="" style="width: 30px; height: 30px">
-    <b style="font-weight: 600; color: #111A26">fin</b>
-    <span class="hide-sm" style="color: #7D8794">~ local · read-only</span>
-    <span style="flex: 1"></span>
-    <a href="https://github.com/kilianc/fin" style="color: #3A4656; text-decoration: none">github ↗</a>
-  </header>
+<header class="site-header wrap">
+<a class="brand" href="./"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b></a><span class="where">~ local · read-only</span>
+<span class="sp"></span>
+<nav><a href="./#examples">examples</a><a href="./#security">security</a><a href="https://github.com/kilianc/fin">github ↗</a></nav>
+</header>
+<main>
+<section class="section first wrap hero">
+<div>
+<h1 class="display">A CLI for your financial<br class="lg"> data, built for the AI era.<br><span class="soft">Read-only, local, free.</span></h1>
+<p class="lede">fin connects your banks, cards and brokerages through Plaid and can't move a dollar. It runs on your laptop with no fin server in between, keeps its keys in your Keychain, and costs nothing on Plaid's free Trial plan.</p>
+<div class="buttons">
+<a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude"></a>
+<a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex"></a>
+</div>
+</div>
+<img class="hero-logo" src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="fin mascot">
+</section>
 
-  <main>
-    <section class="hero" style="max-width: 1040px; margin: 0 auto; padding: 80px 24px 0">
-      <div>
-      <h1 style="font-size: 52px; line-height: 1.06; letter-spacing: -0.04em; font-weight: 600; color: #111A26; margin: 0 0 20px; max-width: 820px">A CLI for your financial<br class="lg"> data, built for the AI era.<br><span style="color: #7D8794">Read-only, local, free.</span></h1>
-      <p style="font-size: 19px; color: #4A5666; margin: 0 0 32px; max-width: 640px">fin connects your banks, cards and brokerages through Plaid and can't move a dollar. It runs on your laptop with no fin server in between, keeps its keys in your Keychain, and costs nothing on Plaid's free Trial plan.</p>
-      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
-        <a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude" style="height: 52px; display: block"></a>
-        <a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex" style="height: 52px; display: block"></a>
-      </div>
-      </div>
-      <img class="hero-logo" src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="fin mascot">
-    </section>
-
-    <section style="max-width: 1040px; margin: 0 auto; padding: 56px 24px 0">
+<section class="section tight wrap">
 <div class="shell">
   <div class="shell-bar">
     <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -88,246 +51,243 @@ br.lg{display:block}
     </div>
   </div>
   <div class="shell-pane" role="tabpanel" id="pane-agent" aria-labelledby="tab-agent">
-<pre class="wrap"><span style="color: #81B1CF; font-weight: 600">you ›</span> Build me a monthly spending review. Compare it to the month before.
+<pre class="prose"><span class="t-head">you ›</span> Build me a monthly spending review. Compare it to the month before.
 
-<span style="color: #6F7E90">  ran </span><span style="color: #FFFFFF">fin transactions --since 2026-08-01 --json</span>
-<span style="color: #3FB97A">  ✓</span><span style="color: #6F7E90"> 412 transactions from 6 connections</span>
+<span class="t-mute">  ran </span><span class="t-hi">fin transactions --since 2026-08-01 --json</span>
+<span class="t-ok">  ✓</span><span class="t-mute"> 412 transactions from 6 connections</span>
 
-<span style="color: #81B1CF; font-weight: 600">agent ›</span> September spending was <span style="color: #FFFFFF">$6,482</span>, down 9% from August ($7,121).
-        Rent and utilities held at $2,850. Dining out rose <span style="color: #E2A33B">+31%</span> to $694,
+<span class="t-head">agent ›</span> September spending was <span class="t-hi">$6,482</span>, down 9% from August ($7,121).
+        Rent and utilities held at $2,850. Dining out rose <span class="t-warn">+31%</span> to $694,
         mostly six weekend orders from Sushi Ota. Shopping fell $1,216
         because August included a $1,180 standing desk.
-        You saved <span style="color: #3FB97A">$3,368</span>, 34% of what came in.</pre>
+        You saved <span class="t-ok">$3,368</span>, 34% of what came in.</pre>
   </div>
   <div class="shell-pane" role="tabpanel" id="pane-items" aria-labelledby="tab-items" hidden>
-<pre data-show="table"><span style="color: #6F7E90">$</span> <span style="color: #FFFFFF">fin items</span>
-<span style="color: #81B1CF; font-weight: 600">Items · production</span>
-<span style="color: #5D6D82">╭───────────┬──────────────────┬──────────────┬────────┬─────────────────┬──────────────╮</span>
-<span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Name</span>      <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Institution</span>      <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Products</span>     <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Health</span> <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Consent expires</span> <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Last sync</span>    <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">├───────────┼──────────────────┼──────────────┼────────┼─────────────────┼──────────────┤</span>
-<span style="color: #5D6D82">│</span> chase     <span style="color: #5D6D82">│</span> Chase            <span style="color: #5D6D82">│</span> transactions <span style="color: #5D6D82">│</span> <span style="color: #3FB97A">ok</span>     <span style="color: #5D6D82">│</span> Oct 2, 2027     <span style="color: #5D6D82">│</span> Oct 9, 12:02 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> amex      <span style="color: #5D6D82">│</span> American Express <span style="color: #5D6D82">│</span> transactions <span style="color: #5D6D82">│</span> <span style="color: #3FB97A">ok</span>     <span style="color: #5D6D82">│</span>                 <span style="color: #5D6D82">│</span> Oct 9, 12:02 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> citi      <span style="color: #5D6D82">│</span> Citi             <span style="color: #5D6D82">│</span> transactions <span style="color: #5D6D82">│</span> <span style="color: #3FB97A">ok</span>     <span style="color: #5D6D82">│</span> Aug 14, 2027    <span style="color: #5D6D82">│</span> Oct 9, 12:01 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> fidelity  <span style="color: #5D6D82">│</span> Fidelity         <span style="color: #5D6D82">│</span> investments  <span style="color: #5D6D82">│</span> <span style="color: #3FB97A">ok</span>     <span style="color: #5D6D82">│</span>                 <span style="color: #5D6D82">│</span> Oct 9, 12:03 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> schwab    <span style="color: #5D6D82">│</span> Charles Schwab   <span style="color: #5D6D82">│</span> investments  <span style="color: #5D6D82">│</span> <span style="color: #3FB97A">ok</span>     <span style="color: #5D6D82">│</span>                 <span style="color: #5D6D82">│</span> Oct 9, 12:03 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> robinhood <span style="color: #5D6D82">│</span> Robinhood        <span style="color: #5D6D82">│</span> investments  <span style="color: #5D6D82">│</span> <span style="color: #3FB97A">ok</span>     <span style="color: #5D6D82">│</span>                 <span style="color: #5D6D82">│</span> Oct 9, 12:03 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">╰───────────┴──────────────────┴──────────────┴────────┴─────────────────┴──────────────╯</span>
-<span style="color: #6F7E90">6 of 10 slots used</span></pre>
-<pre data-show="json" hidden><span style="color: #6F7E90">$</span> <span style="color: #FFFFFF">fin items --json</span>
+<pre data-show="table"><span class="t-mute">$</span> <span class="t-hi">fin items</span>
+<span class="t-head">Items · production</span>
+<span class="t-dim">╭───────────┬──────────────────┬──────────────┬────────┬─────────────────┬──────────────╮</span>
+<span class="t-dim">│</span> <span class="t-head">Name</span>      <span class="t-dim">│</span> <span class="t-head">Institution</span>      <span class="t-dim">│</span> <span class="t-head">Products</span>     <span class="t-dim">│</span> <span class="t-head">Health</span> <span class="t-dim">│</span> <span class="t-head">Consent expires</span> <span class="t-dim">│</span> <span class="t-head">Last sync</span>    <span class="t-dim">│</span>
+<span class="t-dim">├───────────┼──────────────────┼──────────────┼────────┼─────────────────┼──────────────┤</span>
+<span class="t-dim">│</span> chase     <span class="t-dim">│</span> Chase            <span class="t-dim">│</span> transactions <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span> Oct 2, 2027     <span class="t-dim">│</span> Oct 9, 12:02 <span class="t-dim">│</span>
+<span class="t-dim">│</span> amex      <span class="t-dim">│</span> American Express <span class="t-dim">│</span> transactions <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span>                 <span class="t-dim">│</span> Oct 9, 12:02 <span class="t-dim">│</span>
+<span class="t-dim">│</span> citi      <span class="t-dim">│</span> Citi             <span class="t-dim">│</span> transactions <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span> Aug 14, 2027    <span class="t-dim">│</span> Oct 9, 12:01 <span class="t-dim">│</span>
+<span class="t-dim">│</span> fidelity  <span class="t-dim">│</span> Fidelity         <span class="t-dim">│</span> investments  <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span>                 <span class="t-dim">│</span> Oct 9, 12:03 <span class="t-dim">│</span>
+<span class="t-dim">│</span> schwab    <span class="t-dim">│</span> Charles Schwab   <span class="t-dim">│</span> investments  <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span>                 <span class="t-dim">│</span> Oct 9, 12:03 <span class="t-dim">│</span>
+<span class="t-dim">│</span> robinhood <span class="t-dim">│</span> Robinhood        <span class="t-dim">│</span> investments  <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span>                 <span class="t-dim">│</span> Oct 9, 12:03 <span class="t-dim">│</span>
+<span class="t-dim">╰───────────┴──────────────────┴──────────────┴────────┴─────────────────┴──────────────╯</span>
+<span class="t-mute">6 of 10 slots used</span></pre>
+<pre data-show="json" hidden><span class="t-mute">$</span> <span class="t-hi">fin items --json</span>
 {
-  <span style="color: #81B1CF">&quot;env&quot;</span>: <span style="color: #E2C08D">&quot;production&quot;</span>,
-  <span style="color: #81B1CF">&quot;slots_used&quot;</span>: <span style="color: #3FB97A">6</span>,
-  <span style="color: #81B1CF">&quot;slots_total&quot;</span>: <span style="color: #3FB97A">10</span>,
-  <span style="color: #81B1CF">&quot;items&quot;</span>: [
+  <span class="t-key">&quot;env&quot;</span>: <span class="t-str">&quot;production&quot;</span>,
+  <span class="t-key">&quot;slots_used&quot;</span>: <span class="t-ok">6</span>,
+  <span class="t-key">&quot;slots_total&quot;</span>: <span class="t-ok">10</span>,
+  <span class="t-key">&quot;items&quot;</span>: [
     {
-      <span style="color: #81B1CF">&quot;name&quot;</span>: <span style="color: #E2C08D">&quot;chase&quot;</span>,
-      <span style="color: #81B1CF">&quot;institution&quot;</span>: <span style="color: #E2C08D">&quot;Chase&quot;</span>,
-      <span style="color: #81B1CF">&quot;kind&quot;</span>: <span style="color: #E2C08D">&quot;bank&quot;</span>,
-      <span style="color: #81B1CF">&quot;products&quot;</span>: [
-        <span style="color: #E2C08D">&quot;transactions&quot;</span>
+      <span class="t-key">&quot;name&quot;</span>: <span class="t-str">&quot;chase&quot;</span>,
+      <span class="t-key">&quot;institution&quot;</span>: <span class="t-str">&quot;Chase&quot;</span>,
+      <span class="t-key">&quot;kind&quot;</span>: <span class="t-str">&quot;bank&quot;</span>,
+      <span class="t-key">&quot;products&quot;</span>: [
+        <span class="t-str">&quot;transactions&quot;</span>
       ],
-      <span style="color: #81B1CF">&quot;health&quot;</span>: <span style="color: #E2C08D">&quot;ok&quot;</span>,
-      <span style="color: #81B1CF">&quot;error&quot;</span>: <span style="color: #3FB97A">null</span>,
-      <span style="color: #81B1CF">&quot;consent_expires_at&quot;</span>: <span style="color: #E2C08D">&quot;2027-10-02T18:02:00Z&quot;</span>,
-      <span style="color: #81B1CF">&quot;last_sync&quot;</span>: <span style="color: #E2C08D">&quot;2026-10-09T12:02:11Z&quot;</span>
+      <span class="t-key">&quot;health&quot;</span>: <span class="t-str">&quot;ok&quot;</span>,
+      <span class="t-key">&quot;error&quot;</span>: <span class="t-ok">null</span>,
+      <span class="t-key">&quot;consent_expires_at&quot;</span>: <span class="t-str">&quot;2027-10-02T18:02:00Z&quot;</span>,
+      <span class="t-key">&quot;last_sync&quot;</span>: <span class="t-str">&quot;2026-10-09T12:02:11Z&quot;</span>
     },
-    <span style="color: #6F7E90">…</span>
+    <span class="t-mute">…</span>
   ],
-  <span style="color: #81B1CF">&quot;errors&quot;</span>: []
+  <span class="t-key">&quot;errors&quot;</span>: []
 }</pre>
   </div>
   <div class="shell-pane" role="tabpanel" id="pane-accounts" aria-labelledby="tab-accounts" hidden>
-<pre data-show="table"><span style="color: #6F7E90">$</span> <span style="color: #FFFFFF">fin accounts</span>
-<span style="color: #81B1CF; font-weight: 600">Accounts · 7 across 6 Items</span>
-<span style="color: #5D6D82">╭───────────┬────────────────────┬──────┬──────────────────────┬──────────┬───────────┬──────────┬─────╮</span>
-<span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Item</span>      <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Account</span>            <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Mask</span> <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Type</span>                 <span style="color: #5D6D82">│</span>  <span style="color: #81B1CF; font-weight: 600">Current</span> <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Available</span> <span style="color: #5D6D82">│</span>    <span style="color: #81B1CF; font-weight: 600">Limit</span> <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Ccy</span> <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">├───────────┼────────────────────┼──────┼──────────────────────┼──────────┼───────────┼──────────┼─────┤</span>
-<span style="color: #5D6D82">│</span> chase     <span style="color: #5D6D82">│</span> Sapphire Preferred <span style="color: #5D6D82">│</span> 4242 <span style="color: #5D6D82">│</span> credit card credit   <span style="color: #5D6D82">│</span>  1834.12 <span style="color: #5D6D82">│</span>  13165.88 <span style="color: #5D6D82">│</span> 15000.00 <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> chase     <span style="color: #5D6D82">│</span> Total Checking     <span style="color: #5D6D82">│</span> 8810 <span style="color: #5D6D82">│</span> checking depository  <span style="color: #5D6D82">│</span>  6120.40 <span style="color: #5D6D82">│</span>   6120.40 <span style="color: #5D6D82">│</span>          <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> amex      <span style="color: #5D6D82">│</span> Gold Card          <span style="color: #5D6D82">│</span> 1005 <span style="color: #5D6D82">│</span> credit card credit   <span style="color: #5D6D82">│</span>   912.77 <span style="color: #5D6D82">│</span>           <span style="color: #5D6D82">│</span>          <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> citi      <span style="color: #5D6D82">│</span> Savings            <span style="color: #5D6D82">│</span> 3127 <span style="color: #5D6D82">│</span> savings depository   <span style="color: #5D6D82">│</span> 24500.00 <span style="color: #5D6D82">│</span>  24500.00 <span style="color: #5D6D82">│</span>          <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> fidelity  <span style="color: #5D6D82">│</span> Roth IRA           <span style="color: #5D6D82">│</span> 0917 <span style="color: #5D6D82">│</span> roth investment      <span style="color: #5D6D82">│</span> 48210.57 <span style="color: #5D6D82">│</span>           <span style="color: #5D6D82">│</span>          <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> schwab    <span style="color: #5D6D82">│</span> Brokerage          <span style="color: #5D6D82">│</span> 3301 <span style="color: #5D6D82">│</span> brokerage investment <span style="color: #5D6D82">│</span> 96215.00 <span style="color: #5D6D82">│</span>  42680.00 <span style="color: #5D6D82">│</span>          <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> robinhood <span style="color: #5D6D82">│</span> Individual         <span style="color: #5D6D82">│</span> 7712 <span style="color: #5D6D82">│</span> brokerage investment <span style="color: #5D6D82">│</span> 18440.10 <span style="color: #5D6D82">│</span>           <span style="color: #5D6D82">│</span>          <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">╰───────────┴────────────────────┴──────┴──────────────────────┴──────────┴───────────┴──────────┴─────╯</span>
-<span style="color: #6F7E90">Balances from Plaid&#x27;s daily refresh. Use --live to ask each bank now (billed per call).</span></pre>
-<pre data-show="json" hidden><span style="color: #6F7E90">$</span> <span style="color: #FFFFFF">fin accounts --json</span>
+<pre data-show="table"><span class="t-mute">$</span> <span class="t-hi">fin accounts</span>
+<span class="t-head">Accounts · 7 across 6 Items</span>
+<span class="t-dim">╭───────────┬────────────────────┬──────┬──────────────────────┬──────────┬───────────┬──────────┬─────╮</span>
+<span class="t-dim">│</span> <span class="t-head">Item</span>      <span class="t-dim">│</span> <span class="t-head">Account</span>            <span class="t-dim">│</span> <span class="t-head">Mask</span> <span class="t-dim">│</span> <span class="t-head">Type</span>                 <span class="t-dim">│</span>  <span class="t-head">Current</span> <span class="t-dim">│</span> <span class="t-head">Available</span> <span class="t-dim">│</span>    <span class="t-head">Limit</span> <span class="t-dim">│</span> <span class="t-head">Ccy</span> <span class="t-dim">│</span>
+<span class="t-dim">├───────────┼────────────────────┼──────┼──────────────────────┼──────────┼───────────┼──────────┼─────┤</span>
+<span class="t-dim">│</span> chase     <span class="t-dim">│</span> Sapphire Preferred <span class="t-dim">│</span> 4242 <span class="t-dim">│</span> credit card credit   <span class="t-dim">│</span>  1834.12 <span class="t-dim">│</span>  13165.88 <span class="t-dim">│</span> 15000.00 <span class="t-dim">│</span> USD <span class="t-dim">│</span>
+<span class="t-dim">│</span> chase     <span class="t-dim">│</span> Total Checking     <span class="t-dim">│</span> 8810 <span class="t-dim">│</span> checking depository  <span class="t-dim">│</span>  6120.40 <span class="t-dim">│</span>   6120.40 <span class="t-dim">│</span>          <span class="t-dim">│</span> USD <span class="t-dim">│</span>
+<span class="t-dim">│</span> amex      <span class="t-dim">│</span> Gold Card          <span class="t-dim">│</span> 1005 <span class="t-dim">│</span> credit card credit   <span class="t-dim">│</span>   912.77 <span class="t-dim">│</span>           <span class="t-dim">│</span>          <span class="t-dim">│</span> USD <span class="t-dim">│</span>
+<span class="t-dim">│</span> citi      <span class="t-dim">│</span> Savings            <span class="t-dim">│</span> 3127 <span class="t-dim">│</span> savings depository   <span class="t-dim">│</span> 24500.00 <span class="t-dim">│</span>  24500.00 <span class="t-dim">│</span>          <span class="t-dim">│</span> USD <span class="t-dim">│</span>
+<span class="t-dim">│</span> fidelity  <span class="t-dim">│</span> Roth IRA           <span class="t-dim">│</span> 0917 <span class="t-dim">│</span> roth investment      <span class="t-dim">│</span> 48210.57 <span class="t-dim">│</span>           <span class="t-dim">│</span>          <span class="t-dim">│</span> USD <span class="t-dim">│</span>
+<span class="t-dim">│</span> schwab    <span class="t-dim">│</span> Brokerage          <span class="t-dim">│</span> 3301 <span class="t-dim">│</span> brokerage investment <span class="t-dim">│</span> 96215.00 <span class="t-dim">│</span>  42680.00 <span class="t-dim">│</span>          <span class="t-dim">│</span> USD <span class="t-dim">│</span>
+<span class="t-dim">│</span> robinhood <span class="t-dim">│</span> Individual         <span class="t-dim">│</span> 7712 <span class="t-dim">│</span> brokerage investment <span class="t-dim">│</span> 18440.10 <span class="t-dim">│</span>           <span class="t-dim">│</span>          <span class="t-dim">│</span> USD <span class="t-dim">│</span>
+<span class="t-dim">╰───────────┴────────────────────┴──────┴──────────────────────┴──────────┴───────────┴──────────┴─────╯</span>
+<span class="t-mute">Balances from Plaid&#x27;s daily refresh. Use --live to ask each bank now (billed per call).</span></pre>
+<pre data-show="json" hidden><span class="t-mute">$</span> <span class="t-hi">fin accounts --json</span>
 {
-  <span style="color: #81B1CF">&quot;accounts&quot;</span>: [
+  <span class="t-key">&quot;accounts&quot;</span>: [
     {
-      <span style="color: #81B1CF">&quot;item&quot;</span>: <span style="color: #E2C08D">&quot;chase&quot;</span>,
-      <span style="color: #81B1CF">&quot;institution&quot;</span>: <span style="color: #E2C08D">&quot;Chase&quot;</span>,
-      <span style="color: #81B1CF">&quot;name&quot;</span>: <span style="color: #E2C08D">&quot;Sapphire Preferred&quot;</span>,
-      <span style="color: #81B1CF">&quot;mask&quot;</span>: <span style="color: #E2C08D">&quot;4242&quot;</span>,
-      <span style="color: #81B1CF">&quot;type&quot;</span>: <span style="color: #E2C08D">&quot;credit&quot;</span>,
-      <span style="color: #81B1CF">&quot;subtype&quot;</span>: <span style="color: #E2C08D">&quot;credit card&quot;</span>,
-      <span style="color: #81B1CF">&quot;balances&quot;</span>: {
-        <span style="color: #81B1CF">&quot;available&quot;</span>: <span style="color: #3FB97A">13165.88</span>,
-        <span style="color: #81B1CF">&quot;current&quot;</span>: <span style="color: #3FB97A">1834.12</span>,
-        <span style="color: #81B1CF">&quot;limit&quot;</span>: <span style="color: #3FB97A">15000</span>,
-        <span style="color: #81B1CF">&quot;iso_currency_code&quot;</span>: <span style="color: #E2C08D">&quot;USD&quot;</span>
+      <span class="t-key">&quot;item&quot;</span>: <span class="t-str">&quot;chase&quot;</span>,
+      <span class="t-key">&quot;institution&quot;</span>: <span class="t-str">&quot;Chase&quot;</span>,
+      <span class="t-key">&quot;name&quot;</span>: <span class="t-str">&quot;Sapphire Preferred&quot;</span>,
+      <span class="t-key">&quot;mask&quot;</span>: <span class="t-str">&quot;4242&quot;</span>,
+      <span class="t-key">&quot;type&quot;</span>: <span class="t-str">&quot;credit&quot;</span>,
+      <span class="t-key">&quot;subtype&quot;</span>: <span class="t-str">&quot;credit card&quot;</span>,
+      <span class="t-key">&quot;balances&quot;</span>: {
+        <span class="t-key">&quot;available&quot;</span>: <span class="t-ok">13165.88</span>,
+        <span class="t-key">&quot;current&quot;</span>: <span class="t-ok">1834.12</span>,
+        <span class="t-key">&quot;limit&quot;</span>: <span class="t-ok">15000</span>,
+        <span class="t-key">&quot;iso_currency_code&quot;</span>: <span class="t-str">&quot;USD&quot;</span>
       }
     },
-    <span style="color: #6F7E90">…</span>
+    <span class="t-mute">…</span>
   ],
-  <span style="color: #81B1CF">&quot;env&quot;</span>: <span style="color: #E2C08D">&quot;production&quot;</span>,
-  <span style="color: #81B1CF">&quot;errors&quot;</span>: [],
-  <span style="color: #81B1CF">&quot;live&quot;</span>: <span style="color: #3FB97A">false</span>
+  <span class="t-key">&quot;env&quot;</span>: <span class="t-str">&quot;production&quot;</span>,
+  <span class="t-key">&quot;errors&quot;</span>: [],
+  <span class="t-key">&quot;live&quot;</span>: <span class="t-ok">false</span>
 }</pre>
   </div>
   <div class="shell-pane" role="tabpanel" id="pane-transactions" aria-labelledby="tab-transactions" hidden>
-<pre data-show="table"><span style="color: #6F7E90">$</span> <span style="color: #FFFFFF">fin transactions --since 2026-10-01</span>
-<span style="color: #81B1CF; font-weight: 600">Transactions · 2026-10-01 → 2026-10-09 · 8</span>
-<span style="color: #5D6D82">╭────────────┬───────┬────────────────────┬────────────────────┬──────────┬─────┬────────────────────╮</span>
-<span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Date</span>       <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Item</span>  <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Account</span>            <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Description</span>        <span style="color: #5D6D82">│</span>   <span style="color: #81B1CF; font-weight: 600">Amount</span> <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Ccy</span> <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Category</span>           <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">├────────────┼───────┼────────────────────┼────────────────────┼──────────┼─────┼────────────────────┤</span>
-<span style="color: #5D6D82">│</span> 2026-10-09 <span style="color: #5D6D82">│</span> chase <span style="color: #5D6D82">│</span> Sapphire Preferred <span style="color: #5D6D82">│</span> Sushi Ota          <span style="color: #5D6D82">│</span>   -86.40 <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span> food and drink     <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> 2026-10-08 <span style="color: #5D6D82">│</span> amex  <span style="color: #5D6D82">│</span> Gold Card          <span style="color: #5D6D82">│</span> Whole Foods Market <span style="color: #5D6D82">│</span>  -142.18 <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span> food and drink     <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> 2026-10-08 <span style="color: #5D6D82">│</span> chase <span style="color: #5D6D82">│</span> Total Checking     <span style="color: #5D6D82">│</span> ACME Corp Payroll  <span style="color: #5D6D82">│</span>  <span style="color: #3FB97A">4925.00</span> <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span> income             <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> 2026-10-07 <span style="color: #5D6D82">│</span> chase <span style="color: #5D6D82">│</span> Sapphire Preferred <span style="color: #5D6D82">│</span> Uber               <span style="color: #5D6D82">│</span>   -23.90 <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span> transportation     <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> 2026-10-05 <span style="color: #5D6D82">│</span> amex  <span style="color: #5D6D82">│</span> Gold Card          <span style="color: #5D6D82">│</span> Netflix            <span style="color: #5D6D82">│</span>   -24.99 <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span> entertainment      <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> 2026-10-03 <span style="color: #5D6D82">│</span> chase <span style="color: #5D6D82">│</span> Total Checking     <span style="color: #5D6D82">│</span> Rent · October     <span style="color: #5D6D82">│</span> -2600.00 <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span> rent and utilities <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> 2026-10-02 <span style="color: #5D6D82">│</span> citi  <span style="color: #5D6D82">│</span> Savings            <span style="color: #5D6D82">│</span> Interest payment   <span style="color: #5D6D82">│</span>    <span style="color: #3FB97A">31.20</span> <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span> income             <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> 2026-10-01 <span style="color: #5D6D82">│</span> chase <span style="color: #5D6D82">│</span> Sapphire Preferred <span style="color: #5D6D82">│</span> United Airlines    <span style="color: #5D6D82">│</span>  -540.00 <span style="color: #5D6D82">│</span> USD <span style="color: #5D6D82">│</span> travel             <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">╰────────────┴───────┴────────────────────┴────────────────────┴──────────┴─────┴────────────────────╯</span>
-<span style="color: #6F7E90">Money out 3417.47 · money in 4956.20. Shown here as negative = spent, positive = received; JSON keeps Plaid&#x27;s sign.</span></pre>
-<pre data-show="json" hidden><span style="color: #6F7E90">$</span> <span style="color: #FFFFFF">fin transactions --since 2026-10-01 --json</span>
+<pre data-show="table"><span class="t-mute">$</span> <span class="t-hi">fin transactions --since 2026-10-01</span>
+<span class="t-head">Transactions · 2026-10-01 → 2026-10-09 · 8</span>
+<span class="t-dim">╭────────────┬───────┬────────────────────┬────────────────────┬──────────┬─────┬────────────────────╮</span>
+<span class="t-dim">│</span> <span class="t-head">Date</span>       <span class="t-dim">│</span> <span class="t-head">Item</span>  <span class="t-dim">│</span> <span class="t-head">Account</span>            <span class="t-dim">│</span> <span class="t-head">Description</span>        <span class="t-dim">│</span>   <span class="t-head">Amount</span> <span class="t-dim">│</span> <span class="t-head">Ccy</span> <span class="t-dim">│</span> <span class="t-head">Category</span>           <span class="t-dim">│</span>
+<span class="t-dim">├────────────┼───────┼────────────────────┼────────────────────┼──────────┼─────┼────────────────────┤</span>
+<span class="t-dim">│</span> 2026-10-09 <span class="t-dim">│</span> chase <span class="t-dim">│</span> Sapphire Preferred <span class="t-dim">│</span> Sushi Ota          <span class="t-dim">│</span>   -86.40 <span class="t-dim">│</span> USD <span class="t-dim">│</span> food and drink     <span class="t-dim">│</span>
+<span class="t-dim">│</span> 2026-10-08 <span class="t-dim">│</span> amex  <span class="t-dim">│</span> Gold Card          <span class="t-dim">│</span> Whole Foods Market <span class="t-dim">│</span>  -142.18 <span class="t-dim">│</span> USD <span class="t-dim">│</span> food and drink     <span class="t-dim">│</span>
+<span class="t-dim">│</span> 2026-10-08 <span class="t-dim">│</span> chase <span class="t-dim">│</span> Total Checking     <span class="t-dim">│</span> ACME Corp Payroll  <span class="t-dim">│</span>  <span class="t-ok">4925.00</span> <span class="t-dim">│</span> USD <span class="t-dim">│</span> income             <span class="t-dim">│</span>
+<span class="t-dim">│</span> 2026-10-07 <span class="t-dim">│</span> chase <span class="t-dim">│</span> Sapphire Preferred <span class="t-dim">│</span> Uber               <span class="t-dim">│</span>   -23.90 <span class="t-dim">│</span> USD <span class="t-dim">│</span> transportation     <span class="t-dim">│</span>
+<span class="t-dim">│</span> 2026-10-05 <span class="t-dim">│</span> amex  <span class="t-dim">│</span> Gold Card          <span class="t-dim">│</span> Netflix            <span class="t-dim">│</span>   -24.99 <span class="t-dim">│</span> USD <span class="t-dim">│</span> entertainment      <span class="t-dim">│</span>
+<span class="t-dim">│</span> 2026-10-03 <span class="t-dim">│</span> chase <span class="t-dim">│</span> Total Checking     <span class="t-dim">│</span> Rent · October     <span class="t-dim">│</span> -2600.00 <span class="t-dim">│</span> USD <span class="t-dim">│</span> rent and utilities <span class="t-dim">│</span>
+<span class="t-dim">│</span> 2026-10-02 <span class="t-dim">│</span> citi  <span class="t-dim">│</span> Savings            <span class="t-dim">│</span> Interest payment   <span class="t-dim">│</span>    <span class="t-ok">31.20</span> <span class="t-dim">│</span> USD <span class="t-dim">│</span> income             <span class="t-dim">│</span>
+<span class="t-dim">│</span> 2026-10-01 <span class="t-dim">│</span> chase <span class="t-dim">│</span> Sapphire Preferred <span class="t-dim">│</span> United Airlines    <span class="t-dim">│</span>  -540.00 <span class="t-dim">│</span> USD <span class="t-dim">│</span> travel             <span class="t-dim">│</span>
+<span class="t-dim">╰────────────┴───────┴────────────────────┴────────────────────┴──────────┴─────┴────────────────────╯</span>
+<span class="t-mute">Money out 3417.47 · money in 4956.20. Shown here as negative = spent, positive = received; JSON keeps Plaid&#x27;s sign.</span></pre>
+<pre data-show="json" hidden><span class="t-mute">$</span> <span class="t-hi">fin transactions --since 2026-10-01 --json</span>
 {
-  <span style="color: #81B1CF">&quot;env&quot;</span>: <span style="color: #E2C08D">&quot;production&quot;</span>,
-  <span style="color: #81B1CF">&quot;errors&quot;</span>: [],
-  <span style="color: #81B1CF">&quot;since&quot;</span>: <span style="color: #E2C08D">&quot;2026-10-01&quot;</span>,
-  <span style="color: #81B1CF">&quot;transactions&quot;</span>: [
+  <span class="t-key">&quot;env&quot;</span>: <span class="t-str">&quot;production&quot;</span>,
+  <span class="t-key">&quot;errors&quot;</span>: [],
+  <span class="t-key">&quot;since&quot;</span>: <span class="t-str">&quot;2026-10-01&quot;</span>,
+  <span class="t-key">&quot;transactions&quot;</span>: [
     {
-      <span style="color: #81B1CF">&quot;item&quot;</span>: <span style="color: #E2C08D">&quot;chase&quot;</span>,
-      <span style="color: #81B1CF">&quot;institution&quot;</span>: <span style="color: #E2C08D">&quot;Chase&quot;</span>,
-      <span style="color: #81B1CF">&quot;account_name&quot;</span>: <span style="color: #E2C08D">&quot;Sapphire Preferred&quot;</span>,
-      <span style="color: #81B1CF">&quot;account_mask&quot;</span>: <span style="color: #E2C08D">&quot;4242&quot;</span>,
-      <span style="color: #81B1CF">&quot;date&quot;</span>: <span style="color: #E2C08D">&quot;2026-10-09&quot;</span>,
-      <span style="color: #81B1CF">&quot;authorized_date&quot;</span>: <span style="color: #E2C08D">&quot;2026-10-08&quot;</span>,
-      <span style="color: #81B1CF">&quot;name&quot;</span>: <span style="color: #E2C08D">&quot;SUSHI OTA SAN DIEGO&quot;</span>,
-      <span style="color: #81B1CF">&quot;merchant_name&quot;</span>: <span style="color: #E2C08D">&quot;Sushi Ota&quot;</span>,
-      <span style="color: #81B1CF">&quot;amount&quot;</span>: <span style="color: #3FB97A">86.4</span>,
-      <span style="color: #81B1CF">&quot;iso_currency_code&quot;</span>: <span style="color: #E2C08D">&quot;USD&quot;</span>,
-      <span style="color: #81B1CF">&quot;pending&quot;</span>: <span style="color: #3FB97A">false</span>,
-      <span style="color: #81B1CF">&quot;category&quot;</span>: <span style="color: #E2C08D">&quot;FOOD_AND_DRINK&quot;</span>,
-      <span style="color: #81B1CF">&quot;category_detailed&quot;</span>: <span style="color: #E2C08D">&quot;FOOD_AND_DRINK_RESTAURANT&quot;</span>
+      <span class="t-key">&quot;item&quot;</span>: <span class="t-str">&quot;chase&quot;</span>,
+      <span class="t-key">&quot;institution&quot;</span>: <span class="t-str">&quot;Chase&quot;</span>,
+      <span class="t-key">&quot;account_name&quot;</span>: <span class="t-str">&quot;Sapphire Preferred&quot;</span>,
+      <span class="t-key">&quot;account_mask&quot;</span>: <span class="t-str">&quot;4242&quot;</span>,
+      <span class="t-key">&quot;date&quot;</span>: <span class="t-str">&quot;2026-10-09&quot;</span>,
+      <span class="t-key">&quot;authorized_date&quot;</span>: <span class="t-str">&quot;2026-10-08&quot;</span>,
+      <span class="t-key">&quot;name&quot;</span>: <span class="t-str">&quot;SUSHI OTA SAN DIEGO&quot;</span>,
+      <span class="t-key">&quot;merchant_name&quot;</span>: <span class="t-str">&quot;Sushi Ota&quot;</span>,
+      <span class="t-key">&quot;amount&quot;</span>: <span class="t-ok">86.4</span>,
+      <span class="t-key">&quot;iso_currency_code&quot;</span>: <span class="t-str">&quot;USD&quot;</span>,
+      <span class="t-key">&quot;pending&quot;</span>: <span class="t-ok">false</span>,
+      <span class="t-key">&quot;category&quot;</span>: <span class="t-str">&quot;FOOD_AND_DRINK&quot;</span>,
+      <span class="t-key">&quot;category_detailed&quot;</span>: <span class="t-str">&quot;FOOD_AND_DRINK_RESTAURANT&quot;</span>
     },
-    <span style="color: #6F7E90">…</span>
+    <span class="t-mute">…</span>
   ],
-  <span style="color: #81B1CF">&quot;until&quot;</span>: <span style="color: #E2C08D">&quot;2026-10-09&quot;</span>
+  <span class="t-key">&quot;until&quot;</span>: <span class="t-str">&quot;2026-10-09&quot;</span>
 }</pre>
   </div>
   <div class="shell-pane" role="tabpanel" id="pane-holdings" aria-labelledby="tab-holdings" hidden>
-<pre data-show="table"><span style="color: #6F7E90">$</span> <span style="color: #FFFFFF">fin holdings</span>
-<span style="color: #81B1CF; font-weight: 600">Holdings · 7 positions · 162865.67</span>
-<span style="color: #5D6D82">╭───────────┬────────────┬────────────┬──────────┬────────┬──────────┬────────────┬──────────┬──────╮</span>
-<span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Item</span>      <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Account</span>    <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Security</span>   <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Quantity</span> <span style="color: #5D6D82">│</span>  <span style="color: #81B1CF; font-weight: 600">Price</span> <span style="color: #5D6D82">│</span>    <span style="color: #81B1CF; font-weight: 600">Value</span> <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Cost basis</span> <span style="color: #5D6D82">│</span>     <span style="color: #81B1CF; font-weight: 600">Gain</span> <span style="color: #5D6D82">│</span> <span style="color: #81B1CF; font-weight: 600">Lots</span> <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">├───────────┼────────────┼────────────┼──────────┼────────┼──────────┼────────────┼──────────┼──────┤</span>
-<span style="color: #5D6D82">│</span> fidelity  <span style="color: #5D6D82">│</span> Roth IRA   <span style="color: #5D6D82">│</span> VTI        <span style="color: #5D6D82">│</span>      120 <span style="color: #5D6D82">│</span> 288.10 <span style="color: #5D6D82">│</span> 34572.00 <span style="color: #5D6D82">│</span>   26400.00 <span style="color: #5D6D82">│</span>  <span style="color: #3FB97A">8172.00</span> <span style="color: #5D6D82">│</span>    4 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> fidelity  <span style="color: #5D6D82">│</span> Roth IRA   <span style="color: #5D6D82">│</span> FXAIX      <span style="color: #5D6D82">│</span>    61.05 <span style="color: #5D6D82">│</span> 223.40 <span style="color: #5D6D82">│</span> 13638.57 <span style="color: #5D6D82">│</span>   11020.00 <span style="color: #5D6D82">│</span>  <span style="color: #3FB97A">2618.57</span> <span style="color: #5D6D82">│</span>    3 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> schwab    <span style="color: #5D6D82">│</span> Brokerage  <span style="color: #5D6D82">│</span> AAPL       <span style="color: #5D6D82">│</span>      150 <span style="color: #5D6D82">│</span> 241.30 <span style="color: #5D6D82">│</span> 36195.00 <span style="color: #5D6D82">│</span>   21300.00 <span style="color: #5D6D82">│</span> <span style="color: #3FB97A">14895.00</span> <span style="color: #5D6D82">│</span>    5 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> schwab    <span style="color: #5D6D82">│</span> Brokerage  <span style="color: #5D6D82">│</span> SCHD       <span style="color: #5D6D82">│</span>      600 <span style="color: #5D6D82">│</span>  28.90 <span style="color: #5D6D82">│</span> 17340.00 <span style="color: #5D6D82">│</span>   16200.00 <span style="color: #5D6D82">│</span>  <span style="color: #3FB97A">1140.00</span> <span style="color: #5D6D82">│</span>    2 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> schwab    <span style="color: #5D6D82">│</span> Brokerage  <span style="color: #5D6D82">│</span> U S Dollar <span style="color: #5D6D82">│</span>    42680 <span style="color: #5D6D82">│</span>   1.00 <span style="color: #5D6D82">│</span> 42680.00 <span style="color: #5D6D82">│</span>   42680.00 <span style="color: #5D6D82">│</span>     <span style="color: #3FB97A">0.00</span> <span style="color: #5D6D82">│</span>    0 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> robinhood <span style="color: #5D6D82">│</span> Individual <span style="color: #5D6D82">│</span> NVDA       <span style="color: #5D6D82">│</span>       80 <span style="color: #5D6D82">│</span> 182.50 <span style="color: #5D6D82">│</span> 14600.00 <span style="color: #5D6D82">│</span>    9100.00 <span style="color: #5D6D82">│</span>  <span style="color: #3FB97A">5500.00</span> <span style="color: #5D6D82">│</span>    6 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">│</span> robinhood <span style="color: #5D6D82">│</span> Individual <span style="color: #5D6D82">│</span> TSLA       <span style="color: #5D6D82">│</span>       10 <span style="color: #5D6D82">│</span> 384.01 <span style="color: #5D6D82">│</span>  3840.10 <span style="color: #5D6D82">│</span>    4400.00 <span style="color: #5D6D82">│</span>  -559.90 <span style="color: #5D6D82">│</span>    2 <span style="color: #5D6D82">│</span>
-<span style="color: #5D6D82">╰───────────┴────────────┴────────────┴──────────┴────────┴──────────┴────────────┴──────────┴──────╯</span>
-<span style="color: #6F7E90">Total value 162865.67, cost basis 131100.00 where known.</span></pre>
-<pre data-show="json" hidden><span style="color: #6F7E90">$</span> <span style="color: #FFFFFF">fin holdings --json</span>
+<pre data-show="table"><span class="t-mute">$</span> <span class="t-hi">fin holdings</span>
+<span class="t-head">Holdings · 7 positions · 162865.67</span>
+<span class="t-dim">╭───────────┬────────────┬────────────┬──────────┬────────┬──────────┬────────────┬──────────┬──────╮</span>
+<span class="t-dim">│</span> <span class="t-head">Item</span>      <span class="t-dim">│</span> <span class="t-head">Account</span>    <span class="t-dim">│</span> <span class="t-head">Security</span>   <span class="t-dim">│</span> <span class="t-head">Quantity</span> <span class="t-dim">│</span>  <span class="t-head">Price</span> <span class="t-dim">│</span>    <span class="t-head">Value</span> <span class="t-dim">│</span> <span class="t-head">Cost basis</span> <span class="t-dim">│</span>     <span class="t-head">Gain</span> <span class="t-dim">│</span> <span class="t-head">Lots</span> <span class="t-dim">│</span>
+<span class="t-dim">├───────────┼────────────┼────────────┼──────────┼────────┼──────────┼────────────┼──────────┼──────┤</span>
+<span class="t-dim">│</span> fidelity  <span class="t-dim">│</span> Roth IRA   <span class="t-dim">│</span> VTI        <span class="t-dim">│</span>      120 <span class="t-dim">│</span> 288.10 <span class="t-dim">│</span> 34572.00 <span class="t-dim">│</span>   26400.00 <span class="t-dim">│</span>  <span class="t-ok">8172.00</span> <span class="t-dim">│</span>    4 <span class="t-dim">│</span>
+<span class="t-dim">│</span> fidelity  <span class="t-dim">│</span> Roth IRA   <span class="t-dim">│</span> FXAIX      <span class="t-dim">│</span>    61.05 <span class="t-dim">│</span> 223.40 <span class="t-dim">│</span> 13638.57 <span class="t-dim">│</span>   11020.00 <span class="t-dim">│</span>  <span class="t-ok">2618.57</span> <span class="t-dim">│</span>    3 <span class="t-dim">│</span>
+<span class="t-dim">│</span> schwab    <span class="t-dim">│</span> Brokerage  <span class="t-dim">│</span> AAPL       <span class="t-dim">│</span>      150 <span class="t-dim">│</span> 241.30 <span class="t-dim">│</span> 36195.00 <span class="t-dim">│</span>   21300.00 <span class="t-dim">│</span> <span class="t-ok">14895.00</span> <span class="t-dim">│</span>    5 <span class="t-dim">│</span>
+<span class="t-dim">│</span> schwab    <span class="t-dim">│</span> Brokerage  <span class="t-dim">│</span> SCHD       <span class="t-dim">│</span>      600 <span class="t-dim">│</span>  28.90 <span class="t-dim">│</span> 17340.00 <span class="t-dim">│</span>   16200.00 <span class="t-dim">│</span>  <span class="t-ok">1140.00</span> <span class="t-dim">│</span>    2 <span class="t-dim">│</span>
+<span class="t-dim">│</span> schwab    <span class="t-dim">│</span> Brokerage  <span class="t-dim">│</span> U S Dollar <span class="t-dim">│</span>    42680 <span class="t-dim">│</span>   1.00 <span class="t-dim">│</span> 42680.00 <span class="t-dim">│</span>   42680.00 <span class="t-dim">│</span>     <span class="t-ok">0.00</span> <span class="t-dim">│</span>    0 <span class="t-dim">│</span>
+<span class="t-dim">│</span> robinhood <span class="t-dim">│</span> Individual <span class="t-dim">│</span> NVDA       <span class="t-dim">│</span>       80 <span class="t-dim">│</span> 182.50 <span class="t-dim">│</span> 14600.00 <span class="t-dim">│</span>    9100.00 <span class="t-dim">│</span>  <span class="t-ok">5500.00</span> <span class="t-dim">│</span>    6 <span class="t-dim">│</span>
+<span class="t-dim">│</span> robinhood <span class="t-dim">│</span> Individual <span class="t-dim">│</span> TSLA       <span class="t-dim">│</span>       10 <span class="t-dim">│</span> 384.01 <span class="t-dim">│</span>  3840.10 <span class="t-dim">│</span>    4400.00 <span class="t-dim">│</span>  -559.90 <span class="t-dim">│</span>    2 <span class="t-dim">│</span>
+<span class="t-dim">╰───────────┴────────────┴────────────┴──────────┴────────┴──────────┴────────────┴──────────┴──────╯</span>
+<span class="t-mute">Total value 162865.67, cost basis 131100.00 where known.</span></pre>
+<pre data-show="json" hidden><span class="t-mute">$</span> <span class="t-hi">fin holdings --json</span>
 {
-  <span style="color: #81B1CF">&quot;env&quot;</span>: <span style="color: #E2C08D">&quot;production&quot;</span>,
-  <span style="color: #81B1CF">&quot;errors&quot;</span>: [],
-  <span style="color: #81B1CF">&quot;holdings&quot;</span>: [
+  <span class="t-key">&quot;env&quot;</span>: <span class="t-str">&quot;production&quot;</span>,
+  <span class="t-key">&quot;errors&quot;</span>: [],
+  <span class="t-key">&quot;holdings&quot;</span>: [
     {
-      <span style="color: #81B1CF">&quot;item&quot;</span>: <span style="color: #E2C08D">&quot;fidelity&quot;</span>,
-      <span style="color: #81B1CF">&quot;institution&quot;</span>: <span style="color: #E2C08D">&quot;Fidelity&quot;</span>,
-      <span style="color: #81B1CF">&quot;account_name&quot;</span>: <span style="color: #E2C08D">&quot;Roth IRA&quot;</span>,
-      <span style="color: #81B1CF">&quot;ticker&quot;</span>: <span style="color: #E2C08D">&quot;VTI&quot;</span>,
-      <span style="color: #81B1CF">&quot;security_name&quot;</span>: <span style="color: #E2C08D">&quot;Vanguard Total Stock Market ETF&quot;</span>,
-      <span style="color: #81B1CF">&quot;security_type&quot;</span>: <span style="color: #E2C08D">&quot;etf&quot;</span>,
-      <span style="color: #81B1CF">&quot;quantity&quot;</span>: <span style="color: #3FB97A">120</span>,
-      <span style="color: #81B1CF">&quot;price&quot;</span>: <span style="color: #3FB97A">288.1</span>,
-      <span style="color: #81B1CF">&quot;price_as_of&quot;</span>: <span style="color: #E2C08D">&quot;2026-10-08&quot;</span>,
-      <span style="color: #81B1CF">&quot;value&quot;</span>: <span style="color: #3FB97A">34572</span>,
-      <span style="color: #81B1CF">&quot;cost_basis&quot;</span>: <span style="color: #3FB97A">26400</span>,
-      <span style="color: #81B1CF">&quot;iso_currency_code&quot;</span>: <span style="color: #E2C08D">&quot;USD&quot;</span>,
-      <span style="color: #81B1CF">&quot;tax_lots&quot;</span>: [
+      <span class="t-key">&quot;item&quot;</span>: <span class="t-str">&quot;fidelity&quot;</span>,
+      <span class="t-key">&quot;institution&quot;</span>: <span class="t-str">&quot;Fidelity&quot;</span>,
+      <span class="t-key">&quot;account_name&quot;</span>: <span class="t-str">&quot;Roth IRA&quot;</span>,
+      <span class="t-key">&quot;ticker&quot;</span>: <span class="t-str">&quot;VTI&quot;</span>,
+      <span class="t-key">&quot;security_name&quot;</span>: <span class="t-str">&quot;Vanguard Total Stock Market ETF&quot;</span>,
+      <span class="t-key">&quot;security_type&quot;</span>: <span class="t-str">&quot;etf&quot;</span>,
+      <span class="t-key">&quot;quantity&quot;</span>: <span class="t-ok">120</span>,
+      <span class="t-key">&quot;price&quot;</span>: <span class="t-ok">288.1</span>,
+      <span class="t-key">&quot;price_as_of&quot;</span>: <span class="t-str">&quot;2026-10-08&quot;</span>,
+      <span class="t-key">&quot;value&quot;</span>: <span class="t-ok">34572</span>,
+      <span class="t-key">&quot;cost_basis&quot;</span>: <span class="t-ok">26400</span>,
+      <span class="t-key">&quot;iso_currency_code&quot;</span>: <span class="t-str">&quot;USD&quot;</span>,
+      <span class="t-key">&quot;tax_lots&quot;</span>: [
         {
-          <span style="color: #81B1CF">&quot;quantity&quot;</span>: <span style="color: #3FB97A">30</span>,
-          <span style="color: #81B1CF">&quot;purchase_price&quot;</span>: <span style="color: #3FB97A">212.4</span>,
-          <span style="color: #81B1CF">&quot;original_purchase_datetime&quot;</span>: <span style="color: #E2C08D">&quot;2022-03-14T00:00:00Z&quot;</span>,
-          <span style="color: #81B1CF">&quot;position_type&quot;</span>: <span style="color: #E2C08D">&quot;LONG&quot;</span>
+          <span class="t-key">&quot;quantity&quot;</span>: <span class="t-ok">30</span>,
+          <span class="t-key">&quot;purchase_price&quot;</span>: <span class="t-ok">212.4</span>,
+          <span class="t-key">&quot;original_purchase_datetime&quot;</span>: <span class="t-str">&quot;2022-03-14T00:00:00Z&quot;</span>,
+          <span class="t-key">&quot;position_type&quot;</span>: <span class="t-str">&quot;LONG&quot;</span>
         },
-        <span style="color: #6F7E90">…</span>
+        <span class="t-mute">…</span>
       ]
     },
-    <span style="color: #6F7E90">…</span>
+    <span class="t-mute">…</span>
   ]
 }</pre>
   </div>
 </div>
-      <p class="shell-note">Made-up numbers in fin's real output format. In a terminal fin prints tables; when an agent runs it, JSON.</p>
-    </section>
+<p class="note">Made-up numbers in fin's real output format. In a terminal fin prints tables; when an agent runs it, JSON.</p>
+</section>
 
-    <section style="max-width: 1040px; margin: 0 auto; padding: 72px 24px 0">
-      <p style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #7D8794; margin: 0 0 16px">// works with the banks, cards and brokerages Plaid connects to</p>
-      <div class="insts">
-          <div class="inst"><svg role="img" aria-label="Chase" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M183.1.1c-10 0-18.1 8.1-18.1 18.1v126.7h334.7L347.3.1zM512 183.2c0-10-8-18.1-18.1-18.1H367.3v334.7L512 347.3zM328.9 511.9c10 0 18.1-8.1 18.1-18.1V367.2H12.2l152.4 144.7zM0 328.9c0 10 8.1 18.1 18.1 18.1h126.6V12.3L0 164.7z"/></svg><span>Chase</span></div>
-          <div class="inst"><svg role="img" aria-label="Citi" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="m156 357.4l-.9.9c-14.5 15.3-32.3 23-49.3 23c-36.6 0-63.8-27.2-63.8-65.5s26.4-65.5 63.8-65.5c17.9 0 34.9 7.7 49.3 23l.9.9l23.8-28.9l-.9-.9c-19.6-23-43.4-34.9-72.3-34.9s-56.1 10.2-74.8 27.2C10.5 256.3.3 282.6.3 314.9s11.1 58.7 31.5 78.2c19.6 17.9 45.9 27.2 74.8 27.2s52.7-11.1 72.3-34.9l.9-.9zm47.5 59.9h41.7V213.2h-41.7zm206-44.9q-16.65 10.2-30.6 10.2c-13.6 0-19.6-6.8-19.6-23v-108h42.5v-38.3h-42.5v-63.8l-41.7 22.1v41.7h-34.9v38.3h35.7v114.8c0 31.5 18.7 52.7 46.8 53.6c18.7 0 30.6-5.1 37.4-9.4h.9l10.2-39.1zm34.6 44.9h41.7V213.2h-41.7zm66.2-240.4C472.1 123.4 408.3 91 343.7 91s-127.5 32.3-165.8 86.7l-1.7 2.6h48.5l.9-.9c32.3-34 75.7-51.9 119-51.9s86.7 17.9 119 51.9l.9.9H513z"/></svg><span>Citi</span></div>
-          <div class="inst"><svg role="img" aria-label="American Express" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M512 512v-81.1h-61.8l-31.8-35.2l-32 35.2H182.8V267h-65.7l81.5-184.5h78.6l28.1 63.2V82.5h97.3l16.9 47.6l17-47.6H512V0H0v512zm-51.4-101.6H512l-67.9-72.1l67.9-71.2h-50.5l-42 45.9l-41.6-45.9h-51.4l67.5 71.6l-67.5 71.6h49.9l42.2-46.3zm12.1-72l39.3 41.9v-83.4zm-229 38.8v-22.3h80.9v-32.3h-80.9v-22.3h82.9v-33.2h-122v143.3h122v-33.2zm229.6-130.9H512V103h-60.2l-32.1 89.2l-32-89.2h-61.2v143.3h38.7V146L402 246.3h34.4l36.8-100.5v100.5zm-190.8 0h44L263.3 103h-50.4l-63.3 143.3h43l11.9-28.7h65.9zM257 185.5h-38.9l19.4-46.9z"/></svg><span>American Express</span></div>
-          <div class="inst"><svg role="img" aria-label="Wells Fargo" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M427.1 284.1c-19.1 0-24.7 15.8-24.7 33c0 17.3 5.6 33.1 24.7 33.1c19 0 24.6-15.8 24.6-33.1c.1-17.3-5.6-33-24.6-33m-167.3 14.2c0-7-5-12.3-16.2-12.3h-14.9v24.7h14.9c10.3 0 16.2-4.7 16.2-12.4m-104.4-4.9l-10.8 29.1h22l-10.8-29.1zM0 0v512h512V0zm324.2 223.3h7.8c3.4 0 5.7-1.2 5.7-5.4v-51.6c0-3.7-1.6-5.2-6.5-5.2h-7v-8.9h44.3v8.9h-6.7c-5.3 0-7.1 1.1-7.1 5.6v56.6H373c12.4 0 15-7.4 16.2-21.2h9.3v30.1h-74.1v-8.9zm-82.1 0h7.7c3.4 0 5.7-1.2 5.7-5.4v-51.6c0-3.7-1.6-5.2-6.5-5.2h-7v-8.9h44.2v8.9h-6.8c-5.3 0-7.1 1.1-7.1 5.6v56.6h18.2c12.5 0 15-7.4 16.3-21.2h9.2v30.1h-74zM34.3 161.2h-1.7v-8.9h35v8.9h-5.1c-2.7 0-3.7 1.6-3.7 3.2c0 1.2.4 2.7 1.1 4.4l15.2 44.7h.2l14.4-42l-2-5.7c-1.2-3.6-3.7-4.5-7.2-4.5h-2.9v-8.9h36.2v8.9h-6.4c-2.5 0-3.4 1.1-3.4 2.7c0 1.2.6 2.9 1 4.1l13.3 44.7h.2l15.4-43.7c.5-1.4.9-2.6.9-4.1c0-1.9-.9-3.7-5.2-3.7h-5.8v-8.9h109.8v27.4h-9c-1.8-11.6-2.9-18.5-18.9-18.5h-21.2v25.2h5.8c7.3 0 10.6-3.5 10.6-13.4v-1.5h8.5v39h-8.5v-1.7c0-9.8-3.3-13.5-10.6-13.5h-5.8v28.1h24.1c11 0 15-7.3 16.3-21.2h8.8v30.1h-79.2v-9h6.7c4.2 0 6.4-1.2 6.4-8.4v-47c0-5.2-2.4-6.8-8-6.8h-2.5c-5.8 0-8.5 1.3-10.5 7.3l-21.9 63.8h-16.6l-12.7-41.6h-.2l-14 41.6H64.3l-22.7-66.9c-1-3.3-2.7-4.2-7.3-4.2m49.4 150c7.8 0 10-5.7 10-11.9v-1.6h8.4v36.9h-8.4v-2.7c0-8.5-3.3-11.7-10.8-11.7h-5V342c0 4.5 2.1 6.2 7.7 6.2h6v9H47.3v-9H55c4.3 0 6.1-2.5 6.1-5.9v-51.7c0-2.9-2-4.5-5.6-4.5h-8V277h75.8v27.3h-8.7c-1.2-9.5-3.1-18.4-20.8-18.4H78.1v25.2h5.6zm202.9 29.3c0 13.8-6.6 19.1-16.6 19.1c-11.7 0-15.6-5.6-15.6-16.5v-4.2c0-13.8-5.9-19.3-19.3-19.3h-6.3v24.2c0 3.2 1.5 4.3 5 4.3h8.8v9h-80v-9h8.9c2.5 0 3.4-.6 3.4-2c0-.8-.2-2-.7-3.3c-.4-1.1-4.2-11.4-4.2-11.4h-28.6s-3.5 9.5-4.1 11.1c-.4 1.2-.7 2.2-.7 3.3c0 1.7 1.4 2.3 3.8 2.3h8.5v9H111v-9c6.4 0 10.4-.9 12.7-6.5l25.6-64.6h15.4l26.2 64.6c2.2 5.7 6.3 6.5 12.7 6.5h3.3c3.5 0 5-1.1 5-4.3v-53.5c0-3.2-1.2-4.4-5-4.4h-8.4V277H251c17.5 0 25.7 8.3 25.7 20.8c0 15.5-15.4 18.6-22.7 19v.2c8.5.6 15.6 4.1 15.6 16.5v4.7c0 8.2 1.7 10 4.6 10s4.4-2.3 4.4-7.6v-2.2h8zm89-17.1h-2.2c-4.7 0-6.4 1.3-6.4 6v27.8h-8.2l-4.5-6.1c-1.9 1.7-10 8.6-25.1 8.6c-23.5 0-38.6-18-38.6-42.6c0-24.4 14.9-42.5 38.6-42.5c14.8 0 22.3 7.4 24 9l3-6.5h8.5v27.3h-9.9c-1.8-4.9-7.1-19.3-22.6-19.3c-14.9 0-22.6 13.9-22.6 32c0 18.4 7.7 32.2 23.1 32.2c12.3 0 17.9-6.4 17.9-15.6V329c0-3.9-2.4-5.7-6.4-5.7h-5.5v-9h37zm51.5 36.3c-26.3 0-43.7-18.5-43.7-42.6s17.4-42.5 43.7-42.5c26.2 0 43.6 18.4 43.6 42.5c0 24-17.4 42.6-43.6 42.6m14.9-125c-14.6 0-22.3-7.9-24.3-9.6l-2.7 7.2h-8.2v-30.1h9.3c1.9 13.5 11.3 22.3 27.1 22.3c11.3 0 17-5.8 17-11.2c0-7.1-6.8-10.2-17.1-12.4c-4.1-.9-6.8-1.4-11.3-2.3c-13.7-2.9-25.5-9.7-25.5-24.6c0-16.4 15.3-24.1 30.4-24.1c14.4 0 21.8 7.7 22.5 8.4l4-6h6.5v27.4h-9c-3.1-10.1-8.8-19.5-23.6-19.5c-9.8 0-16.4 4.2-16.4 10.4c0 7.1 6.4 9.6 16.3 11.7c2.9.7 5.6 1.1 8.4 1.8c16 3.2 29.2 10 29.2 25.9c.2 16.4-13.9 24.7-32.6 24.7"/></svg><span>Wells Fargo</span></div>
-          <div class="inst"><svg role="img" aria-label="Bank of America" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M255.2 394.8C336 325.5 449.6 258.1 512 233.9c-9.6-6.2-24.6-15-41.6-24.6c-80.4 26.5-174.4 85.4-258.3 152c14.3 10.8 29.3 21.9 43.1 33.5m-36.9-188.3c-11.9-5.8-25-11.2-35-15.8c-30.4 15-70.1 37.7-120.1 73.5c10.8 5.8 22.3 12.7 34.6 19.6c38.5-28.4 77.4-55.3 120.5-77.3m72-33.1c-14.6-8.1-65.4-26.9-100.5-35c-10.4 3.8-25 9.6-35 13.9c12.7 3.5 60.1 16.2 100.5 36.6c10.3-5.1 25-11.2 35-15.5m-172.1-5c-45 20.8-92.4 49.3-118.2 65.8c9.2 4.2 18.5 7.7 31.2 13.9c57-38.5 101.6-62 119.3-69.7c-12.7-4.6-24.6-7.7-32.3-10m205.9-6.9c10.4-3.5 22.3-6.5 32.7-9.6c-30-12.7-67.8-26.2-101.6-34.6c-5.4 1.5-21.6 5.8-32.7 9.2c11.6 3.4 49.7 12.3 101.6 35M134.4 306.2c12.3 7.3 25.4 17.3 38.1 25.8c84.3-65.4 167.5-115.9 258.7-144.4c-12.7-6.5-23.9-12.3-38.1-19.2c-54.7 13.9-148.3 51.2-258.7 137.8"/></svg><span>Bank of America</span></div>
-          <div class="inst"><svg role="img" aria-label="Capital One" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M57 34.8c67.4-4.4 135-7.1 202.6-5.3c48.2 1.6 96.6 4.8 143.9 14.5c26.7 5.9 53.7 13.4 77 28.1c14 9 27.6 21.7 30.6 38.8c3.7 19.9-4.5 39.4-14.5 56.2c-18.7 30.1-44.1 55.3-70.2 78.9c-32.9 29.2-68 55.9-103.9 81.3c-35.3 24.5-70.7 48.9-106.6 72.4c-45.8 29.4-92.7 57.2-140.4 83.4H10.6c33.1-23 64.3-48.7 94.8-75.1c37.6-32.5 74.1-66.3 109.8-100.9c7-6.7 14.5-13 19.7-21.2c17-23.8 32.7-51.3 31.9-81.5c-.5-20.7-11.7-39.7-27-52.9c-25.2-21.6-57.3-32.6-88.9-41c-31.9-8.1-64.6-12.6-97.3-16.1c-17.9-1-35.7-3.5-53.6-3.6V39.3c18.9-2.3 38-3.1 57-4.5"/></svg><span>Capital One</span></div>
-          <div class="inst"><svg role="img" aria-label="Charles Schwab" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill-rule="evenodd" d="M364.2 298.2c.1.3 7.8 21.9 8 22.4h-16c.2-.5 7.9-22.2 8-22.4m-162.9-53.7c14 0 36.4-39.2 36.4-47.8c0-5.5-3.1-8.6-8.4-8.6c-16.2 0-32.6 28.7-32.6 49.4c0 5.8 1.7 7 4.6 7M403 192.7c0-3.6-2.5-6-6.1-6c-8.7 0-18.3 14.3-21.5 20.2c17.5-.4 27.6-5.5 27.6-14.2M512 0v512H0V0zM350 235.4c0 11.8 7.7 20 18.7 20c13 0 26.7-12.4 30-16.7c.2-.2.1-.5-.1-.7l-2.1-2.6c-.3-.2-.6-.2-.8-.1l-1.8 1.3c-4.3 3.2-12.3 9.2-18.1 9.2c-7.3 0-11.8-4.6-11.8-12.1c0-9 4.4-15.8 7.6-20.7c0 0 .3-.5.4-.6c.2 0 1.2.1 1.2.1l6.8.2c11.8 0 33.9-5.6 33.9-19.2c0-5.6-5.2-11.5-14.8-11.5c-20.2.1-49.1 27.7-49.1 53.4m-4.4-84.8c-.1 3-13.8 37-13.8 37c-7.4 18.3-19.8 50.2-20.2 57.7c-.2 3.3.6 6 2.3 7.8c1.5 1.5 3.6 2.3 6.3 2.3c8.7 0 17.3-10.8 23-17.9l1-1.2c.2-.3.1-.5 0-.6c0-.1-2.5-3.2-2.5-3.2c-.1-.1-.3-.2-.4-.2c-.2 0-.3.1-.4.2l-.8.9c-6.2 6.8-9.6 10.6-12.4 10.7c-.3 0-.8 0-1.2-.4q-.6-.6-.6-2.1c.2-3.8 6.4-21.6 18.9-54.6l9.1-23.6c4.8-12.3 7.2-18.5 7.2-19.3c0-.5-.1-1-.4-1.3c-.4-.5-1.3-.7-2.5-.7H337c-.3 0-.6.2-.6.6l-.1 3.4c0 .3.2.5.4.6l4.7.4c3 .5 4.2 1.6 4.2 3.5m-83.7 51.1c0 .1.1.3.2.4l2.3 2.3c.1.1.2.2.4.2s.4-.1.5-.3l.7-.7l.6-.7c2.6-3.2 7.9-9.9 10.6-9.9c1.5 0 2.3 1.5 2.3 4.2c0 6.7-7.3 27-12.2 40.5c-2.8 7.6-4.7 13.1-4.7 14.2c0 1.5.6 2.1 1.8 2.1h6.3c1.3 0 1.8-.8 2.7-2.8c0-.1 3.1-7.4 4.9-11c12.5-25.6 19.4-38.7 24.7-43.8c3.5-3.4 6-4.9 7.8-4.8c1.4.1 2.3 1.1 3.2 2.2c1 1.2 2 2.5 3.9 2.6c1.3.1 2.5-.4 3.5-1.3c1.6-1.5 2.5-4 2.5-6.8c0-4.7-3.3-6.3-6.1-6.3c-11.5 0-19.9 8.4-31.3 31.1c-.3.6-1.1 2.2-1.3 2.1h-.2v-.5c0-.7.8-3.6 1.6-7.3c1.7-7 4-16.6 4-19.4c0-3.6-2-5.6-5.6-5.6c-7.5 0-18.9 12.4-22.9 19c-.1 0-.2.2-.2.3M184 240.8c0 10 5.5 14.5 10.9 14.5c6.8 0 16-2.3 27.6-20.1c0 0 2.6-4.3 2.9-4.3c.1 0 .2 0 .3.1s.1.4 0 .8l-.9 2.1c-1.5 3.2-4.2 9-4.2 14.4c0 2.6.6 4.5 1.9 5.7c1.1 1.1 2.6 1.6 4.5 1.6c11-.2 20.5-14.4 24.1-19.7l.1-.3l-.1-.4l-2.4-2.8c-.3-.3-.6-.2-.9 0l-2.5 3c-3.2 4.1-7.3 9.1-9.8 9.1c-.6 0-.9-.1-1.1-.3c-.3-.3-.4-.9-.3-2.1c.2-3.4 6.9-21 12.2-35.1c4-10.4 7.4-19.4 7.5-20.9c0-.3 0-1.4-1-1.9l-4.3-2.9l-.2-.1c-.5-.3-1.1-.6-1.6-.4c-1 .3-1.6 1.2-2.2 2.1c-.7 1-1.3 2-2.5 2c-1 0-2.1-.2-3.3-.5c-1.7-.3-3.8-.8-6.6-.8c-31.5-.1-48.1 42.5-48.1 57.2M141.4 150c0 2.9-3.3 12.1-7.8 24.9l-4.1 11.5c-3.5 10.1-8.9 24.3-13.7 36.8c-5.7 14.9-10.2 26.7-10.2 28.3c0 1.9 1 2.4 5.2 2.4c4.6 0 6.7-.7 7.2-2.5c8-26.4 30.1-56.6 41.5-56.6c3.6 0 4.9 1.3 4.9 4.8c0 5.9-5 16.9-9.8 27.6c-4.2 9.4-8.3 18.3-8.3 22.5c0 3.9 1.7 5.8 5.2 5.8c11.3 0 19.9-10.2 26.7-18.4l1-1.2l.2-.4l-.2-.4l-2.3-2.8c0-.1-.2-.2-.3-.2c-.2 0-.4 0-.5.2c-3.9 4.1-10.4 10.2-12.3 10.5c-.5 0-.9 0-1.1-.2c-.3-.3-.3-.8-.2-1.8c.1-.9 1.3-3.8 3-7.8c4.3-10.4 11.5-27.7 11.5-38c0-8.2-3.9-13-10.8-13c-13.8 0-25 15.8-30.3 23.4c-1.2 1.8-2.4 3.4-2.7 3.5c-.1 0-.2 0-.2-.1c-.2-.3.5-2.1 2-5.4c1.5-3.5 3.8-8.7 6.9-16.8c10.4-27.1 14.8-41.6 14.8-42.8c0-1.6-1.5-1.8-3-1.8h-21.2c-.3 0-.6.3-.6.6v3.4c0 .2.2.5.4.6l2.1.2l2.7.2c3.4.6 4.3 1.2 4.3 3M94.7 329.9c0-11.7-8.9-17-15.7-20.1l-2.7-1.2c-8.6-3.9-12.1-7.7-12.1-13.1c0-5.3 3.2-10.7 10.4-10.7c8.4 0 11.6 6.6 13.6 13.1v.2l3.6-.7v-.2c-.9-5.1-1.6-9.7-2-13.9v-.1l-2.4-.8l-2.1-.6c-2.6-.9-6.2-1.5-9.5-1.5c-13 0-22.2 8.2-22.2 19.9c0 9.9 7.9 15.4 15.6 19.4l3.3 1.6c7.7 3.8 10.9 7.8 10.9 13.8c0 6.8-4.4 11.6-10.7 11.6c-10.1 0-15.7-10.5-18.2-16.8l-.1-.2l-3.4 1.2v.2c1.1 6.4 2.3 13.3 3.1 16v.1l1.7.6l4.4 1.6c3 1.1 6.8 1.7 10.4 1.7c14.3.1 24.1-8.6 24.1-21.1m7.3-91.8l-2.4-2.5c0-.1-.2-.2-.4-.2c-.1 0-.3 0-.3.1l-.3.3c-4.3 4-12.6 10.7-20.1 11.2c-2.9.2-5.5-.7-7.5-2.4c-2.5-2.1-3.9-5.6-4.1-9.9c-.5-11.2 9-28.1 18.5-38c5.1-5.3 9.8-8.3 13.2-8.3c4 0 6.4 2.9 8.8 5.8c2.1 2.5 4.1 4.8 6.9 4.8c1.1 0 2.3-.6 3.2-1.5c1-1.1 1.5-2.4 1.5-3.8c-.2-4.4-4.2-11.3-14.2-11.5c-11.4-.2-25.6 6.7-36.2 17.7c-10.1 10.4-15.4 22.8-14.8 34.7c.4 10.1 5.9 20.8 19.8 20.8c14.1 0 26.5-12.6 28.6-16.6c0-.2-.1-.5-.2-.7m63.4 92.4l-3.2-.7l-.1.1c-5.3 10.8-10.3 16.7-21.6 16.7c-14.6 0-24.4-13-24.4-32.4c0-13.5 6.4-29.3 24.4-29.3c10.6 0 16.4 4.5 19.3 15.2v.1l3.3-.4l-.5-4.6l-1.5-12.1h-.1l-1.8-.4c-3.5-.8-9.4-2.2-16.8-2.2c-23.6 0-40.1 15-40.1 36.6c0 17 11.8 34.2 38.3 34.2c6.8 0 15.8-2 19.5-3.1c1.9-4.2 4.2-12.9 5.3-17.3zm77.5-48.6h-29.8v3.2h.2c7.6.6 8.5 1.1 8.5 12.5v13.7h-31.1v-13.7c0-11.4.9-11.9 8.4-12.5h.2v-3.2h-30v3.2h.2c8.8.6 9.4 1.4 9.4 12.5v36.2c0 10.9-.7 11.8-9 12.5h-.1v3.2h30v-3.2h-.2c-7.8-.6-8.8-1.1-8.8-12.5v-17.4h31.1v17.4c0 11-.6 11.8-9.4 12.5h-.2v3.2h30.4v-3.2h-.2c-7.9-.6-8.7-1.1-8.7-12.5v-36.2c0-11 .6-11.8 8.9-12.5h.2zm75.3 68.3c9.5-32 17.4-54.4 17.5-54.6c3.4-9.4 4.2-9.8 10.7-10.4h.2V282h-24.2v3.2l3.8.3c2.1.2 3.1.6 3.7 1.4c.3.5.5 1.1.5 2c0 1.1-.2 2.6-.8 4.6c-.2 1-5.9 23.4-10.4 38.4c-.9-2.1-18-49-18-49v-.1h-4.3s-15.4 48.4-15.7 49.1c-.7-2.2-12-40.1-12-40.1c-.4-1.5-.6-2.6-.6-3.4c0-.7.1-1.1.4-1.5c.5-.8 1.7-1.1 3.6-1.4l3.3-.2v-3.4h-28.3v3.2h.2c5.5.6 7.2 1.2 10 10l17.1 55.2h4.9l16.1-48.3c.8 2 17.6 48.2 17.6 48.2l.1.1h4.8zm83.1-3.9h-.2c-5.8-.6-7.3-1.1-10.8-10.5L377.2 300l-7-18.9h-.1l-4.4.5l-21.1 54.2c-3.5 9.3-4.7 9.7-11 10.5h-.2v3.2h23.3v-3.2l-3-.4c-2.3-.3-3.4-.7-3.9-1.5c-.3-.4-.4-.9-.4-1.5c0-1 .3-2.3.9-4.1l.6-1.7c1.3-4.1 2.9-8.7 4.1-11.4h18.9c2.2 5.6 4.6 11.7 5.6 14.7c.4 1.3.7 2.3.7 3c0 .4-.1.7-.2 1c-.4.6-1.3 1-3.2 1.3l-3 .5v3.2h27.6v-3.1zm17-90.9c11.8 0 26.7-11 26.7-23.4c0-7-4.3-12.8-8.2-17.9c-3.3-4.4-6.4-8.5-6.4-12.7c0-5.7 3.2-9.4 8.2-9.4c2.5 0 4.5.9 6.5 1.9c2 .9 4.1 1.9 6.7 1.9c3.5 0 6.6-3.7 6.6-6.6c0-3.5-3.7-7.2-10-7.2c-14.3 0-27.1 16.2-27.1 29c0 7 4.2 12.4 8 17.2c3 3.9 5.6 7.2 5.6 10.6c0 5.7-5.3 9.2-10.4 9.2s-8.7-3.2-11.5-5.8c-2.1-1.9-4-3.6-5.9-3.6c-2.8 0-3.4 5.9-3.4 7.9c0 3.4 6.8 8.9 14.6 8.9m42.5 74.2c0-9.4-6.8-15.8-18.3-17.4c5.1-1.1 14.4-5.5 14.4-15c0-5.4-1.9-9.3-5.9-11.9c-4-2.5-8.2-3.4-16-3.4h-28.8v3.2h.2c7.2.6 8.1 1.1 8.1 12.5v36.2c0 11.3-1 11.9-8.8 12.5h-.2v3.2h25.9c8.3 0 15.3-1.5 19.9-4.1c6.4-3.8 9.5-9 9.5-15.8m-31.2-14.2h-3.3v18.3c0 5.2.3 8.5 2 10.1c1.1 1 2.7 1.4 5.7 1.3c6.6 0 13.7-3.7 13.7-14.3c-.1-9.8-6.7-15.4-18.1-15.4m14.9-16.8c0-11.5-9.9-12.4-12.9-12.4c-3.4 0-4.4.3-4.7.5c-.8.4-.8 2.2-.8 4.5v20.1h4c9.3 0 14.4-4.5 14.4-12.7"/></svg><span>Charles Schwab</span></div>
-          <div class="inst"><svg role="img" aria-label="Fidelity" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M219.1 313.8h91.8l26.9 17.4H215.1l-55 170.3c-31.3-12.5-59.7-31.2-83.7-54.8s-43.1-51.8-56.1-82.8S.4 299.4.3 265.7s6.6-67.1 19.5-98.2C45.2 106.9 93 58.4 153.3 32s128.4-28.5 190.2-5.9c61.8 22.5 112.6 68 141.7 126.9c29.2 59 34.5 126.9 15 189.7c-14.7 47.7-43.3 89.9-82.1 121.3l-67.8-113l94.4 52.7s.8-.6 0-1.2l-123-106.7l159.6 24.4h.8l-1-.9L330.3 266L487 228.1v-.8l-160.4 10.5l125.8-95.3s-.8-.8-1.1 0l-141.4 71.7l77.9-137.8s0-.8-.5 0l-101.7 119l19.7-157.5s-.6-.6-1.1 0l-47 152.7l-41-157.5s-.9-.5-1.2 0l11.3 163.4l-96.8-126h-.9L201.8 210L63.5 134.5s-.8 0-.8.6l123.1 101.1l-157.5-16.6c-.6 0-.6.8 0 1.1l152.8 44.6l-151.7 44.4l-.2.2c0 .1-.1.2-.1.3s0 .2.1.3c0 .1.1.2.2.2L185.8 293L63 396.8s-.6.6 0 .9l1.6-.6l98.4-51.5l23-36.7h26.3L194.1 296l60.8-97.6z"/></svg><span>Fidelity</span></div>
-          <div class="inst"><svg role="img" aria-label="Vanguard" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill-rule="evenodd" d="M8.3 6V.8H181l124 362.1l91.7-290.5s18.7-48.9-31.4-68.2V0h138.4L328.9 512l-72.8-28.1s-58.9-17.4-90.3-105.8L52 63.9S37.6 13.2 8.3 6"/></svg><span>Vanguard</span></div>
-          <div class="inst"><svg role="img" aria-label="Robinhood" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="m225.2 401.7l-3.4 1.1c-21.9 7.3-54.4 18.5-83.5 31.9c-1.5.7-2.6 2.8-2.6 2.8c-.6 1.3-1.2 2.8-2 4.5l-.1.2c-3.3 7.4-7.7 18.5-9.7 23.1l-1.5 3.6c-.2.6-.1 1.2.4 1.6c.3.3.6.4 1 .4c.2 0 .4 0 .7-.1l3.5-1.7c8-3.8 18.1-9.5 28.6-14.5l.4-.2c20.1-9.5 42.8-20.3 56.5-26.8c0 0 2.2-1.2 3.3-3.4l10.2-20.5c.3-.5.2-1.2-.2-1.6c-.5-.4-1.1-.6-1.6-.4M143.4 370c1.4-2.8 8.1-15.6 9.6-18.4l.3-.5c44.4-83.6 98.6-162.5 160.9-234.4l1.7-2c.5-.6.6-1.5.2-2.2s-1.2-1.1-2-1l-2.6.4c-40.9 5.6-82.3 13.4-123.1 23.1c-4.1 1.1-6.7 3.8-7.2 4.4c-30.5 36.5-59.4 74.8-85.9 114.2c-1.3 2-1.8 4.6-1.4 6.8c.3 2.1 6.7 51.2 16.4 89c-24.1 69.2-45.6 160.3-45.6 160.3c-.2.6 0 1.2.3 1.7c.4.5.9.8 1.6.8h13.7c.9 0 1.6-.5 2-1.3l.9-2.6c14-38.1 30-75.7 47.6-112.4c3.9-8.7 12.6-25.9 12.6-25.9m190.8-238.4V129c0-.8-.6-1.5-1.3-1.8s-1.6 0-2.2.6l-1.7 2c-72.7 83.9-133.7 176.9-181.5 276.6l-1.1 2.3c-.4.7-.2 1.6.3 2.2c.4.4.9.6 1.4.6c.2 0 .5 0 .8-.1l2.4-1c40.8-16.9 82.5-31.5 123.9-43.5c2.5-.7 4.6-2.5 5.7-4.7c18.2-35.3 60.3-103.7 60.3-103.7c1.1-1.5.8-3.8.8-3.8s-7.3-81.7-7.8-123.1m94-117.9C417.9 4.7 402.9.5 379.6 0c-21.1-.5-46.2 4.1-74.6 13.4c-4.2 1.5-7.7 3.9-10.7 6.8c-28.9 27.1-57 55.8-83.5 85.4l-2.1 2.2c-.6.7-.7 1.6-.2 2.3c.4.7 1.3 1.1 2.1.9l3-.7c42.8-9.1 86-16.1 128.4-20.7c2.8-.3 5.7.6 7.7 2.5c2.1 1.9 3.3 4.7 3.2 7.5c-.7 42 .8 84.2 4.6 125.4l.2 2.7c.1.8.7 1.5 1.5 1.7c.1 0 .3 0 .5.1c.6 0 1.3-.3 1.7-.8l1.5-2.2c23.9-34 49.9-67.1 77.2-98.4c3.1-3.5 3.9-5.7 4.4-8.8c8.8-54.7-4.4-95.3-16.3-105.6"/></svg><span>Robinhood</span></div>
-          <div class="inst"><svg role="img" aria-label="X Money" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M304.7 216.8L495.2 0h-45.1L284.6 188.2L152.6 0H.2l199.7 284.7L.2 512h45.1L220 313.2L359.4 512h152.3M61.6 33.3h69.3l319.1 447h-69.3"/></svg><span>X Money</span></div>
-          <div class="inst"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #4A5666">+ 12,000 more</span></div>
-      </div>
-      <p style="font-size: 12px; color: #9AA3AE; margin: 12px 0 0">Logos are trademarks of their owners. fin is independent and not affiliated with them or with Plaid.</p>
-    </section>
-
-    <section id="examples" style="max-width: 1040px; margin: 0 auto; padding: 88px 24px 0">
-      <p style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #7D8794; margin: 0 0 10px">// examples · made-up numbers</p>
-      <h2 style="font-size: 32px; letter-spacing: -0.03em; font-weight: 600; color: #111A26; margin: 0 0 32px">Ask in plain words. Get a report.</h2>
-      <div class="gal">
-        <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px">
-          <figcaption style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 10px"><span style="font-size: 18px; line-height: 1.4; color: #111A26; font-weight: 500">“Build me a monthly spending review.” <span style="font-weight: 400; color: #4A5666">Compare it to the month before.</span></span><a class="try" href="try/spending/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="" style="width: 20px; height: 20px; display: block">Try this prompt<span class="arr">→</span></a></figcaption>
-          <img src="examples/1.png" alt="Spending report: last month by category compared with the month before" style="width: 100%; display: block; border-radius: 8px; border: 1px solid #E1E4E8">
-        </figure>
-        <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px">
-          <figcaption style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 10px"><span style="font-size: 18px; line-height: 1.4; color: #111A26; font-weight: 500">“Find the subscriptions worth reviewing.” <span style="font-weight: 400; color: #4A5666">Find subscriptions, price increases, and anything I’m paying for twice.</span></span><a class="try" href="try/subscriptions/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="" style="width: 20px; height: 20px; display: block">Try this prompt<span class="arr">→</span></a></figcaption>
-          <img src="examples/2.png" alt="Subscription audit with price increases and duplicates flagged" style="width: 100%; display: block; border-radius: 8px; border: 1px solid #E1E4E8">
-        </figure>
-        <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px">
-          <figcaption style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 10px"><span style="font-size: 18px; line-height: 1.4; color: #111A26; font-weight: 500">“Put all my investments in one report.” <span style="font-weight: 400; color: #4A5666">Show my allocation and unrealized gains across brokerages.</span></span><a class="try" href="try/portfolio/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="" style="width: 20px; height: 20px; display: block">Try this prompt<span class="arr">→</span></a></figcaption>
-          <img src="examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages" style="width: 100%; display: block; border-radius: 8px; border: 1px solid #E1E4E8">
-        </figure>
-        <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px">
-          <figcaption style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 10px"><span style="font-size: 18px; line-height: 1.4; color: #111A26; font-weight: 500">“Show how my net worth changed this year.” <span style="font-weight: 400; color: #4A5666">Chart it month by month and explain what moved it.</span></span><a class="try" href="try/net-worth/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="" style="width: 20px; height: 20px; display: block">Try this prompt<span class="arr">→</span></a></figcaption>
-          <img src="examples/4.png" alt="Net worth: monthly chart for the year and what moved it" style="width: 100%; display: block; border-radius: 8px; border: 1px solid #E1E4E8">
-        </figure>
-      </div>
-    </section>
-
-    <section style="max-width: 1040px; margin: 0 auto; padding: 88px 24px 0">
-      <p style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #7D8794; margin: 0 0 10px">// fin help security</p>
-      <h2 style="font-size: 32px; letter-spacing: -0.03em; font-weight: 600; color: #111A26; margin: 0 0 28px">Read-only, local, yours.</h2>
-      <div class="help" style="font-size: 16px; border-top: 1px solid #E1E4E8; padding-top: 20px">
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #356B8D">reads</span><span style="color: #4A5666">Balances, transactions, holdings with tax lots, investment activity.</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #356B8D">never requests</span><span style="color: #4A5666">Plaid Auth or Identity: no account numbers, no personal details. Cannot move money.</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #356B8D">secrets</span><span style="color: #4A5666">macOS Keychain, service "fin". State in ~/.config/fin/state.json, mode 0600.</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #356B8D">servers</span><span style="color: #4A5666">None. fin calls Plaid's API from your laptop and prints the answer.</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #356B8D">cost</span><span style="color: #4A5666">Free on Plaid's Trial plan, up to 10 institutions. MIT licensed.</span>
-      </div>
-      <div style="margin-top: 40px; background: #FFFFFF; border: 1px solid #E1E4E8; border-radius: 10px; padding: 16px 20px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #111A26; overflow-wrap: anywhere"><span style="color: #9AA3AE">$</span> go install github.com/kilianc/fin/cmd/fin@latest <span style="color: #9AA3AE">&amp;&amp;</span> fin init</div>
-    </section>
-  </main>
-
-  <footer style="max-width: 1040px; margin: 96px auto 0; padding: 20px 24px 48px; border-top: 1px solid #E1E4E8; display: flex; gap: 12px; align-items: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #7D8794">
-    <span>fin · MIT</span><span style="flex: 1"></span><a href="https://github.com/kilianc/fin" style="color: #3A4656">github.com/kilianc/fin</a>
-  </footer>
+<section class="section wrap">
+<p class="kicker">// works with the banks, cards and brokerages Plaid connects to</p>
+<div class="insts">
+          <div class="inst"><svg role="img" aria-label="Chase" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M183.1.1c-10 0-18.1 8.1-18.1 18.1v126.7h334.7L347.3.1zM512 183.2c0-10-8-18.1-18.1-18.1H367.3v334.7L512 347.3zM328.9 511.9c10 0 18.1-8.1 18.1-18.1V367.2H12.2l152.4 144.7zM0 328.9c0 10 8.1 18.1 18.1 18.1h126.6V12.3L0 164.7z"/></svg><span>Chase</span></div>
+          <div class="inst"><svg role="img" aria-label="Citi" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="m156 357.4l-.9.9c-14.5 15.3-32.3 23-49.3 23c-36.6 0-63.8-27.2-63.8-65.5s26.4-65.5 63.8-65.5c17.9 0 34.9 7.7 49.3 23l.9.9l23.8-28.9l-.9-.9c-19.6-23-43.4-34.9-72.3-34.9s-56.1 10.2-74.8 27.2C10.5 256.3.3 282.6.3 314.9s11.1 58.7 31.5 78.2c19.6 17.9 45.9 27.2 74.8 27.2s52.7-11.1 72.3-34.9l.9-.9zm47.5 59.9h41.7V213.2h-41.7zm206-44.9q-16.65 10.2-30.6 10.2c-13.6 0-19.6-6.8-19.6-23v-108h42.5v-38.3h-42.5v-63.8l-41.7 22.1v41.7h-34.9v38.3h35.7v114.8c0 31.5 18.7 52.7 46.8 53.6c18.7 0 30.6-5.1 37.4-9.4h.9l10.2-39.1zm34.6 44.9h41.7V213.2h-41.7zm66.2-240.4C472.1 123.4 408.3 91 343.7 91s-127.5 32.3-165.8 86.7l-1.7 2.6h48.5l.9-.9c32.3-34 75.7-51.9 119-51.9s86.7 17.9 119 51.9l.9.9H513z"/></svg><span>Citi</span></div>
+          <div class="inst"><svg role="img" aria-label="American Express" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M512 512v-81.1h-61.8l-31.8-35.2l-32 35.2H182.8V267h-65.7l81.5-184.5h78.6l28.1 63.2V82.5h97.3l16.9 47.6l17-47.6H512V0H0v512zm-51.4-101.6H512l-67.9-72.1l67.9-71.2h-50.5l-42 45.9l-41.6-45.9h-51.4l67.5 71.6l-67.5 71.6h49.9l42.2-46.3zm12.1-72l39.3 41.9v-83.4zm-229 38.8v-22.3h80.9v-32.3h-80.9v-22.3h82.9v-33.2h-122v143.3h122v-33.2zm229.6-130.9H512V103h-60.2l-32.1 89.2l-32-89.2h-61.2v143.3h38.7V146L402 246.3h34.4l36.8-100.5v100.5zm-190.8 0h44L263.3 103h-50.4l-63.3 143.3h43l11.9-28.7h65.9zM257 185.5h-38.9l19.4-46.9z"/></svg><span>American Express</span></div>
+          <div class="inst"><svg role="img" aria-label="Wells Fargo" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M427.1 284.1c-19.1 0-24.7 15.8-24.7 33c0 17.3 5.6 33.1 24.7 33.1c19 0 24.6-15.8 24.6-33.1c.1-17.3-5.6-33-24.6-33m-167.3 14.2c0-7-5-12.3-16.2-12.3h-14.9v24.7h14.9c10.3 0 16.2-4.7 16.2-12.4m-104.4-4.9l-10.8 29.1h22l-10.8-29.1zM0 0v512h512V0zm324.2 223.3h7.8c3.4 0 5.7-1.2 5.7-5.4v-51.6c0-3.7-1.6-5.2-6.5-5.2h-7v-8.9h44.3v8.9h-6.7c-5.3 0-7.1 1.1-7.1 5.6v56.6H373c12.4 0 15-7.4 16.2-21.2h9.3v30.1h-74.1v-8.9zm-82.1 0h7.7c3.4 0 5.7-1.2 5.7-5.4v-51.6c0-3.7-1.6-5.2-6.5-5.2h-7v-8.9h44.2v8.9h-6.8c-5.3 0-7.1 1.1-7.1 5.6v56.6h18.2c12.5 0 15-7.4 16.3-21.2h9.2v30.1h-74zM34.3 161.2h-1.7v-8.9h35v8.9h-5.1c-2.7 0-3.7 1.6-3.7 3.2c0 1.2.4 2.7 1.1 4.4l15.2 44.7h.2l14.4-42l-2-5.7c-1.2-3.6-3.7-4.5-7.2-4.5h-2.9v-8.9h36.2v8.9h-6.4c-2.5 0-3.4 1.1-3.4 2.7c0 1.2.6 2.9 1 4.1l13.3 44.7h.2l15.4-43.7c.5-1.4.9-2.6.9-4.1c0-1.9-.9-3.7-5.2-3.7h-5.8v-8.9h109.8v27.4h-9c-1.8-11.6-2.9-18.5-18.9-18.5h-21.2v25.2h5.8c7.3 0 10.6-3.5 10.6-13.4v-1.5h8.5v39h-8.5v-1.7c0-9.8-3.3-13.5-10.6-13.5h-5.8v28.1h24.1c11 0 15-7.3 16.3-21.2h8.8v30.1h-79.2v-9h6.7c4.2 0 6.4-1.2 6.4-8.4v-47c0-5.2-2.4-6.8-8-6.8h-2.5c-5.8 0-8.5 1.3-10.5 7.3l-21.9 63.8h-16.6l-12.7-41.6h-.2l-14 41.6H64.3l-22.7-66.9c-1-3.3-2.7-4.2-7.3-4.2m49.4 150c7.8 0 10-5.7 10-11.9v-1.6h8.4v36.9h-8.4v-2.7c0-8.5-3.3-11.7-10.8-11.7h-5V342c0 4.5 2.1 6.2 7.7 6.2h6v9H47.3v-9H55c4.3 0 6.1-2.5 6.1-5.9v-51.7c0-2.9-2-4.5-5.6-4.5h-8V277h75.8v27.3h-8.7c-1.2-9.5-3.1-18.4-20.8-18.4H78.1v25.2h5.6zm202.9 29.3c0 13.8-6.6 19.1-16.6 19.1c-11.7 0-15.6-5.6-15.6-16.5v-4.2c0-13.8-5.9-19.3-19.3-19.3h-6.3v24.2c0 3.2 1.5 4.3 5 4.3h8.8v9h-80v-9h8.9c2.5 0 3.4-.6 3.4-2c0-.8-.2-2-.7-3.3c-.4-1.1-4.2-11.4-4.2-11.4h-28.6s-3.5 9.5-4.1 11.1c-.4 1.2-.7 2.2-.7 3.3c0 1.7 1.4 2.3 3.8 2.3h8.5v9H111v-9c6.4 0 10.4-.9 12.7-6.5l25.6-64.6h15.4l26.2 64.6c2.2 5.7 6.3 6.5 12.7 6.5h3.3c3.5 0 5-1.1 5-4.3v-53.5c0-3.2-1.2-4.4-5-4.4h-8.4V277H251c17.5 0 25.7 8.3 25.7 20.8c0 15.5-15.4 18.6-22.7 19v.2c8.5.6 15.6 4.1 15.6 16.5v4.7c0 8.2 1.7 10 4.6 10s4.4-2.3 4.4-7.6v-2.2h8zm89-17.1h-2.2c-4.7 0-6.4 1.3-6.4 6v27.8h-8.2l-4.5-6.1c-1.9 1.7-10 8.6-25.1 8.6c-23.5 0-38.6-18-38.6-42.6c0-24.4 14.9-42.5 38.6-42.5c14.8 0 22.3 7.4 24 9l3-6.5h8.5v27.3h-9.9c-1.8-4.9-7.1-19.3-22.6-19.3c-14.9 0-22.6 13.9-22.6 32c0 18.4 7.7 32.2 23.1 32.2c12.3 0 17.9-6.4 17.9-15.6V329c0-3.9-2.4-5.7-6.4-5.7h-5.5v-9h37zm51.5 36.3c-26.3 0-43.7-18.5-43.7-42.6s17.4-42.5 43.7-42.5c26.2 0 43.6 18.4 43.6 42.5c0 24-17.4 42.6-43.6 42.6m14.9-125c-14.6 0-22.3-7.9-24.3-9.6l-2.7 7.2h-8.2v-30.1h9.3c1.9 13.5 11.3 22.3 27.1 22.3c11.3 0 17-5.8 17-11.2c0-7.1-6.8-10.2-17.1-12.4c-4.1-.9-6.8-1.4-11.3-2.3c-13.7-2.9-25.5-9.7-25.5-24.6c0-16.4 15.3-24.1 30.4-24.1c14.4 0 21.8 7.7 22.5 8.4l4-6h6.5v27.4h-9c-3.1-10.1-8.8-19.5-23.6-19.5c-9.8 0-16.4 4.2-16.4 10.4c0 7.1 6.4 9.6 16.3 11.7c2.9.7 5.6 1.1 8.4 1.8c16 3.2 29.2 10 29.2 25.9c.2 16.4-13.9 24.7-32.6 24.7"/></svg><span>Wells Fargo</span></div>
+          <div class="inst"><svg role="img" aria-label="Bank of America" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M255.2 394.8C336 325.5 449.6 258.1 512 233.9c-9.6-6.2-24.6-15-41.6-24.6c-80.4 26.5-174.4 85.4-258.3 152c14.3 10.8 29.3 21.9 43.1 33.5m-36.9-188.3c-11.9-5.8-25-11.2-35-15.8c-30.4 15-70.1 37.7-120.1 73.5c10.8 5.8 22.3 12.7 34.6 19.6c38.5-28.4 77.4-55.3 120.5-77.3m72-33.1c-14.6-8.1-65.4-26.9-100.5-35c-10.4 3.8-25 9.6-35 13.9c12.7 3.5 60.1 16.2 100.5 36.6c10.3-5.1 25-11.2 35-15.5m-172.1-5c-45 20.8-92.4 49.3-118.2 65.8c9.2 4.2 18.5 7.7 31.2 13.9c57-38.5 101.6-62 119.3-69.7c-12.7-4.6-24.6-7.7-32.3-10m205.9-6.9c10.4-3.5 22.3-6.5 32.7-9.6c-30-12.7-67.8-26.2-101.6-34.6c-5.4 1.5-21.6 5.8-32.7 9.2c11.6 3.4 49.7 12.3 101.6 35M134.4 306.2c12.3 7.3 25.4 17.3 38.1 25.8c84.3-65.4 167.5-115.9 258.7-144.4c-12.7-6.5-23.9-12.3-38.1-19.2c-54.7 13.9-148.3 51.2-258.7 137.8"/></svg><span>Bank of America</span></div>
+          <div class="inst"><svg role="img" aria-label="Capital One" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M57 34.8c67.4-4.4 135-7.1 202.6-5.3c48.2 1.6 96.6 4.8 143.9 14.5c26.7 5.9 53.7 13.4 77 28.1c14 9 27.6 21.7 30.6 38.8c3.7 19.9-4.5 39.4-14.5 56.2c-18.7 30.1-44.1 55.3-70.2 78.9c-32.9 29.2-68 55.9-103.9 81.3c-35.3 24.5-70.7 48.9-106.6 72.4c-45.8 29.4-92.7 57.2-140.4 83.4H10.6c33.1-23 64.3-48.7 94.8-75.1c37.6-32.5 74.1-66.3 109.8-100.9c7-6.7 14.5-13 19.7-21.2c17-23.8 32.7-51.3 31.9-81.5c-.5-20.7-11.7-39.7-27-52.9c-25.2-21.6-57.3-32.6-88.9-41c-31.9-8.1-64.6-12.6-97.3-16.1c-17.9-1-35.7-3.5-53.6-3.6V39.3c18.9-2.3 38-3.1 57-4.5"/></svg><span>Capital One</span></div>
+          <div class="inst"><svg role="img" aria-label="Charles Schwab" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill-rule="evenodd" d="M364.2 298.2c.1.3 7.8 21.9 8 22.4h-16c.2-.5 7.9-22.2 8-22.4m-162.9-53.7c14 0 36.4-39.2 36.4-47.8c0-5.5-3.1-8.6-8.4-8.6c-16.2 0-32.6 28.7-32.6 49.4c0 5.8 1.7 7 4.6 7M403 192.7c0-3.6-2.5-6-6.1-6c-8.7 0-18.3 14.3-21.5 20.2c17.5-.4 27.6-5.5 27.6-14.2M512 0v512H0V0zM350 235.4c0 11.8 7.7 20 18.7 20c13 0 26.7-12.4 30-16.7c.2-.2.1-.5-.1-.7l-2.1-2.6c-.3-.2-.6-.2-.8-.1l-1.8 1.3c-4.3 3.2-12.3 9.2-18.1 9.2c-7.3 0-11.8-4.6-11.8-12.1c0-9 4.4-15.8 7.6-20.7c0 0 .3-.5.4-.6c.2 0 1.2.1 1.2.1l6.8.2c11.8 0 33.9-5.6 33.9-19.2c0-5.6-5.2-11.5-14.8-11.5c-20.2.1-49.1 27.7-49.1 53.4m-4.4-84.8c-.1 3-13.8 37-13.8 37c-7.4 18.3-19.8 50.2-20.2 57.7c-.2 3.3.6 6 2.3 7.8c1.5 1.5 3.6 2.3 6.3 2.3c8.7 0 17.3-10.8 23-17.9l1-1.2c.2-.3.1-.5 0-.6c0-.1-2.5-3.2-2.5-3.2c-.1-.1-.3-.2-.4-.2c-.2 0-.3.1-.4.2l-.8.9c-6.2 6.8-9.6 10.6-12.4 10.7c-.3 0-.8 0-1.2-.4q-.6-.6-.6-2.1c.2-3.8 6.4-21.6 18.9-54.6l9.1-23.6c4.8-12.3 7.2-18.5 7.2-19.3c0-.5-.1-1-.4-1.3c-.4-.5-1.3-.7-2.5-.7H337c-.3 0-.6.2-.6.6l-.1 3.4c0 .3.2.5.4.6l4.7.4c3 .5 4.2 1.6 4.2 3.5m-83.7 51.1c0 .1.1.3.2.4l2.3 2.3c.1.1.2.2.4.2s.4-.1.5-.3l.7-.7l.6-.7c2.6-3.2 7.9-9.9 10.6-9.9c1.5 0 2.3 1.5 2.3 4.2c0 6.7-7.3 27-12.2 40.5c-2.8 7.6-4.7 13.1-4.7 14.2c0 1.5.6 2.1 1.8 2.1h6.3c1.3 0 1.8-.8 2.7-2.8c0-.1 3.1-7.4 4.9-11c12.5-25.6 19.4-38.7 24.7-43.8c3.5-3.4 6-4.9 7.8-4.8c1.4.1 2.3 1.1 3.2 2.2c1 1.2 2 2.5 3.9 2.6c1.3.1 2.5-.4 3.5-1.3c1.6-1.5 2.5-4 2.5-6.8c0-4.7-3.3-6.3-6.1-6.3c-11.5 0-19.9 8.4-31.3 31.1c-.3.6-1.1 2.2-1.3 2.1h-.2v-.5c0-.7.8-3.6 1.6-7.3c1.7-7 4-16.6 4-19.4c0-3.6-2-5.6-5.6-5.6c-7.5 0-18.9 12.4-22.9 19c-.1 0-.2.2-.2.3M184 240.8c0 10 5.5 14.5 10.9 14.5c6.8 0 16-2.3 27.6-20.1c0 0 2.6-4.3 2.9-4.3c.1 0 .2 0 .3.1s.1.4 0 .8l-.9 2.1c-1.5 3.2-4.2 9-4.2 14.4c0 2.6.6 4.5 1.9 5.7c1.1 1.1 2.6 1.6 4.5 1.6c11-.2 20.5-14.4 24.1-19.7l.1-.3l-.1-.4l-2.4-2.8c-.3-.3-.6-.2-.9 0l-2.5 3c-3.2 4.1-7.3 9.1-9.8 9.1c-.6 0-.9-.1-1.1-.3c-.3-.3-.4-.9-.3-2.1c.2-3.4 6.9-21 12.2-35.1c4-10.4 7.4-19.4 7.5-20.9c0-.3 0-1.4-1-1.9l-4.3-2.9l-.2-.1c-.5-.3-1.1-.6-1.6-.4c-1 .3-1.6 1.2-2.2 2.1c-.7 1-1.3 2-2.5 2c-1 0-2.1-.2-3.3-.5c-1.7-.3-3.8-.8-6.6-.8c-31.5-.1-48.1 42.5-48.1 57.2M141.4 150c0 2.9-3.3 12.1-7.8 24.9l-4.1 11.5c-3.5 10.1-8.9 24.3-13.7 36.8c-5.7 14.9-10.2 26.7-10.2 28.3c0 1.9 1 2.4 5.2 2.4c4.6 0 6.7-.7 7.2-2.5c8-26.4 30.1-56.6 41.5-56.6c3.6 0 4.9 1.3 4.9 4.8c0 5.9-5 16.9-9.8 27.6c-4.2 9.4-8.3 18.3-8.3 22.5c0 3.9 1.7 5.8 5.2 5.8c11.3 0 19.9-10.2 26.7-18.4l1-1.2l.2-.4l-.2-.4l-2.3-2.8c0-.1-.2-.2-.3-.2c-.2 0-.4 0-.5.2c-3.9 4.1-10.4 10.2-12.3 10.5c-.5 0-.9 0-1.1-.2c-.3-.3-.3-.8-.2-1.8c.1-.9 1.3-3.8 3-7.8c4.3-10.4 11.5-27.7 11.5-38c0-8.2-3.9-13-10.8-13c-13.8 0-25 15.8-30.3 23.4c-1.2 1.8-2.4 3.4-2.7 3.5c-.1 0-.2 0-.2-.1c-.2-.3.5-2.1 2-5.4c1.5-3.5 3.8-8.7 6.9-16.8c10.4-27.1 14.8-41.6 14.8-42.8c0-1.6-1.5-1.8-3-1.8h-21.2c-.3 0-.6.3-.6.6v3.4c0 .2.2.5.4.6l2.1.2l2.7.2c3.4.6 4.3 1.2 4.3 3M94.7 329.9c0-11.7-8.9-17-15.7-20.1l-2.7-1.2c-8.6-3.9-12.1-7.7-12.1-13.1c0-5.3 3.2-10.7 10.4-10.7c8.4 0 11.6 6.6 13.6 13.1v.2l3.6-.7v-.2c-.9-5.1-1.6-9.7-2-13.9v-.1l-2.4-.8l-2.1-.6c-2.6-.9-6.2-1.5-9.5-1.5c-13 0-22.2 8.2-22.2 19.9c0 9.9 7.9 15.4 15.6 19.4l3.3 1.6c7.7 3.8 10.9 7.8 10.9 13.8c0 6.8-4.4 11.6-10.7 11.6c-10.1 0-15.7-10.5-18.2-16.8l-.1-.2l-3.4 1.2v.2c1.1 6.4 2.3 13.3 3.1 16v.1l1.7.6l4.4 1.6c3 1.1 6.8 1.7 10.4 1.7c14.3.1 24.1-8.6 24.1-21.1m7.3-91.8l-2.4-2.5c0-.1-.2-.2-.4-.2c-.1 0-.3 0-.3.1l-.3.3c-4.3 4-12.6 10.7-20.1 11.2c-2.9.2-5.5-.7-7.5-2.4c-2.5-2.1-3.9-5.6-4.1-9.9c-.5-11.2 9-28.1 18.5-38c5.1-5.3 9.8-8.3 13.2-8.3c4 0 6.4 2.9 8.8 5.8c2.1 2.5 4.1 4.8 6.9 4.8c1.1 0 2.3-.6 3.2-1.5c1-1.1 1.5-2.4 1.5-3.8c-.2-4.4-4.2-11.3-14.2-11.5c-11.4-.2-25.6 6.7-36.2 17.7c-10.1 10.4-15.4 22.8-14.8 34.7c.4 10.1 5.9 20.8 19.8 20.8c14.1 0 26.5-12.6 28.6-16.6c0-.2-.1-.5-.2-.7m63.4 92.4l-3.2-.7l-.1.1c-5.3 10.8-10.3 16.7-21.6 16.7c-14.6 0-24.4-13-24.4-32.4c0-13.5 6.4-29.3 24.4-29.3c10.6 0 16.4 4.5 19.3 15.2v.1l3.3-.4l-.5-4.6l-1.5-12.1h-.1l-1.8-.4c-3.5-.8-9.4-2.2-16.8-2.2c-23.6 0-40.1 15-40.1 36.6c0 17 11.8 34.2 38.3 34.2c6.8 0 15.8-2 19.5-3.1c1.9-4.2 4.2-12.9 5.3-17.3zm77.5-48.6h-29.8v3.2h.2c7.6.6 8.5 1.1 8.5 12.5v13.7h-31.1v-13.7c0-11.4.9-11.9 8.4-12.5h.2v-3.2h-30v3.2h.2c8.8.6 9.4 1.4 9.4 12.5v36.2c0 10.9-.7 11.8-9 12.5h-.1v3.2h30v-3.2h-.2c-7.8-.6-8.8-1.1-8.8-12.5v-17.4h31.1v17.4c0 11-.6 11.8-9.4 12.5h-.2v3.2h30.4v-3.2h-.2c-7.9-.6-8.7-1.1-8.7-12.5v-36.2c0-11 .6-11.8 8.9-12.5h.2zm75.3 68.3c9.5-32 17.4-54.4 17.5-54.6c3.4-9.4 4.2-9.8 10.7-10.4h.2V282h-24.2v3.2l3.8.3c2.1.2 3.1.6 3.7 1.4c.3.5.5 1.1.5 2c0 1.1-.2 2.6-.8 4.6c-.2 1-5.9 23.4-10.4 38.4c-.9-2.1-18-49-18-49v-.1h-4.3s-15.4 48.4-15.7 49.1c-.7-2.2-12-40.1-12-40.1c-.4-1.5-.6-2.6-.6-3.4c0-.7.1-1.1.4-1.5c.5-.8 1.7-1.1 3.6-1.4l3.3-.2v-3.4h-28.3v3.2h.2c5.5.6 7.2 1.2 10 10l17.1 55.2h4.9l16.1-48.3c.8 2 17.6 48.2 17.6 48.2l.1.1h4.8zm83.1-3.9h-.2c-5.8-.6-7.3-1.1-10.8-10.5L377.2 300l-7-18.9h-.1l-4.4.5l-21.1 54.2c-3.5 9.3-4.7 9.7-11 10.5h-.2v3.2h23.3v-3.2l-3-.4c-2.3-.3-3.4-.7-3.9-1.5c-.3-.4-.4-.9-.4-1.5c0-1 .3-2.3.9-4.1l.6-1.7c1.3-4.1 2.9-8.7 4.1-11.4h18.9c2.2 5.6 4.6 11.7 5.6 14.7c.4 1.3.7 2.3.7 3c0 .4-.1.7-.2 1c-.4.6-1.3 1-3.2 1.3l-3 .5v3.2h27.6v-3.1zm17-90.9c11.8 0 26.7-11 26.7-23.4c0-7-4.3-12.8-8.2-17.9c-3.3-4.4-6.4-8.5-6.4-12.7c0-5.7 3.2-9.4 8.2-9.4c2.5 0 4.5.9 6.5 1.9c2 .9 4.1 1.9 6.7 1.9c3.5 0 6.6-3.7 6.6-6.6c0-3.5-3.7-7.2-10-7.2c-14.3 0-27.1 16.2-27.1 29c0 7 4.2 12.4 8 17.2c3 3.9 5.6 7.2 5.6 10.6c0 5.7-5.3 9.2-10.4 9.2s-8.7-3.2-11.5-5.8c-2.1-1.9-4-3.6-5.9-3.6c-2.8 0-3.4 5.9-3.4 7.9c0 3.4 6.8 8.9 14.6 8.9m42.5 74.2c0-9.4-6.8-15.8-18.3-17.4c5.1-1.1 14.4-5.5 14.4-15c0-5.4-1.9-9.3-5.9-11.9c-4-2.5-8.2-3.4-16-3.4h-28.8v3.2h.2c7.2.6 8.1 1.1 8.1 12.5v36.2c0 11.3-1 11.9-8.8 12.5h-.2v3.2h25.9c8.3 0 15.3-1.5 19.9-4.1c6.4-3.8 9.5-9 9.5-15.8m-31.2-14.2h-3.3v18.3c0 5.2.3 8.5 2 10.1c1.1 1 2.7 1.4 5.7 1.3c6.6 0 13.7-3.7 13.7-14.3c-.1-9.8-6.7-15.4-18.1-15.4m14.9-16.8c0-11.5-9.9-12.4-12.9-12.4c-3.4 0-4.4.3-4.7.5c-.8.4-.8 2.2-.8 4.5v20.1h4c9.3 0 14.4-4.5 14.4-12.7"/></svg><span>Charles Schwab</span></div>
+          <div class="inst"><svg role="img" aria-label="Fidelity" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M219.1 313.8h91.8l26.9 17.4H215.1l-55 170.3c-31.3-12.5-59.7-31.2-83.7-54.8s-43.1-51.8-56.1-82.8S.4 299.4.3 265.7s6.6-67.1 19.5-98.2C45.2 106.9 93 58.4 153.3 32s128.4-28.5 190.2-5.9c61.8 22.5 112.6 68 141.7 126.9c29.2 59 34.5 126.9 15 189.7c-14.7 47.7-43.3 89.9-82.1 121.3l-67.8-113l94.4 52.7s.8-.6 0-1.2l-123-106.7l159.6 24.4h.8l-1-.9L330.3 266L487 228.1v-.8l-160.4 10.5l125.8-95.3s-.8-.8-1.1 0l-141.4 71.7l77.9-137.8s0-.8-.5 0l-101.7 119l19.7-157.5s-.6-.6-1.1 0l-47 152.7l-41-157.5s-.9-.5-1.2 0l11.3 163.4l-96.8-126h-.9L201.8 210L63.5 134.5s-.8 0-.8.6l123.1 101.1l-157.5-16.6c-.6 0-.6.8 0 1.1l152.8 44.6l-151.7 44.4l-.2.2c0 .1-.1.2-.1.3s0 .2.1.3c0 .1.1.2.2.2L185.8 293L63 396.8s-.6.6 0 .9l1.6-.6l98.4-51.5l23-36.7h26.3L194.1 296l60.8-97.6z"/></svg><span>Fidelity</span></div>
+          <div class="inst"><svg role="img" aria-label="Vanguard" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill-rule="evenodd" d="M8.3 6V.8H181l124 362.1l91.7-290.5s18.7-48.9-31.4-68.2V0h138.4L328.9 512l-72.8-28.1s-58.9-17.4-90.3-105.8L52 63.9S37.6 13.2 8.3 6"/></svg><span>Vanguard</span></div>
+          <div class="inst"><svg role="img" aria-label="Robinhood" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="m225.2 401.7l-3.4 1.1c-21.9 7.3-54.4 18.5-83.5 31.9c-1.5.7-2.6 2.8-2.6 2.8c-.6 1.3-1.2 2.8-2 4.5l-.1.2c-3.3 7.4-7.7 18.5-9.7 23.1l-1.5 3.6c-.2.6-.1 1.2.4 1.6c.3.3.6.4 1 .4c.2 0 .4 0 .7-.1l3.5-1.7c8-3.8 18.1-9.5 28.6-14.5l.4-.2c20.1-9.5 42.8-20.3 56.5-26.8c0 0 2.2-1.2 3.3-3.4l10.2-20.5c.3-.5.2-1.2-.2-1.6c-.5-.4-1.1-.6-1.6-.4M143.4 370c1.4-2.8 8.1-15.6 9.6-18.4l.3-.5c44.4-83.6 98.6-162.5 160.9-234.4l1.7-2c.5-.6.6-1.5.2-2.2s-1.2-1.1-2-1l-2.6.4c-40.9 5.6-82.3 13.4-123.1 23.1c-4.1 1.1-6.7 3.8-7.2 4.4c-30.5 36.5-59.4 74.8-85.9 114.2c-1.3 2-1.8 4.6-1.4 6.8c.3 2.1 6.7 51.2 16.4 89c-24.1 69.2-45.6 160.3-45.6 160.3c-.2.6 0 1.2.3 1.7c.4.5.9.8 1.6.8h13.7c.9 0 1.6-.5 2-1.3l.9-2.6c14-38.1 30-75.7 47.6-112.4c3.9-8.7 12.6-25.9 12.6-25.9m190.8-238.4V129c0-.8-.6-1.5-1.3-1.8s-1.6 0-2.2.6l-1.7 2c-72.7 83.9-133.7 176.9-181.5 276.6l-1.1 2.3c-.4.7-.2 1.6.3 2.2c.4.4.9.6 1.4.6c.2 0 .5 0 .8-.1l2.4-1c40.8-16.9 82.5-31.5 123.9-43.5c2.5-.7 4.6-2.5 5.7-4.7c18.2-35.3 60.3-103.7 60.3-103.7c1.1-1.5.8-3.8.8-3.8s-7.3-81.7-7.8-123.1m94-117.9C417.9 4.7 402.9.5 379.6 0c-21.1-.5-46.2 4.1-74.6 13.4c-4.2 1.5-7.7 3.9-10.7 6.8c-28.9 27.1-57 55.8-83.5 85.4l-2.1 2.2c-.6.7-.7 1.6-.2 2.3c.4.7 1.3 1.1 2.1.9l3-.7c42.8-9.1 86-16.1 128.4-20.7c2.8-.3 5.7.6 7.7 2.5c2.1 1.9 3.3 4.7 3.2 7.5c-.7 42 .8 84.2 4.6 125.4l.2 2.7c.1.8.7 1.5 1.5 1.7c.1 0 .3 0 .5.1c.6 0 1.3-.3 1.7-.8l1.5-2.2c23.9-34 49.9-67.1 77.2-98.4c3.1-3.5 3.9-5.7 4.4-8.8c8.8-54.7-4.4-95.3-16.3-105.6"/></svg><span>Robinhood</span></div>
+          <div class="inst"><svg role="img" aria-label="X Money" fill="currentColor" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M304.7 216.8L495.2 0h-45.1L284.6 188.2L152.6 0H.2l199.7 284.7L.2 512h45.1L220 313.2L359.4 512h152.3M61.6 33.3h69.3l319.1 447h-69.3"/></svg><span>X Money</span></div>
+          <div class="inst"><span class="more">+ 12,000 more</span></div>
+      
 </div>
+<p class="fine">Logos are trademarks of their owners. fin is independent and not affiliated with them or with Plaid.</p>
+</section>
+
+<section id="examples" class="section wrap">
+<p class="kicker">// examples · made-up numbers</p>
+<h2 class="title">Ask in plain words. Get a report.</h2>
+<div class="gal">
+<figure>
+<figcaption><p class="ask">“Build me a monthly spending review.” <span>Compare it to the month before.</span></p><a class="try" href="try/spending/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/spending/"><img class="report" src="examples/1.png" alt="Spending report: last month by category compared with the month before"></a>
+</figure>
+<figure>
+<figcaption><p class="ask">“Find the subscriptions worth reviewing.” <span>Find subscriptions, price increases, and anything I’m paying for twice.</span></p><a class="try" href="try/subscriptions/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/subscriptions/"><img class="report" src="examples/2.png" alt="Subscription audit with price increases and duplicates flagged"></a>
+</figure>
+<figure>
+<figcaption><p class="ask">“Put all my investments in one report.” <span>Show my allocation and unrealized gains across brokerages.</span></p><a class="try" href="try/portfolio/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/portfolio/"><img class="report" src="examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages"></a>
+</figure>
+<figure>
+<figcaption><p class="ask">“Show how my net worth changed this year.” <span>Chart it month by month and explain what moved it.</span></p><a class="try" href="try/net-worth/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/net-worth/"><img class="report" src="examples/4.png" alt="Net worth: monthly chart for the year and what moved it"></a>
+</figure>
+</div>
+</section>
+
+<section id="security" class="section wrap">
+<p class="kicker">// fin help security</p>
+<h2 class="title">Read-only, local, yours.</h2>
+<dl class="help">
+<dt>reads</dt><dd>Balances, transactions, holdings with tax lots, investment activity.</dd>
+<dt>never requests</dt><dd>Plaid Auth or Identity: no account numbers, no personal details. Cannot move money.</dd>
+<dt>secrets</dt><dd>macOS Keychain, service "fin". State in ~/.config/fin/state.json, mode 0600.</dd>
+<dt>servers</dt><dd>None. fin calls Plaid's API from your laptop and prints the answer.</dd>
+<dt>cost</dt><dd>Free on Plaid's Trial plan, up to 10 institutions. MIT licensed.</dd>
+</dl>
+<div class="install"><span class="p">$</span> go install github.com/kilianc/fin/cmd/fin@latest <span class="p">&amp;&amp;</span> fin init</div>
+</section>
+</main>
+<footer class="site-footer wrap"><span>fin · MIT</span><span class="sp"></span><a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a></footer>
 <script>
 (function(){
   var tabs=document.querySelectorAll('.shell-tabs button'), modes=document.querySelectorAll('.shell-mode button'), mode='table';

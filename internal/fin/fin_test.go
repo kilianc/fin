@@ -685,3 +685,31 @@ func checkGenerated(t *testing.T, path, want string) {
 		t.Errorf("%s is out of date; regenerate it with: make docs", path)
 	}
 }
+
+// TestSitePagesShareOneStyle keeps the landing page, setup pages and try
+// pages on the same head, header and footer, with every style in
+// docs/site.css.
+func TestSitePagesShareOneStyle(t *testing.T) {
+	pages := map[string]string{"../../docs/index.html": "./"}
+	for _, a := range Agents() {
+		pages["../../docs/"+a.Slug+"/index.html"] = "../"
+	}
+	for _, e := range Examples {
+		pages["../../docs/try/"+e.Slug+"/index.html"] = "../../"
+	}
+	for path, root := range pages {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		page := string(b)
+		for _, part := range []string{"head", "header", "footer"} {
+			if !strings.Contains(page, sitePart(part, root)) {
+				t.Errorf("%s doesn't carry the shared %s", path, part)
+			}
+		}
+		if strings.Contains(page, "<style") || strings.Contains(page, ` style="`) {
+			t.Errorf("%s has styles of its own; put them in docs/site.css", path)
+		}
+	}
+}

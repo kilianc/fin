@@ -44,58 +44,40 @@ func Agents() []Agent {
 	}}
 }
 
-var setupPage = template.Must(template.New("setup").Parse(`<!doctype html>
+var setupPage = pageTemplate("setup", `<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Set up fin with {{.Name}}</title>
-<link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root { color-scheme: light; }
-body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #F4F5F7; color: #0E1B2E; font: 16px/1.55 "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
-main { box-sizing: border-box; width: 100%; max-width: 640px; margin: 48px 16px; padding: 40px 36px; background: #FFFFFF; border: 1px solid #E4E7EB; border-radius: 12px; text-align: center; }
-img { width: 72px; height: 72px; }
-h1 { font-size: 26px; letter-spacing: -.02em; margin: 14px 0 8px; }
-p { color: #3B4757; margin: 8px 0; }
-p.small { color: #6A7686; font-size: 14px; }
-a { color: #356B8D; }
-code { font: 13.5px "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace; color: #0E1B2E; background: #F4F5F7; border: 1px solid #E4E7EB; border-radius: 5px; padding: 1px 6px; }
-.open { display: inline-block; margin: 22px 0 14px; padding: 11px 26px; border-radius: 8px; background: #0E1B2E; color: #FFFFFF; font-weight: 600; text-decoration: none; }
-.open:hover { background: #356B8D; }
-details { margin-top: 24px; padding-top: 20px; border-top: 1px solid #E4E7EB; text-align: left; }
-summary { cursor: pointer; color: #3B4757; text-align: center; }
-pre { white-space: pre-wrap; background: #F4F5F7; border: 1px solid #E4E7EB; border-radius: 8px; padding: 16px; font: 12.5px/1.55 "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace; color: #0E1B2E; }
-button { font: 600 13px "Geist", -apple-system, BlinkMacSystemFont, sans-serif; padding: 7px 14px; border-radius: 7px; border: 1px solid #E4E7EB; background: #F4F5F7; color: #3B4757; cursor: pointer; }
-</style>
+{{template "head" .}}
+<title>fin · set up with {{.Name}}</title>
 </head>
 <body>
+{{template "header" .}}
 <main>
-<img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="fin">
-<h1>Opening {{.Name}}…</h1>
-<p>Your browser asks to open {{.Name}} with fin's setup prompt filled in. Read the prompt, then press Enter.</p>
-<a class="open" href="{{.Link}}">Open {{.Name}}</a>
-<p class="small">{{.Help}}</p>
-<details>
-<summary>Or copy the prompt into another agent</summary>
-<pre id="prompt">{{.Prompt}}</pre>
-<button id="copy" type="button">Copy</button>
-</details>
-<p class="small"><a href="https://kilianc.github.io/fin/">kilianc.github.io/fin</a></p>
+<section class="section first wrap">
+<p class="kicker">// setup · {{.Name}}</p>
+<h1 class="display">Opening {{.Name}}…</h1>
+<p class="lede">Your browser asks to open {{.Name}} with fin's setup prompt filled in. Read the prompt, then press Enter; your agent does the clicking and leaves you only the parts that need you.</p>
+<div class="buttons"><a href="{{.Link}}"><img src="{{.Root}}setup-with-{{.Slug}}.svg" alt="Set up with {{.Name}}"></a></div>
+<p class="note">{{.Help}}</p>
+</section>
+<section class="section tight wrap">
+<div class="shell">
+<div class="shell-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="label">the setup prompt · paste it into any agent that can use your browser</span><button class="copy" id="copy" type="button">copy</button></div>
+<pre class="prose" id="prompt">{{.Prompt}}</pre>
+</div>
+</section>
 </main>
+{{template "footer" .}}
 <script>
 location.href = {{.Link}};
 document.getElementById("copy").onclick = function () {
   navigator.clipboard.writeText(document.getElementById("prompt").textContent);
-  this.textContent = "Copied";
+  this.textContent = "copied";
 };
 </script>
 </body>
 </html>
-`))
+`)
 
 // SetupPage renders docs/<slug>/index.html, the page behind a README
 // button: it opens the agent app through its deep link and shows the prompt
@@ -103,6 +85,8 @@ document.getElementById("copy").onclick = function () {
 func SetupPage(a Agent) string {
 	var b bytes.Buffer
 	err := setupPage.Execute(&b, map[string]any{
+		"Root":   "../",
+		"Slug":   a.Slug,
 		"Name":   a.Name,
 		"Link":   template.URL(a.Link),
 		"Help":   a.Help,

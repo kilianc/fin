@@ -3,75 +3,58 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../site.css">
 <title>fin · try it: Net worth</title>
 <meta name="description" content="Show how my net worth changed this year. Chart it month by month and explain what moved it.">
 <meta property="og:title" content="fin · Net worth">
 <meta property="og:description" content="Show how my net worth changed this year. Chart it month by month and explain what moved it.">
 <meta property="og:image" content="https://kilianc.github.io/fin/examples/4.png">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-body { margin: 0; background: #F6F7F9; color: #111A26; font: 17px/1.6 "Geist", -apple-system, sans-serif; }
-a { color: #2C5F80; } a:hover { color: #173F59; }
-.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
-.mono { font-family: "Geist Mono", ui-monospace, monospace; }
-header { display: flex; align-items: center; gap: 10px; padding-top: 24px; font-size: 14px; }
-header img { width: 30px; height: 30px; }
-header b { font-weight: 600; }
-header .dim { color: #7D8794; }
-header .sp { flex: 1; }
-header a { color: #3A4656; text-decoration: none; }
-.kicker { font-size: 13px; color: #7D8794; margin: 72px 0 14px; }
-h1 { font-size: 48px; line-height: 1.08; letter-spacing: -0.035em; font-weight: 600; margin: 0 0 14px; max-width: 820px; }
-.detail { font-size: 21px; color: #4A5666; margin: 0 0 32px; max-width: 720px; }
-.buttons { display: flex; flex-wrap: wrap; gap: 12px; }
-.buttons img { height: 52px; display: block; }
-.shell { margin-top: 48px; background: #131B26; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(17,26,38,.06), 0 12px 32px -12px rgba(17,26,38,.18); }
-.bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px 10px 16px; border-bottom: 1px solid #243041; font-size: 12px; color: #6F7E90; }
-.bar i { width: 10px; height: 10px; border-radius: 50%; background: #2D394A; }
-.bar span { margin-left: 8px; flex: 1; }
-.bar button { font: 12px "Geist Mono", ui-monospace, monospace; color: #D8E0E8; background: none; border: 1px solid #2D394A; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
-.bar button:hover { border-color: #81B1CF; color: #FFFFFF; }
-.shell pre { margin: 0; padding: 20px 22px 24px; font: 14px/1.7 "Geist Mono", ui-monospace, monospace; color: #D8E0E8; white-space: pre-wrap; background: #1C2633; }
-.shell pre .you { color: #81B1CF; font-weight: 600; }
-.shell pre .ask { color: #FFFFFF; }
-.note { font-size: 15px; color: #4A5666; margin: 14px 0 0; }
-h2 { font-size: 13px; font-weight: 400; color: #7D8794; margin: 72px 0 14px; }
-.example { display: block; width: 100%; height: auto; border: 1px solid #E1E4E8; border-radius: 8px; background: #FFFFFF; }
-footer { margin-top: 96px; padding: 20px 24px 48px; border-top: 1px solid #E1E4E8; display: flex; gap: 12px; font-size: 13px; color: #7D8794; }
-footer .sp { flex: 1; }
-footer a { color: #3A4656; }
-@media (max-width: 640px) { h1 { font-size: 36px; } .detail { font-size: 18px; } .kicker { margin-top: 48px; } header .dim { display: none; } }
-</style>
 </head>
 <body>
-<header class="wrap mono">
-<img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b><span class="dim">~ try it</span><span class="sp"></span><a href="../../#examples">← all examples</a>
+<header class="site-header wrap">
+<a class="brand" href="../../"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b></a><span class="where">~ local · read-only</span>
+<span class="sp"></span>
+<nav><a href="../../#examples">examples</a><a href="../../#security">security</a><a href="https://github.com/kilianc/fin">github ↗</a></nav>
 </header>
-<main class="wrap">
-<p class="kicker mono">// example 4 of 4 · Net worth</p>
-<h1>“Show how my net worth changed this year.”</h1>
-<p class="detail">Chart it month by month and explain what moved it.</p>
+<main>
+<section class="section first wrap">
+<ul class="ex-nav" aria-label="Examples">
+<li><a href="../../try/spending/"><b>01</b>Spending report</a></li>
+<li><a href="../../try/subscriptions/"><b>02</b>Subscription audit</a></li>
+<li><a href="../../try/portfolio/"><b>03</b>Portfolio review</a></li>
+<li><a href="../../try/net-worth/" aria-current="page"><b>04</b>Net worth</a></li>
+</ul>
+<h1 class="display">“Show how my net worth changed this year.”</h1>
+<p class="lede">Chart it month by month and explain what moved it.</p>
 <div class="buttons">
 <a href="claude-cli://open?q=Use%20fin%2C%20my%20local%20command-line%20tool%20for%20my%20bank%20and%20brokerage%20data%20%28run%20%60fin%20help%60%20to%20see%20its%20commands%29%2C%20to%20answer%20this%20with%20a%20short%20report%3A%20Show%20how%20my%20net%20worth%20changed%20this%20year.%20Chart%20it%20month%20by%20month%20and%20explain%20what%20moved%20it."><img src="../../try-in-claude.svg" alt="Try in Claude Code"></a>
 <a href="codex://new?prompt=Use%20fin%2C%20my%20local%20command-line%20tool%20for%20my%20bank%20and%20brokerage%20data%20%28run%20%60fin%20help%60%20to%20see%20its%20commands%29%2C%20to%20answer%20this%20with%20a%20short%20report%3A%20Show%20how%20my%20net%20worth%20changed%20this%20year.%20Chart%20it%20month%20by%20month%20and%20explain%20what%20moved%20it."><img src="../../try-in-codex.svg" alt="Try in Codex"></a>
 </div>
+</section>
+<section class="section tight wrap">
 <div class="shell">
-<div class="bar mono"><i></i><i></i><i></i><span>what your agent receives</span><button id="copy" type="button">copy</button></div>
-<pre id="prompt"><span class="you">you ›</span> Use fin, my local command-line tool for my bank and brokerage data (run `fin help` to see its commands), to answer this with a short report: <span class="ask">Show how my net worth changed this year. Chart it month by month and explain what moved it.</span></pre>
+<div class="shell-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="label">what your agent receives</span><button class="copy" id="copy" type="button">copy</button></div>
+<pre class="prose" id="prompt"><span class="you">you ›</span> Use fin, my local command-line tool for my bank and brokerage data (run `fin help` to see its commands), to answer this with a short report: <span class="hi">Show how my net worth changed this year. Chart it month by month and explain what moved it.</span></pre>
 </div>
 <p class="note">The app opens with this prompt filled in; read it, then press Enter. It needs fin installed and connected to your accounts, so <a href="../../">set it up first</a> if you haven't.</p>
-<h2 class="mono">// what you might get · made-up numbers</h2>
-<img class="example" src="../../examples/4.png" alt="Net worth, with made-up numbers">
+</section>
+<section class="section wrap">
+<p class="kicker">// what you might get · made-up numbers</p>
+<img class="report" src="../../examples/4.png" alt="Net worth, with made-up numbers">
+<nav class="pager" aria-label="More examples">
+<a class="prev" href="../../try/portfolio/"><small>← previous</small><span>“Put all my investments in one report.”</span></a>
+</nav>
+</section>
 </main>
-<footer class="wrap mono"><span>fin · MIT</span><span class="sp"></span><a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a></footer>
+<footer class="site-footer wrap"><span>fin · MIT</span><span class="sp"></span><a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a></footer>
 <script>
 document.getElementById("copy").onclick = function () {
-  var t = document.getElementById("prompt").textContent.replace(/^you › /, "");
-  navigator.clipboard.writeText(t);
+  navigator.clipboard.writeText(document.getElementById("prompt").textContent.replace(/^you › /, ""));
   this.textContent = "copied";
 };
 </script>
