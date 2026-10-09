@@ -10,18 +10,22 @@ import (
 type Example struct {
 	Slug   string
 	Title  string
-	Prompt string
+	Ask    string // the headline on the card
+	Detail string // the line under it
 	Image  string // the gallery card, relative to docs/
 }
 
 // Examples are the gallery's prompts, in order. docs/examples/index.html
-// shows each prompt verbatim on its card.
+// shows each Ask and Detail verbatim on its card.
 var Examples = []Example{
-	{"spending", "Spending report", "Where did my money go last month? Compare it to the month before.", "examples/1.png"},
-	{"subscriptions", "Subscription audit", "Find every subscription I'm paying for. Flag price increases, trials that turned paid, and anything I'm paying for twice.", "examples/2.png"},
-	{"portfolio", "Portfolio review", "How is my money invested across my brokerages? What's my unrealized gain?", "examples/3.png"},
-	{"net-worth", "Net worth", "Chart my net worth this year and tell me what moved it.", "examples/4.png"},
+	{"spending", "Spending report", "Build me a monthly spending review.", "Compare it to the month before.", "examples/1.png"},
+	{"subscriptions", "Subscription audit", "Find the subscriptions worth reviewing.", "Find subscriptions, price increases, and anything I’m paying for twice.", "examples/2.png"},
+	{"portfolio", "Portfolio review", "Put all my investments in one report.", "Show my allocation and unrealized gains across brokerages.", "examples/3.png"},
+	{"net-worth", "Net worth", "Show how my net worth changed this year.", "Chart it month by month and explain what moved it.", "examples/4.png"},
 }
+
+// Prompt is what the person asks: the card's headline and the line under it.
+func (e Example) Prompt() string { return e.Ask + " " + e.Detail }
 
 // TryURL is the example's try page on GitHub Pages.
 func (e Example) TryURL() string { return PagesURL + "try/" + e.Slug + "/" }
@@ -29,7 +33,7 @@ func (e Example) TryURL() string { return PagesURL + "try/" + e.Slug + "/" }
 // agentPrompt tells the agent to answer with fin; the person's question
 // follows verbatim.
 func (e Example) agentPrompt() string {
-	return "Use fin, my local command-line tool for my bank and brokerage data (run `fin help` to see its commands), to answer this with a short report: " + e.Prompt
+	return "Use fin, my local command-line tool for my bank and brokerage data (run `fin help` to see its commands), to answer this with a short report: " + e.Prompt()
 }
 
 var tryPage = template.Must(template.New("try").Parse(`<!doctype html>
@@ -100,7 +104,7 @@ func TryPage(e Example) string {
 	var b bytes.Buffer
 	err := tryPage.Execute(&b, map[string]any{
 		"Title":  e.Title,
-		"Prompt": e.Prompt,
+		"Prompt": e.Prompt(),
 		"Image":  e.Image,
 		"Claude": template.URL("claude-cli://open?q=" + queryEscape(p)),
 		"Codex":  template.URL("codex://new?prompt=" + queryEscape(p)),

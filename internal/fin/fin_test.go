@@ -663,7 +663,7 @@ func TestTryPagesMatchTheExamples(t *testing.T) {
 		if !strings.Contains(files["docs/index.html"], `href="try/`+e.Slug+`/"`) {
 			t.Errorf("docs/index.html has no try link for %s", e.Slug)
 		}
-		if !strings.Contains(files["docs/examples/index.html"], e.Prompt) {
+		if !strings.Contains(files["docs/examples/index.html"], "“"+e.Ask+"”") || !strings.Contains(files["docs/examples/index.html"], e.Detail) {
 			t.Errorf("docs/examples/index.html doesn't show the %s prompt verbatim", e.Slug)
 		}
 		checkGenerated(t, "../../docs/try/"+e.Slug+"/index.html", TryPage(e))

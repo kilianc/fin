@@ -32,21 +32,21 @@ up.
 <table>
 <tr>
 <td width="50%" valign="bottom">
-<p><b>“Where did my money go last month? Compare it to the month before.”</b><br><a href="https://kilianc.github.io/fin/try/spending/">Try it in Claude Code or Codex →</a></p>
+<p><b>“Build me a monthly spending review.”</b><br>Compare it to the month before.<br><a href="https://kilianc.github.io/fin/try/spending/">Try it in Claude Code or Codex →</a></p>
 <a href="https://kilianc.github.io/fin/try/spending/"><img src="docs/examples/1.png" alt="Spending report: last month by category compared with the month before"></a>
 </td>
 <td width="50%" valign="bottom">
-<p><b>“Find every subscription I'm paying for. Flag price increases, trials that turned paid, and anything I'm paying for twice.”</b><br><a href="https://kilianc.github.io/fin/try/subscriptions/">Try it in Claude Code or Codex →</a></p>
+<p><b>“Find the subscriptions worth reviewing.”</b><br>Find subscriptions, price increases, and anything I’m paying for twice.<br><a href="https://kilianc.github.io/fin/try/subscriptions/">Try it in Claude Code or Codex →</a></p>
 <a href="https://kilianc.github.io/fin/try/subscriptions/"><img src="docs/examples/2.png" alt="Subscription audit: 14 subscriptions with price increases and duplicates flagged"></a>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="bottom">
-<p><b>“How is my money invested across my brokerages? What's my unrealized gain?”</b><br><a href="https://kilianc.github.io/fin/try/portfolio/">Try it in Claude Code or Codex →</a></p>
+<p><b>“Put all my investments in one report.”</b><br>Show my allocation and unrealized gains across brokerages.<br><a href="https://kilianc.github.io/fin/try/portfolio/">Try it in Claude Code or Codex →</a></p>
 <a href="https://kilianc.github.io/fin/try/portfolio/"><img src="docs/examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages"></a>
 </td>
 <td width="50%" valign="bottom">
-<p><b>“Chart my net worth this year and tell me what moved it.”</b><br><a href="https://kilianc.github.io/fin/try/net-worth/">Try it in Claude Code or Codex →</a></p>
+<p><b>“Show how my net worth changed this year.”</b><br>Chart it month by month and explain what moved it.<br><a href="https://kilianc.github.io/fin/try/net-worth/">Try it in Claude Code or Codex →</a></p>
 <a href="https://kilianc.github.io/fin/try/net-worth/"><img src="docs/examples/4.png" alt="Net worth: monthly chart for the year and what moved it"></a>
 </td>
 </tr>
