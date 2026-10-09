@@ -24,6 +24,11 @@ docs:
 gallery:
 	./scripts/gallery.sh
 
+# Rebuild terminal artwork from the approved circular logo (Python 3 + Pillow).
+.PHONY: mascot
+mascot:
+	python3 scripts/generate-mascot.py
+
 .PHONY: e2e
 e2e:
 	./scripts/sandbox-e2e.sh

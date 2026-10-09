@@ -106,16 +106,16 @@ If you'd rather do it yourself, here's the whole flow:
 4. **Give Plaid Link fin's look.** When you connect a bank, Plaid shows a
    consent screen; this puts fin's mascot and colors on it. It changes nothing
    about what data is shared.
-   - Download [`mascot.png`](https://raw.githubusercontent.com/kilianc/fin/main/mascot.png). It is already the
-     1024 × 1024 PNG Plaid requires.
+   - Download [`mascot-plaid.png`](https://raw.githubusercontent.com/kilianc/fin/main/mascot-plaid.png),
+     the 1024 × 1024 square logo with an opaque background.
    - Open <https://dashboard.plaid.com/link> (Customize → Link) and edit the
      customization named **default**; fin uses the default.
    - In its settings (gear icon, upper right), set the language to
      **English** and the countries to **United States only**. They must match
      what fin sends, or Plaid ignores the customization.
-   - On the **Consent** pane choose **co-branded**, upload `mascot.png` as
+   - On the **Consent** pane choose **co-branded**, upload `mascot-plaid.png` as
      the logo, and set the brand color to Fin Blue **`#81B1CF`**.
-   - Set the background color to Fin Navy **`#00184B`**, then click
+   - Set the background color to **`#203A52`** to match the square logo, then click
      **Publish**.
 
    The consent screen will read "fin uses Plaid to connect your account"; the
@@ -475,6 +475,11 @@ the Keychain when it exits.
 `FIN_DEBUG=1` prints what Plaid Link reports on each poll, without tokens.
 
 ## Brand
+
+The approved artwork is `mascot.png` (transparent circular badge) and
+`mascot-plaid.png` (opaque square), both 1024 × 1024. The terminal mascot is
+embedded in the binary; after updating `mascot.png`, run `make mascot` with
+Python 3 and Pillow installed to regenerate its color and monochrome versions.
 
 Fin the shark is the mascot, and the colors come from it, softened so they are
 easy on the eyes:

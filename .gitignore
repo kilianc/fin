@@ -11,7 +11,9 @@
 !Makefile
 !/scripts/
 !/scripts/*.sh
+!/scripts/generate-mascot.py
 !/mascot.png
+!/mascot-plaid.png
 !/docs/
 !/docs/*.svg
 !/docs/index.html
