@@ -58,14 +58,14 @@ main { box-sizing: border-box; width: 100%; max-width: 680px; padding: 48px 16px
 img { width: 128px; height: 128px; }
 h1 { font-size: 28px; margin: 16px 0 8px; }
 p { color: #9FC3DD; margin: 8px 0; }
-a { color: #4DADE9; }
-code { font: 14px ui-monospace, Menlo, monospace; color: #0FFFF6; }
-.open { display: inline-block; margin: 24px 0 16px; padding: 12px 28px; border-radius: 12px; background: #4DADE9; color: #00184B; font-weight: 600; text-decoration: none; }
-.open:hover { background: #0FFFF6; }
+a { color: #81B1CF; }
+code { font: 14px ui-monospace, Menlo, monospace; color: #8CD9D6; }
+.open { display: inline-block; margin: 24px 0 16px; padding: 12px 28px; border-radius: 12px; background: #81B1CF; color: #00184B; font-weight: 600; text-decoration: none; }
+.open:hover { background: #8CD9D6; }
 details { margin-top: 32px; text-align: left; }
 summary { cursor: pointer; color: #9FC3DD; text-align: center; }
-pre { white-space: pre-wrap; background: #04245F; border: 1px solid #1A76A5; border-radius: 12px; padding: 16px; font: 13px/1.5 ui-monospace, Menlo, monospace; color: #E8F4FC; }
-button { font: inherit; padding: 6px 16px; border-radius: 8px; border: 1px solid #4DADE9; background: transparent; color: #4DADE9; cursor: pointer; }
+pre { white-space: pre-wrap; background: #04245F; border: 1px solid #356B8D; border-radius: 12px; padding: 16px; font: 13px/1.5 ui-monospace, Menlo, monospace; color: #E8F4FC; }
+button { font: inherit; padding: 6px 16px; border-radius: 8px; border: 1px solid #81B1CF; background: transparent; color: #81B1CF; cursor: pointer; }
 </style>
 </head>
 <body>

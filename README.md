@@ -85,7 +85,7 @@ If you'd rather do it yourself, here's the whole flow:
      **English** and the countries to **United States only**. They must match
      what fin sends, or Plaid ignores the customization.
    - On the **Consent** pane choose **co-branded**, upload `mascot.png` as
-     the logo, and set the brand color to Fin Blue **`#4DADE9`**.
+     the logo, and set the brand color to Fin Blue **`#81B1CF`**.
    - Set the background color to Fin Navy **`#00184B`**, then click
      **Publish**.
 
@@ -445,14 +445,15 @@ the Keychain when it exits.
 
 ## Brand
 
-Fin the shark is the mascot, and the colors come from it:
+Fin the shark is the mascot, and the colors come from it, softened so they are
+easy on the eyes:
 
 | Name | Hex | Where it comes from | Used for |
 | --- | --- | --- | --- |
-| Fin Blue | `#4DADE9` | the shark's body | the brand color: wordmark, titles, table headers |
-| Fin Deep | `#1A76A5` | the shark's shading | Fin Blue on light terminals |
+| Fin Blue | `#81B1CF` | the shark's body | the brand color: wordmark, titles, table headers |
+| Fin Deep | `#356B8D` | the shark's shading | Fin Blue on light terminals |
 | Fin Navy | `#00184B` | the badge | backgrounds and dark accents |
-| Fin Glow | `#0FFFF6` | the badge ring | highlights, sparingly |
+| Fin Glow | `#8CD9D6` | the badge ring | highlights, sparingly |
 
 Green (`#3FB97A`) is reserved for meaning: money in, gains, and healthy
 connections.

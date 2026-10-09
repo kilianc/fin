@@ -12,14 +12,14 @@ main { box-sizing: border-box; width: 100%; max-width: 680px; padding: 48px 16px
 img { width: 128px; height: 128px; }
 h1 { font-size: 28px; margin: 16px 0 8px; }
 p { color: #9FC3DD; margin: 8px 0; }
-a { color: #4DADE9; }
-code { font: 14px ui-monospace, Menlo, monospace; color: #0FFFF6; }
-.open { display: inline-block; margin: 24px 0 16px; padding: 12px 28px; border-radius: 12px; background: #4DADE9; color: #00184B; font-weight: 600; text-decoration: none; }
-.open:hover { background: #0FFFF6; }
+a { color: #81B1CF; }
+code { font: 14px ui-monospace, Menlo, monospace; color: #8CD9D6; }
+.open { display: inline-block; margin: 24px 0 16px; padding: 12px 28px; border-radius: 12px; background: #81B1CF; color: #00184B; font-weight: 600; text-decoration: none; }
+.open:hover { background: #8CD9D6; }
 details { margin-top: 32px; text-align: left; }
 summary { cursor: pointer; color: #9FC3DD; text-align: center; }
-pre { white-space: pre-wrap; background: #04245F; border: 1px solid #1A76A5; border-radius: 12px; padding: 16px; font: 13px/1.5 ui-monospace, Menlo, monospace; color: #E8F4FC; }
-button { font: inherit; padding: 6px 16px; border-radius: 8px; border: 1px solid #4DADE9; background: transparent; color: #4DADE9; cursor: pointer; }
+pre { white-space: pre-wrap; background: #04245F; border: 1px solid #356B8D; border-radius: 12px; padding: 16px; font: 13px/1.5 ui-monospace, Menlo, monospace; color: #E8F4FC; }
+button { font: inherit; padding: 6px 16px; border-radius: 8px; border: 1px solid #81B1CF; background: transparent; color: #81B1CF; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -42,7 +42,7 @@ Steps:
 1. Open https://dashboard.plaid.com/signup. Fill in the non-secret fields (ask me for anything you don&#39;t know). When asked how I&#39;ll use Plaid, choose personal use (building something for myself). Let me set the password, accept the terms and verify my email.
 2. Open https://dashboard.plaid.com/trial-plan and fill in the free Trial plan application. Describe the use as: &#34;Personal, read-only access to my own bank and brokerage accounts with a local command-line tool.&#34; Let me review and submit it. It is usually approved right away and allows 10 connected institutions. Do NOT apply for full Production access: once that is submitted, the Trial plan is no longer available.
 3. Open https://dashboard.plaid.com/developers/keys. Run `fin env production`. Then have me run `fin setup` in my terminal (it needs my keyboard): I copy the Client ID into its first prompt and the Production secret into its second. fin checks them with Plaid and saves them only in my macOS Keychain.
-4. Brand Plaid Link with fin&#39;s look, so the consent screen I see when connecting shows fin&#39;s mascot and colors. Download https://raw.githubusercontent.com/kilianc/fin/main/mascot.png; it is already the 1024 x 1024 PNG Plaid requires. Open https://dashboard.plaid.com/link and edit the customization named &#34;default&#34; (fin uses the default). In its settings (gear icon, upper right), set language English and countries United States only, or Plaid will ignore it. On the Consent pane choose co-branded, upload mascot.png as the logo (ask me to pick the file if you can&#39;t upload it yourself), set the brand color to #4DADE9 and the background color to #00184B, then click Publish.
+4. Brand Plaid Link with fin&#39;s look, so the consent screen I see when connecting shows fin&#39;s mascot and colors. Download https://raw.githubusercontent.com/kilianc/fin/main/mascot.png; it is already the 1024 x 1024 PNG Plaid requires. Open https://dashboard.plaid.com/link and edit the customization named &#34;default&#34; (fin uses the default). In its settings (gear icon, upper right), set language English and countries United States only, or Plaid will ignore it. On the Consent pane choose co-branded, upload mascot.png as the logo (ask me to pick the file if you can&#39;t upload it yourself), set the brand color to #81B1CF and the background color to #00184B, then click Publish.
 5. Ask me which banks, credit cards and brokerages I want to connect. For each, run `fin institutions &lt;name&gt;` to confirm Plaid supports it, and tell me which slot count that leaves.
 6. For each one I approve, run `fin link --yes --open` in the background. It opens Plaid Link in my browser, where I pick the institution and sign in; fin collects transactions and investments, whichever the institution supports. Only if `fin institutions` shows an institution as brokerage-only, use `fin link brokerage --yes --open` instead.
 7. Finish with `fin items` and `fin accounts`, and summarize what is connected and healthy.</pre>

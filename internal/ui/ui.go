@@ -17,17 +17,18 @@ import (
 	"charm.land/lipgloss/v2/table"
 )
 
-// Brand colors come from the mascot (assets/fin.png):
+// Brand colors come from the mascot (mascot.png), softened so text in them
+// is easy on the eyes:
 //
-//	Fin Blue  #4DADE9  the shark's body; the brand color
-//	Fin Deep  #1A76A5  the shark's shading; Fin Blue on light terminals
+//	Fin Blue  #81B1CF  the shark's body; the brand color
+//	Fin Deep  #356B8D  the shark's shading; Fin Blue on light terminals
 //	Fin Navy  #00184B  the badge
-//	Fin Glow  #0FFFF6  the badge ring
+//	Fin Glow  #8CD9D6  the badge ring, for highlights on the web
 //
 // Green is reserved for meaning, not branding: money in, gains, healthy.
 // Hex colors are downsampled to whatever the terminal supports.
 var (
-	accent = lipgloss.Color("#4DADE9")
+	accent = lipgloss.Color("#81B1CF")
 	good   = lipgloss.Color("#3FB97A")
 	yellow = lipgloss.Color("#E2A33B")
 	red    = lipgloss.Color("#E5484D")
@@ -48,7 +49,7 @@ func SetDarkBackground(dark bool) {
 	if dark {
 		return
 	}
-	accent = lipgloss.Color("#1A76A5")
+	accent = lipgloss.Color("#356B8D")
 	good = lipgloss.Color("#1F8A55")
 	gray = lipgloss.Color("#5F6B78")
 	Muted = lipgloss.NewStyle().Foreground(gray)
