@@ -44,9 +44,9 @@ Let an AI agent do the setup. Pick one, read the prompt it opens with, and
 press Enter:
 
 <p>
-  <a href="https://kilianc.github.io/fin/claude/"><img src="docs/claude.svg" alt="Set up fin with Claude Code" height="56"></a>
+  <a href="https://kilianc.github.io/fin/claude/"><img src="docs/setup-with-claude.svg" alt="Set up with Claude" height="56"></a>
   &nbsp;
-  <a href="https://kilianc.github.io/fin/codex/"><img src="docs/codex.svg" alt="Set up fin with Codex" height="56"></a>
+  <a href="https://kilianc.github.io/fin/codex/"><img src="docs/setup-with-codex.svg" alt="Set up with Codex" height="56"></a>
 </p>
 
 The agent opens the pages, fills in the forms and brands Plaid Link with
