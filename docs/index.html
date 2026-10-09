@@ -3,194 +3,179 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>fin · your bank and brokerage data, on your machine</title>
-<meta name="description" content="A local, read-only command-line tool for your bank and brokerage data, for you and your AI agents.">
+<title>fin · read-only financial data for your AI agent</title>
+<meta name="description" content="Read-only, local, free: fin gives your AI agent your bank, card and brokerage data through Plaid, with no server in between.">
 <meta property="og:title" content="fin">
-<meta property="og:description" content="Your bank and brokerage data, on your own machine, for you and your AI agents.">
+<meta property="og:description" content="Your financial data for your AI agent. Read-only, local, free.">
 <meta property="og:image" content="https://kilianc.github.io/fin/examples/1.png">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  color-scheme: light;
-  --bg: #FBFBFA; --ink: #111A26; --ink2: #3A4656; --muted: #707B89; --rule: #E6E6E2;
-  --accent: #356B8D; --term: #121B29; --tink: #D9E1EA; --tdim: #7D8A99; --tblue: #81B1CF; --tgood: #3FB97A;
-  --sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.65 var(--sans); -webkit-font-smoothing: antialiased; }
-a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
-code { font: .88em var(--mono); background: #F0F0EC; border-radius: 4px; padding: 1px 5px; }
-.col { max-width: 760px; margin: 0 auto; padding: 0 20px; }
-.wide { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
-
-header { padding: 28px 0 0; }
-header .col { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 15px; }
-header img { width: 34px; height: 34px; }
-header b { font-weight: 600; }
-header .sp { flex: 1; }
-header a { color: var(--ink2); text-decoration: none; margin-left: 18px; }
-header a:hover { color: var(--accent); }
-
-.intro { padding: 72px 20px 8px; }
-.intro p.big { font-size: 30px; line-height: 1.35; letter-spacing: -.02em; margin: 0 0 22px; font-weight: 500; }
-.intro p.big em { font-style: normal; color: var(--muted); }
-.intro p { color: var(--ink2); margin: 0 0 16px; }
-.start { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 30px 0 14px; }
-.start img { height: 48px; width: auto; display: block; }
-.install { font: 14px var(--mono); color: var(--ink2); margin: 0; overflow-wrap: anywhere; }
-.install code { background: none; padding: 0; color: var(--ink); }
-.install button { font: 500 12px var(--mono); margin-left: 8px; padding: 3px 9px; border: 1px solid var(--rule); border-radius: 5px; background: #FFFFFF; color: var(--muted); cursor: pointer; }
-.install button:hover { color: var(--accent); border-color: var(--accent); }
-
-.term { margin: 48px 0 0; background: var(--term); color: var(--tink); border-radius: 10px; padding: 18px 20px 20px; font: 13px/1.5 var(--mono); overflow-x: auto; }
-.term pre { margin: 0; font: inherit; }
-.term .d { color: var(--tdim); } .term .b { color: var(--tblue); font-weight: 600; } .term .g { color: var(--tgood); } .term .p { color: var(--tdim); }
-
-h2 { font: 600 15px var(--mono); letter-spacing: .02em; color: var(--ink); margin: 0 0 18px; }
-section { padding: 72px 0 0; }
-section .col > p { color: var(--ink2); margin: 0 0 16px; }
-
-.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 44px 32px; margin-top: 28px; }
-.gallery figure { margin: 0; display: flex; flex-direction: column; gap: 12px; }
-.gallery figcaption { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; }
-.gallery .q { font-size: 18px; line-height: 1.4; font-weight: 500; letter-spacing: -.01em; }
-.gallery .go { font: 13px var(--mono); }
-.gallery .shot { display: block; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: #FFFFFF; }
-.gallery .shot:hover { border-color: #C9CFD6; }
-.gallery img { width: 100%; height: auto; display: block; }
-
-dl { margin: 0; display: grid; grid-template-columns: 170px 1fr; border-top: 1px solid var(--rule); }
-dt, dd { margin: 0; padding: 14px 0; border-bottom: 1px solid var(--rule); }
-dt { font: 500 14px/1.65 var(--mono); color: var(--ink); }
-dd { color: var(--ink2); font-size: 16px; }
-
-.cmds { font: 14px/1.9 var(--mono); margin: 0; padding: 0; list-style: none; }
-.cmds li { display: grid; grid-template-columns: 160px 1fr; }
-.cmds span { color: var(--muted); font-family: var(--sans); font-size: 15px; }
-
-footer { margin-top: 88px; border-top: 1px solid var(--rule); padding: 24px 0 48px; font: 14px var(--mono); color: var(--muted); }
-footer .col { display: flex; gap: 18px; flex-wrap: wrap; }
-footer .sp { flex: 1; }
-footer a { color: var(--muted); }
-
-@media (max-width: 760px) {
-  .intro { padding-top: 48px; }
-  .intro p.big { font-size: 24px; }
-  .gallery { grid-template-columns: 1fr; }
-  dl { grid-template-columns: 1fr; }
-  dt { border-bottom: 0; padding-bottom: 0; }
-  .cmds li { grid-template-columns: 1fr; margin-bottom: 8px; line-height: 1.5; }
-  header a.hide-sm { display: none; }
-}
+body{margin:0}
+a{color:#2C5F80}a:hover{color:#173F59}
+.gal{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 28px}
+.try{display:inline-flex;align-items:center;gap:8px;padding:5px 14px 5px 6px;border-radius:999px;background:#EAF2F7;border:1px solid #D3E3EE;color:#356B8D;font-size:14px;font-weight:500;text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+.try:hover{background:#DDEBF3;border-color:#B9D3E3;color:#24526E;transform:translateY(-1px)}
+.try .arr{transition:transform .15s}.try:hover .arr{transform:translateX(3px)}
+.terms{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start}
+.tw{background:#131B26;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(17,26,38,0.06),0 12px 32px -12px rgba(17,26,38,0.18)}
+.tw pre{margin:0;padding:16px 18px 20px;font-family:"Geist Mono",ui-monospace,monospace;font-size:12.5px;line-height:1.55;color:#D8E0E8;overflow-x:auto}
+.help{display:grid;grid-template-columns:200px minmax(0,1fr);row-gap:10px;column-gap:24px}
+.insts{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-top:1px solid #E1E4E8;border-left:1px solid #E1E4E8}
+.inst{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;height:104px;border-right:1px solid #E1E4E8;border-bottom:1px solid #E1E4E8;color:#7D8794;background:#FFFFFF}
+.inst span{font-size:12px;color:#7D8794;letter-spacing:0.01em}
+@media (max-width:820px){.terms,.gal,.help{grid-template-columns:minmax(0,1fr)}.insts{grid-template-columns:repeat(3,minmax(0,1fr))}.hide-sm{display:none}}
 </style>
 </head>
 <body>
-<header><div class="col">
-  <img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b>
-  <span class="sp"></span>
-  <a class="hide-sm" href="#examples">examples</a>
-  <a class="hide-sm" href="#details">details</a>
-  <a href="https://github.com/kilianc/fin">github</a>
-</div></header>
+<div style="background: #F6F7F9; color: #111A26; font-family: 'Geist', -apple-system, sans-serif; font-size: 17px; line-height: 1.6; min-height: 100vh">
+  <header style="max-width: 1040px; margin: 0 auto; padding: 24px 24px 0; display: flex; align-items: center; gap: 10px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px">
+    <img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="" style="width: 30px; height: 30px">
+    <b style="font-weight: 600; color: #111A26">fin</b>
+    <span class="hide-sm" style="color: #7D8794">~ local · read-only</span>
+    <span style="flex: 1"></span>
+    <a href="https://github.com/kilianc/fin" style="color: #3A4656; text-decoration: none">github ↗</a>
+  </header>
 
-<main>
-  <div class="col intro">
-    <p class="big">fin reads your bank, card and brokerage accounts through Plaid and keeps the data on your Mac, <em>for you and for the AI agents you already use.</em></p>
-    <p>It's a small command-line tool. In a terminal it prints tables; when Claude or Codex runs it, it prints JSON. There's no server and no account with anyone but Plaid, and it can't move money.</p>
-    <div class="start">
-      <a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude"></a>
-      <a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex"></a>
-    </div>
-    <p class="install">or <code id="install">go install github.com/kilianc/fin/cmd/fin@latest</code><button type="button" data-copy="install">copy</button></p>
-  </div>
-
-  <div class="col">
-<div class="term"><pre><span class="p">$</span> fin accounts
-<span class="b">Accounts · 18 across 6 Items</span>
-<span class="d">╭──────────┬────────────────────┬──────┬─────────────────┬──────────╮</span>
-<span class="d">│</span> <span class="b">Item</span>     <span class="d">│</span> <span class="b">Account</span>            <span class="d">│</span> <span class="b">Mask</span> <span class="d">│</span> <span class="b">Type</span>            <span class="d">│</span>  <span class="b">Current</span> <span class="d">│</span>
-<span class="d">├──────────┼────────────────────┼──────┼─────────────────┼──────────┤</span>
-<span class="d">│</span> chase    <span class="d">│</span> Sapphire Preferred <span class="d">│</span> 4242 <span class="d">│</span> credit card     <span class="d">│</span>  1834.12 <span class="d">│</span>
-<span class="d">│</span> chase    <span class="d">│</span> Total Checking     <span class="d">│</span> 8810 <span class="d">│</span> checking        <span class="d">│</span>  6120.40 <span class="d">│</span>
-<span class="d">│</span> fidelity <span class="d">│</span> Roth IRA           <span class="d">│</span> 0917 <span class="d">│</span> roth investment <span class="d">│</span> <span class="g">48210.55</span> <span class="d">│</span>
-<span class="d">│</span> schwab   <span class="d">│</span> Brokerage          <span class="d">│</span> 3301 <span class="d">│</span> brokerage       <span class="d">│</span> <span class="g">96215.00</span> <span class="d">│</span>
-<span class="d">╰──────────┴────────────────────┴──────┴─────────────────┴──────────╯</span>
-<span class="d">14 more accounts · fin accounts --json for the full list</span></pre></div>
-  </div>
-
-  <section id="examples">
-    <div class="wide">
-      <div class="col" style="padding:0">
-        <h2>Examples</h2>
-        <p>You ask in plain words; the agent runs fin and writes the report. Each "try it" link opens the prompt in Claude Code or Codex. The numbers in these reports are made up.</p>
+  <main>
+    <section style="max-width: 1040px; margin: 0 auto; padding: 80px 24px 0">
+      <h1 style="font-size: 52px; line-height: 1.06; letter-spacing: -0.04em; font-weight: 600; color: #111A26; margin: 0 0 20px; max-width: 820px">Your financial data for your AI agent. Read-only, local, free.</h1>
+      <p style="font-size: 19px; color: #4A5666; margin: 0 0 32px; max-width: 640px">fin connects your banks, cards and brokerages through Plaid and can't move a dollar. It runs on your laptop with no fin server in between, keeps its keys in your Keychain, and costs nothing on Plaid's free Trial plan.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+        <a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude" style="height: 52px; display: block"></a>
+        <a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex" style="height: 52px; display: block"></a>
       </div>
-      <div class="gallery">
-        <figure>
-          <figcaption><span class="q">“Where did my money go last month? Compare it to the month before.”</span><a class="go" href="try/spending/">try it →</a></figcaption>
-          <a class="shot" href="try/spending/"><img src="examples/1.png" alt="Spending report: last month by category compared with the month before"></a>
+    </section>
+
+    <section style="max-width: 1040px; margin: 0 auto; padding: 56px 24px 0">
+      <div style="background: #131B26; border: 1px solid #131B26; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(17,26,38,0.06), 0 12px 32px -12px rgba(17,26,38,0.18)">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #243041; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #6F7E90">
+          <span style="width: 10px; height: 10px; border-radius: 50%; background: #2D394A"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #2D394A"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #2D394A"></span>
+          <span style="margin-left: 8px">agent session · illustrative</span>
+        </div>
+<pre style="margin: 0; padding: 20px 22px 24px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; line-height: 1.7; white-space: pre-wrap; color: #D8E0E8"><span style="color: #81B1CF; font-weight: 600">you ›</span> Where did my money go last month? Compare it to the month before.
+
+<span style="color: #6F7E90">  ran </span><span style="color: #FFFFFF">fin transactions --since 2026-08-01 --json</span>
+<span style="color: #3FB97A">  ✓</span><span style="color: #6F7E90"> 412 transactions from 6 connections</span>
+
+<span style="color: #81B1CF; font-weight: 600">agent ›</span> September spending was <span style="color: #FFFFFF">$6,482</span>, down 9% from August ($7,121).
+        Rent and utilities held at $2,850. Dining out rose <span style="color: #E2A33B">+31%</span> to $694,
+        mostly six weekend orders from Sushi Ota. Shopping fell $1,216
+        because August included a $1,180 standing desk.
+        You saved <span style="color: #3FB97A">$3,368</span>, 34% of what came in.</pre>
+      </div>
+    </section>
+
+    <section style="max-width: 1040px; margin: 0 auto; padding: 72px 24px 0">
+      <p style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #7D8794; margin: 0 0 16px">// works with the banks, cards and brokerages Plaid connects to</p>
+      <div class="insts">
+          <div class="inst"><svg role="img" aria-label="Chase" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M183.1.1c-10 0-18.1 8.1-18.1 18.1v126.7h334.7L347.3.1zM512 183.2c0-10-8-18.1-18.1-18.1H367.3v334.7L512 347.3zM328.9 511.9c10 0 18.1-8.1 18.1-18.1V367.2H12.2l152.4 144.7zM0 328.9c0 10 8.1 18.1 18.1 18.1h126.6V12.3L0 164.7z"/></svg><span>Chase</span></div>
+          <div class="inst"><svg role="img" aria-label="Citi" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="m156 357.4l-.9.9c-14.5 15.3-32.3 23-49.3 23c-36.6 0-63.8-27.2-63.8-65.5s26.4-65.5 63.8-65.5c17.9 0 34.9 7.7 49.3 23l.9.9l23.8-28.9l-.9-.9c-19.6-23-43.4-34.9-72.3-34.9s-56.1 10.2-74.8 27.2C10.5 256.3.3 282.6.3 314.9s11.1 58.7 31.5 78.2c19.6 17.9 45.9 27.2 74.8 27.2s52.7-11.1 72.3-34.9l.9-.9zm47.5 59.9h41.7V213.2h-41.7zm206-44.9q-16.65 10.2-30.6 10.2c-13.6 0-19.6-6.8-19.6-23v-108h42.5v-38.3h-42.5v-63.8l-41.7 22.1v41.7h-34.9v38.3h35.7v114.8c0 31.5 18.7 52.7 46.8 53.6c18.7 0 30.6-5.1 37.4-9.4h.9l10.2-39.1zm34.6 44.9h41.7V213.2h-41.7zm66.2-240.4C472.1 123.4 408.3 91 343.7 91s-127.5 32.3-165.8 86.7l-1.7 2.6h48.5l.9-.9c32.3-34 75.7-51.9 119-51.9s86.7 17.9 119 51.9l.9.9H513z"/></svg><span>Citi</span></div>
+          <div class="inst"><svg role="img" aria-label="American Express" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M512 512v-81.1h-61.8l-31.8-35.2l-32 35.2H182.8V267h-65.7l81.5-184.5h78.6l28.1 63.2V82.5h97.3l16.9 47.6l17-47.6H512V0H0v512zm-51.4-101.6H512l-67.9-72.1l67.9-71.2h-50.5l-42 45.9l-41.6-45.9h-51.4l67.5 71.6l-67.5 71.6h49.9l42.2-46.3zm12.1-72l39.3 41.9v-83.4zm-229 38.8v-22.3h80.9v-32.3h-80.9v-22.3h82.9v-33.2h-122v143.3h122v-33.2zm229.6-130.9H512V103h-60.2l-32.1 89.2l-32-89.2h-61.2v143.3h38.7V146L402 246.3h34.4l36.8-100.5v100.5zm-190.8 0h44L263.3 103h-50.4l-63.3 143.3h43l11.9-28.7h65.9zM257 185.5h-38.9l19.4-46.9z"/></svg><span>American Express</span></div>
+          <div class="inst"><svg role="img" aria-label="Wells Fargo" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M427.1 284.1c-19.1 0-24.7 15.8-24.7 33c0 17.3 5.6 33.1 24.7 33.1c19 0 24.6-15.8 24.6-33.1c.1-17.3-5.6-33-24.6-33m-167.3 14.2c0-7-5-12.3-16.2-12.3h-14.9v24.7h14.9c10.3 0 16.2-4.7 16.2-12.4m-104.4-4.9l-10.8 29.1h22l-10.8-29.1zM0 0v512h512V0zm324.2 223.3h7.8c3.4 0 5.7-1.2 5.7-5.4v-51.6c0-3.7-1.6-5.2-6.5-5.2h-7v-8.9h44.3v8.9h-6.7c-5.3 0-7.1 1.1-7.1 5.6v56.6H373c12.4 0 15-7.4 16.2-21.2h9.3v30.1h-74.1v-8.9zm-82.1 0h7.7c3.4 0 5.7-1.2 5.7-5.4v-51.6c0-3.7-1.6-5.2-6.5-5.2h-7v-8.9h44.2v8.9h-6.8c-5.3 0-7.1 1.1-7.1 5.6v56.6h18.2c12.5 0 15-7.4 16.3-21.2h9.2v30.1h-74zM34.3 161.2h-1.7v-8.9h35v8.9h-5.1c-2.7 0-3.7 1.6-3.7 3.2c0 1.2.4 2.7 1.1 4.4l15.2 44.7h.2l14.4-42l-2-5.7c-1.2-3.6-3.7-4.5-7.2-4.5h-2.9v-8.9h36.2v8.9h-6.4c-2.5 0-3.4 1.1-3.4 2.7c0 1.2.6 2.9 1 4.1l13.3 44.7h.2l15.4-43.7c.5-1.4.9-2.6.9-4.1c0-1.9-.9-3.7-5.2-3.7h-5.8v-8.9h109.8v27.4h-9c-1.8-11.6-2.9-18.5-18.9-18.5h-21.2v25.2h5.8c7.3 0 10.6-3.5 10.6-13.4v-1.5h8.5v39h-8.5v-1.7c0-9.8-3.3-13.5-10.6-13.5h-5.8v28.1h24.1c11 0 15-7.3 16.3-21.2h8.8v30.1h-79.2v-9h6.7c4.2 0 6.4-1.2 6.4-8.4v-47c0-5.2-2.4-6.8-8-6.8h-2.5c-5.8 0-8.5 1.3-10.5 7.3l-21.9 63.8h-16.6l-12.7-41.6h-.2l-14 41.6H64.3l-22.7-66.9c-1-3.3-2.7-4.2-7.3-4.2m49.4 150c7.8 0 10-5.7 10-11.9v-1.6h8.4v36.9h-8.4v-2.7c0-8.5-3.3-11.7-10.8-11.7h-5V342c0 4.5 2.1 6.2 7.7 6.2h6v9H47.3v-9H55c4.3 0 6.1-2.5 6.1-5.9v-51.7c0-2.9-2-4.5-5.6-4.5h-8V277h75.8v27.3h-8.7c-1.2-9.5-3.1-18.4-20.8-18.4H78.1v25.2h5.6zm202.9 29.3c0 13.8-6.6 19.1-16.6 19.1c-11.7 0-15.6-5.6-15.6-16.5v-4.2c0-13.8-5.9-19.3-19.3-19.3h-6.3v24.2c0 3.2 1.5 4.3 5 4.3h8.8v9h-80v-9h8.9c2.5 0 3.4-.6 3.4-2c0-.8-.2-2-.7-3.3c-.4-1.1-4.2-11.4-4.2-11.4h-28.6s-3.5 9.5-4.1 11.1c-.4 1.2-.7 2.2-.7 3.3c0 1.7 1.4 2.3 3.8 2.3h8.5v9H111v-9c6.4 0 10.4-.9 12.7-6.5l25.6-64.6h15.4l26.2 64.6c2.2 5.7 6.3 6.5 12.7 6.5h3.3c3.5 0 5-1.1 5-4.3v-53.5c0-3.2-1.2-4.4-5-4.4h-8.4V277H251c17.5 0 25.7 8.3 25.7 20.8c0 15.5-15.4 18.6-22.7 19v.2c8.5.6 15.6 4.1 15.6 16.5v4.7c0 8.2 1.7 10 4.6 10s4.4-2.3 4.4-7.6v-2.2h8zm89-17.1h-2.2c-4.7 0-6.4 1.3-6.4 6v27.8h-8.2l-4.5-6.1c-1.9 1.7-10 8.6-25.1 8.6c-23.5 0-38.6-18-38.6-42.6c0-24.4 14.9-42.5 38.6-42.5c14.8 0 22.3 7.4 24 9l3-6.5h8.5v27.3h-9.9c-1.8-4.9-7.1-19.3-22.6-19.3c-14.9 0-22.6 13.9-22.6 32c0 18.4 7.7 32.2 23.1 32.2c12.3 0 17.9-6.4 17.9-15.6V329c0-3.9-2.4-5.7-6.4-5.7h-5.5v-9h37zm51.5 36.3c-26.3 0-43.7-18.5-43.7-42.6s17.4-42.5 43.7-42.5c26.2 0 43.6 18.4 43.6 42.5c0 24-17.4 42.6-43.6 42.6m14.9-125c-14.6 0-22.3-7.9-24.3-9.6l-2.7 7.2h-8.2v-30.1h9.3c1.9 13.5 11.3 22.3 27.1 22.3c11.3 0 17-5.8 17-11.2c0-7.1-6.8-10.2-17.1-12.4c-4.1-.9-6.8-1.4-11.3-2.3c-13.7-2.9-25.5-9.7-25.5-24.6c0-16.4 15.3-24.1 30.4-24.1c14.4 0 21.8 7.7 22.5 8.4l4-6h6.5v27.4h-9c-3.1-10.1-8.8-19.5-23.6-19.5c-9.8 0-16.4 4.2-16.4 10.4c0 7.1 6.4 9.6 16.3 11.7c2.9.7 5.6 1.1 8.4 1.8c16 3.2 29.2 10 29.2 25.9c.2 16.4-13.9 24.7-32.6 24.7"/></svg><span>Wells Fargo</span></div>
+          <div class="inst"><svg role="img" aria-label="Bank of America" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M255.2 394.8C336 325.5 449.6 258.1 512 233.9c-9.6-6.2-24.6-15-41.6-24.6c-80.4 26.5-174.4 85.4-258.3 152c14.3 10.8 29.3 21.9 43.1 33.5m-36.9-188.3c-11.9-5.8-25-11.2-35-15.8c-30.4 15-70.1 37.7-120.1 73.5c10.8 5.8 22.3 12.7 34.6 19.6c38.5-28.4 77.4-55.3 120.5-77.3m72-33.1c-14.6-8.1-65.4-26.9-100.5-35c-10.4 3.8-25 9.6-35 13.9c12.7 3.5 60.1 16.2 100.5 36.6c10.3-5.1 25-11.2 35-15.5m-172.1-5c-45 20.8-92.4 49.3-118.2 65.8c9.2 4.2 18.5 7.7 31.2 13.9c57-38.5 101.6-62 119.3-69.7c-12.7-4.6-24.6-7.7-32.3-10m205.9-6.9c10.4-3.5 22.3-6.5 32.7-9.6c-30-12.7-67.8-26.2-101.6-34.6c-5.4 1.5-21.6 5.8-32.7 9.2c11.6 3.4 49.7 12.3 101.6 35M134.4 306.2c12.3 7.3 25.4 17.3 38.1 25.8c84.3-65.4 167.5-115.9 258.7-144.4c-12.7-6.5-23.9-12.3-38.1-19.2c-54.7 13.9-148.3 51.2-258.7 137.8"/></svg><span>Bank of America</span></div>
+          <div class="inst"><svg role="img" aria-label="Capital One" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M57 34.8c67.4-4.4 135-7.1 202.6-5.3c48.2 1.6 96.6 4.8 143.9 14.5c26.7 5.9 53.7 13.4 77 28.1c14 9 27.6 21.7 30.6 38.8c3.7 19.9-4.5 39.4-14.5 56.2c-18.7 30.1-44.1 55.3-70.2 78.9c-32.9 29.2-68 55.9-103.9 81.3c-35.3 24.5-70.7 48.9-106.6 72.4c-45.8 29.4-92.7 57.2-140.4 83.4H10.6c33.1-23 64.3-48.7 94.8-75.1c37.6-32.5 74.1-66.3 109.8-100.9c7-6.7 14.5-13 19.7-21.2c17-23.8 32.7-51.3 31.9-81.5c-.5-20.7-11.7-39.7-27-52.9c-25.2-21.6-57.3-32.6-88.9-41c-31.9-8.1-64.6-12.6-97.3-16.1c-17.9-1-35.7-3.5-53.6-3.6V39.3c18.9-2.3 38-3.1 57-4.5"/></svg><span>Capital One</span></div>
+          <div class="inst"><svg role="img" aria-label="Charles Schwab" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill-rule="evenodd" d="M364.2 298.2c.1.3 7.8 21.9 8 22.4h-16c.2-.5 7.9-22.2 8-22.4m-162.9-53.7c14 0 36.4-39.2 36.4-47.8c0-5.5-3.1-8.6-8.4-8.6c-16.2 0-32.6 28.7-32.6 49.4c0 5.8 1.7 7 4.6 7M403 192.7c0-3.6-2.5-6-6.1-6c-8.7 0-18.3 14.3-21.5 20.2c17.5-.4 27.6-5.5 27.6-14.2M512 0v512H0V0zM350 235.4c0 11.8 7.7 20 18.7 20c13 0 26.7-12.4 30-16.7c.2-.2.1-.5-.1-.7l-2.1-2.6c-.3-.2-.6-.2-.8-.1l-1.8 1.3c-4.3 3.2-12.3 9.2-18.1 9.2c-7.3 0-11.8-4.6-11.8-12.1c0-9 4.4-15.8 7.6-20.7c0 0 .3-.5.4-.6c.2 0 1.2.1 1.2.1l6.8.2c11.8 0 33.9-5.6 33.9-19.2c0-5.6-5.2-11.5-14.8-11.5c-20.2.1-49.1 27.7-49.1 53.4m-4.4-84.8c-.1 3-13.8 37-13.8 37c-7.4 18.3-19.8 50.2-20.2 57.7c-.2 3.3.6 6 2.3 7.8c1.5 1.5 3.6 2.3 6.3 2.3c8.7 0 17.3-10.8 23-17.9l1-1.2c.2-.3.1-.5 0-.6c0-.1-2.5-3.2-2.5-3.2c-.1-.1-.3-.2-.4-.2c-.2 0-.3.1-.4.2l-.8.9c-6.2 6.8-9.6 10.6-12.4 10.7c-.3 0-.8 0-1.2-.4q-.6-.6-.6-2.1c.2-3.8 6.4-21.6 18.9-54.6l9.1-23.6c4.8-12.3 7.2-18.5 7.2-19.3c0-.5-.1-1-.4-1.3c-.4-.5-1.3-.7-2.5-.7H337c-.3 0-.6.2-.6.6l-.1 3.4c0 .3.2.5.4.6l4.7.4c3 .5 4.2 1.6 4.2 3.5m-83.7 51.1c0 .1.1.3.2.4l2.3 2.3c.1.1.2.2.4.2s.4-.1.5-.3l.7-.7l.6-.7c2.6-3.2 7.9-9.9 10.6-9.9c1.5 0 2.3 1.5 2.3 4.2c0 6.7-7.3 27-12.2 40.5c-2.8 7.6-4.7 13.1-4.7 14.2c0 1.5.6 2.1 1.8 2.1h6.3c1.3 0 1.8-.8 2.7-2.8c0-.1 3.1-7.4 4.9-11c12.5-25.6 19.4-38.7 24.7-43.8c3.5-3.4 6-4.9 7.8-4.8c1.4.1 2.3 1.1 3.2 2.2c1 1.2 2 2.5 3.9 2.6c1.3.1 2.5-.4 3.5-1.3c1.6-1.5 2.5-4 2.5-6.8c0-4.7-3.3-6.3-6.1-6.3c-11.5 0-19.9 8.4-31.3 31.1c-.3.6-1.1 2.2-1.3 2.1h-.2v-.5c0-.7.8-3.6 1.6-7.3c1.7-7 4-16.6 4-19.4c0-3.6-2-5.6-5.6-5.6c-7.5 0-18.9 12.4-22.9 19c-.1 0-.2.2-.2.3M184 240.8c0 10 5.5 14.5 10.9 14.5c6.8 0 16-2.3 27.6-20.1c0 0 2.6-4.3 2.9-4.3c.1 0 .2 0 .3.1s.1.4 0 .8l-.9 2.1c-1.5 3.2-4.2 9-4.2 14.4c0 2.6.6 4.5 1.9 5.7c1.1 1.1 2.6 1.6 4.5 1.6c11-.2 20.5-14.4 24.1-19.7l.1-.3l-.1-.4l-2.4-2.8c-.3-.3-.6-.2-.9 0l-2.5 3c-3.2 4.1-7.3 9.1-9.8 9.1c-.6 0-.9-.1-1.1-.3c-.3-.3-.4-.9-.3-2.1c.2-3.4 6.9-21 12.2-35.1c4-10.4 7.4-19.4 7.5-20.9c0-.3 0-1.4-1-1.9l-4.3-2.9l-.2-.1c-.5-.3-1.1-.6-1.6-.4c-1 .3-1.6 1.2-2.2 2.1c-.7 1-1.3 2-2.5 2c-1 0-2.1-.2-3.3-.5c-1.7-.3-3.8-.8-6.6-.8c-31.5-.1-48.1 42.5-48.1 57.2M141.4 150c0 2.9-3.3 12.1-7.8 24.9l-4.1 11.5c-3.5 10.1-8.9 24.3-13.7 36.8c-5.7 14.9-10.2 26.7-10.2 28.3c0 1.9 1 2.4 5.2 2.4c4.6 0 6.7-.7 7.2-2.5c8-26.4 30.1-56.6 41.5-56.6c3.6 0 4.9 1.3 4.9 4.8c0 5.9-5 16.9-9.8 27.6c-4.2 9.4-8.3 18.3-8.3 22.5c0 3.9 1.7 5.8 5.2 5.8c11.3 0 19.9-10.2 26.7-18.4l1-1.2l.2-.4l-.2-.4l-2.3-2.8c0-.1-.2-.2-.3-.2c-.2 0-.4 0-.5.2c-3.9 4.1-10.4 10.2-12.3 10.5c-.5 0-.9 0-1.1-.2c-.3-.3-.3-.8-.2-1.8c.1-.9 1.3-3.8 3-7.8c4.3-10.4 11.5-27.7 11.5-38c0-8.2-3.9-13-10.8-13c-13.8 0-25 15.8-30.3 23.4c-1.2 1.8-2.4 3.4-2.7 3.5c-.1 0-.2 0-.2-.1c-.2-.3.5-2.1 2-5.4c1.5-3.5 3.8-8.7 6.9-16.8c10.4-27.1 14.8-41.6 14.8-42.8c0-1.6-1.5-1.8-3-1.8h-21.2c-.3 0-.6.3-.6.6v3.4c0 .2.2.5.4.6l2.1.2l2.7.2c3.4.6 4.3 1.2 4.3 3M94.7 329.9c0-11.7-8.9-17-15.7-20.1l-2.7-1.2c-8.6-3.9-12.1-7.7-12.1-13.1c0-5.3 3.2-10.7 10.4-10.7c8.4 0 11.6 6.6 13.6 13.1v.2l3.6-.7v-.2c-.9-5.1-1.6-9.7-2-13.9v-.1l-2.4-.8l-2.1-.6c-2.6-.9-6.2-1.5-9.5-1.5c-13 0-22.2 8.2-22.2 19.9c0 9.9 7.9 15.4 15.6 19.4l3.3 1.6c7.7 3.8 10.9 7.8 10.9 13.8c0 6.8-4.4 11.6-10.7 11.6c-10.1 0-15.7-10.5-18.2-16.8l-.1-.2l-3.4 1.2v.2c1.1 6.4 2.3 13.3 3.1 16v.1l1.7.6l4.4 1.6c3 1.1 6.8 1.7 10.4 1.7c14.3.1 24.1-8.6 24.1-21.1m7.3-91.8l-2.4-2.5c0-.1-.2-.2-.4-.2c-.1 0-.3 0-.3.1l-.3.3c-4.3 4-12.6 10.7-20.1 11.2c-2.9.2-5.5-.7-7.5-2.4c-2.5-2.1-3.9-5.6-4.1-9.9c-.5-11.2 9-28.1 18.5-38c5.1-5.3 9.8-8.3 13.2-8.3c4 0 6.4 2.9 8.8 5.8c2.1 2.5 4.1 4.8 6.9 4.8c1.1 0 2.3-.6 3.2-1.5c1-1.1 1.5-2.4 1.5-3.8c-.2-4.4-4.2-11.3-14.2-11.5c-11.4-.2-25.6 6.7-36.2 17.7c-10.1 10.4-15.4 22.8-14.8 34.7c.4 10.1 5.9 20.8 19.8 20.8c14.1 0 26.5-12.6 28.6-16.6c0-.2-.1-.5-.2-.7m63.4 92.4l-3.2-.7l-.1.1c-5.3 10.8-10.3 16.7-21.6 16.7c-14.6 0-24.4-13-24.4-32.4c0-13.5 6.4-29.3 24.4-29.3c10.6 0 16.4 4.5 19.3 15.2v.1l3.3-.4l-.5-4.6l-1.5-12.1h-.1l-1.8-.4c-3.5-.8-9.4-2.2-16.8-2.2c-23.6 0-40.1 15-40.1 36.6c0 17 11.8 34.2 38.3 34.2c6.8 0 15.8-2 19.5-3.1c1.9-4.2 4.2-12.9 5.3-17.3zm77.5-48.6h-29.8v3.2h.2c7.6.6 8.5 1.1 8.5 12.5v13.7h-31.1v-13.7c0-11.4.9-11.9 8.4-12.5h.2v-3.2h-30v3.2h.2c8.8.6 9.4 1.4 9.4 12.5v36.2c0 10.9-.7 11.8-9 12.5h-.1v3.2h30v-3.2h-.2c-7.8-.6-8.8-1.1-8.8-12.5v-17.4h31.1v17.4c0 11-.6 11.8-9.4 12.5h-.2v3.2h30.4v-3.2h-.2c-7.9-.6-8.7-1.1-8.7-12.5v-36.2c0-11 .6-11.8 8.9-12.5h.2zm75.3 68.3c9.5-32 17.4-54.4 17.5-54.6c3.4-9.4 4.2-9.8 10.7-10.4h.2V282h-24.2v3.2l3.8.3c2.1.2 3.1.6 3.7 1.4c.3.5.5 1.1.5 2c0 1.1-.2 2.6-.8 4.6c-.2 1-5.9 23.4-10.4 38.4c-.9-2.1-18-49-18-49v-.1h-4.3s-15.4 48.4-15.7 49.1c-.7-2.2-12-40.1-12-40.1c-.4-1.5-.6-2.6-.6-3.4c0-.7.1-1.1.4-1.5c.5-.8 1.7-1.1 3.6-1.4l3.3-.2v-3.4h-28.3v3.2h.2c5.5.6 7.2 1.2 10 10l17.1 55.2h4.9l16.1-48.3c.8 2 17.6 48.2 17.6 48.2l.1.1h4.8zm83.1-3.9h-.2c-5.8-.6-7.3-1.1-10.8-10.5L377.2 300l-7-18.9h-.1l-4.4.5l-21.1 54.2c-3.5 9.3-4.7 9.7-11 10.5h-.2v3.2h23.3v-3.2l-3-.4c-2.3-.3-3.4-.7-3.9-1.5c-.3-.4-.4-.9-.4-1.5c0-1 .3-2.3.9-4.1l.6-1.7c1.3-4.1 2.9-8.7 4.1-11.4h18.9c2.2 5.6 4.6 11.7 5.6 14.7c.4 1.3.7 2.3.7 3c0 .4-.1.7-.2 1c-.4.6-1.3 1-3.2 1.3l-3 .5v3.2h27.6v-3.1zm17-90.9c11.8 0 26.7-11 26.7-23.4c0-7-4.3-12.8-8.2-17.9c-3.3-4.4-6.4-8.5-6.4-12.7c0-5.7 3.2-9.4 8.2-9.4c2.5 0 4.5.9 6.5 1.9c2 .9 4.1 1.9 6.7 1.9c3.5 0 6.6-3.7 6.6-6.6c0-3.5-3.7-7.2-10-7.2c-14.3 0-27.1 16.2-27.1 29c0 7 4.2 12.4 8 17.2c3 3.9 5.6 7.2 5.6 10.6c0 5.7-5.3 9.2-10.4 9.2s-8.7-3.2-11.5-5.8c-2.1-1.9-4-3.6-5.9-3.6c-2.8 0-3.4 5.9-3.4 7.9c0 3.4 6.8 8.9 14.6 8.9m42.5 74.2c0-9.4-6.8-15.8-18.3-17.4c5.1-1.1 14.4-5.5 14.4-15c0-5.4-1.9-9.3-5.9-11.9c-4-2.5-8.2-3.4-16-3.4h-28.8v3.2h.2c7.2.6 8.1 1.1 8.1 12.5v36.2c0 11.3-1 11.9-8.8 12.5h-.2v3.2h25.9c8.3 0 15.3-1.5 19.9-4.1c6.4-3.8 9.5-9 9.5-15.8m-31.2-14.2h-3.3v18.3c0 5.2.3 8.5 2 10.1c1.1 1 2.7 1.4 5.7 1.3c6.6 0 13.7-3.7 13.7-14.3c-.1-9.8-6.7-15.4-18.1-15.4m14.9-16.8c0-11.5-9.9-12.4-12.9-12.4c-3.4 0-4.4.3-4.7.5c-.8.4-.8 2.2-.8 4.5v20.1h4c9.3 0 14.4-4.5 14.4-12.7"/></svg><span>Charles Schwab</span></div>
+          <div class="inst"><svg role="img" aria-label="Fidelity" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M219.1 313.8h91.8l26.9 17.4H215.1l-55 170.3c-31.3-12.5-59.7-31.2-83.7-54.8s-43.1-51.8-56.1-82.8S.4 299.4.3 265.7s6.6-67.1 19.5-98.2C45.2 106.9 93 58.4 153.3 32s128.4-28.5 190.2-5.9c61.8 22.5 112.6 68 141.7 126.9c29.2 59 34.5 126.9 15 189.7c-14.7 47.7-43.3 89.9-82.1 121.3l-67.8-113l94.4 52.7s.8-.6 0-1.2l-123-106.7l159.6 24.4h.8l-1-.9L330.3 266L487 228.1v-.8l-160.4 10.5l125.8-95.3s-.8-.8-1.1 0l-141.4 71.7l77.9-137.8s0-.8-.5 0l-101.7 119l19.7-157.5s-.6-.6-1.1 0l-47 152.7l-41-157.5s-.9-.5-1.2 0l11.3 163.4l-96.8-126h-.9L201.8 210L63.5 134.5s-.8 0-.8.6l123.1 101.1l-157.5-16.6c-.6 0-.6.8 0 1.1l152.8 44.6l-151.7 44.4l-.2.2c0 .1-.1.2-.1.3s0 .2.1.3c0 .1.1.2.2.2L185.8 293L63 396.8s-.6.6 0 .9l1.6-.6l98.4-51.5l23-36.7h26.3L194.1 296l60.8-97.6z"/></svg><span>Fidelity</span></div>
+          <div class="inst"><svg role="img" aria-label="Vanguard" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill-rule="evenodd" d="M8.3 6V.8H181l124 362.1l91.7-290.5s18.7-48.9-31.4-68.2V0h138.4L328.9 512l-72.8-28.1s-58.9-17.4-90.3-105.8L52 63.9S37.6 13.2 8.3 6"/></svg><span>Vanguard</span></div>
+          <div class="inst"><svg role="img" aria-label="Robinhood" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="m225.2 401.7l-3.4 1.1c-21.9 7.3-54.4 18.5-83.5 31.9c-1.5.7-2.6 2.8-2.6 2.8c-.6 1.3-1.2 2.8-2 4.5l-.1.2c-3.3 7.4-7.7 18.5-9.7 23.1l-1.5 3.6c-.2.6-.1 1.2.4 1.6c.3.3.6.4 1 .4c.2 0 .4 0 .7-.1l3.5-1.7c8-3.8 18.1-9.5 28.6-14.5l.4-.2c20.1-9.5 42.8-20.3 56.5-26.8c0 0 2.2-1.2 3.3-3.4l10.2-20.5c.3-.5.2-1.2-.2-1.6c-.5-.4-1.1-.6-1.6-.4M143.4 370c1.4-2.8 8.1-15.6 9.6-18.4l.3-.5c44.4-83.6 98.6-162.5 160.9-234.4l1.7-2c.5-.6.6-1.5.2-2.2s-1.2-1.1-2-1l-2.6.4c-40.9 5.6-82.3 13.4-123.1 23.1c-4.1 1.1-6.7 3.8-7.2 4.4c-30.5 36.5-59.4 74.8-85.9 114.2c-1.3 2-1.8 4.6-1.4 6.8c.3 2.1 6.7 51.2 16.4 89c-24.1 69.2-45.6 160.3-45.6 160.3c-.2.6 0 1.2.3 1.7c.4.5.9.8 1.6.8h13.7c.9 0 1.6-.5 2-1.3l.9-2.6c14-38.1 30-75.7 47.6-112.4c3.9-8.7 12.6-25.9 12.6-25.9m190.8-238.4V129c0-.8-.6-1.5-1.3-1.8s-1.6 0-2.2.6l-1.7 2c-72.7 83.9-133.7 176.9-181.5 276.6l-1.1 2.3c-.4.7-.2 1.6.3 2.2c.4.4.9.6 1.4.6c.2 0 .5 0 .8-.1l2.4-1c40.8-16.9 82.5-31.5 123.9-43.5c2.5-.7 4.6-2.5 5.7-4.7c18.2-35.3 60.3-103.7 60.3-103.7c1.1-1.5.8-3.8.8-3.8s-7.3-81.7-7.8-123.1m94-117.9C417.9 4.7 402.9.5 379.6 0c-21.1-.5-46.2 4.1-74.6 13.4c-4.2 1.5-7.7 3.9-10.7 6.8c-28.9 27.1-57 55.8-83.5 85.4l-2.1 2.2c-.6.7-.7 1.6-.2 2.3c.4.7 1.3 1.1 2.1.9l3-.7c42.8-9.1 86-16.1 128.4-20.7c2.8-.3 5.7.6 7.7 2.5c2.1 1.9 3.3 4.7 3.2 7.5c-.7 42 .8 84.2 4.6 125.4l.2 2.7c.1.8.7 1.5 1.5 1.7c.1 0 .3 0 .5.1c.6 0 1.3-.3 1.7-.8l1.5-2.2c23.9-34 49.9-67.1 77.2-98.4c3.1-3.5 3.9-5.7 4.4-8.8c8.8-54.7-4.4-95.3-16.3-105.6"/></svg><span>Robinhood</span></div>
+          <div class="inst"><svg role="img" aria-label="X Money" fill="currentColor" style="width: 36px; height: 36px; display: block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M304.7 216.8L495.2 0h-45.1L284.6 188.2L152.6 0H.2l199.7 284.7L.2 512h45.1L220 313.2L359.4 512h152.3M61.6 33.3h69.3l319.1 447h-69.3"/></svg><span>X Money</span></div>
+          <div class="inst"><span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #4A5666">+ 12,000 more</span></div>
+      </div>
+      <p style="font-size: 12px; color: #9AA3AE; margin: 12px 0 0">Logos are trademarks of their owners. fin is independent and not affiliated with them or with Plaid.</p>
+    </section>
+
+    <section style="max-width: 1040px; margin: 0 auto; padding: 88px 24px 0">
+      <p style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #7D8794; margin: 0 0 10px">// examples · made-up numbers</p>
+      <h2 style="font-size: 32px; letter-spacing: -0.03em; font-weight: 600; color: #111A26; margin: 0 0 32px">Ask in plain words. Get a report.</h2>
+      <div class="gal">
+        <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px">
+          <figcaption style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 10px"><span style="font-size: 18px; line-height: 1.4; color: #111A26; font-weight: 500">“Where did my money go last month? Compare it to the month before.”</span><a class="try" href="try/spending/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="" style="width: 20px; height: 20px; display: block">Try this prompt<span class="arr">→</span></a></figcaption>
+          <img src="examples/1.png" alt="Spending report: last month by category compared with the month before" style="width: 100%; display: block; border-radius: 8px; border: 1px solid #E1E4E8">
         </figure>
-        <figure>
-          <figcaption><span class="q">“Find every subscription I'm paying for. Flag price increases, trials that turned paid, and anything I'm paying for twice.”</span><a class="go" href="try/subscriptions/">try it →</a></figcaption>
-          <a class="shot" href="try/subscriptions/"><img src="examples/2.png" alt="Subscription audit: 14 subscriptions with price increases and duplicates flagged"></a>
+        <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px">
+          <figcaption style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 10px"><span style="font-size: 18px; line-height: 1.4; color: #111A26; font-weight: 500">“Find every subscription I'm paying for. Flag price increases, trials that turned paid, and anything I'm paying for twice.”</span><a class="try" href="try/subscriptions/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="" style="width: 20px; height: 20px; display: block">Try this prompt<span class="arr">→</span></a></figcaption>
+          <img src="examples/2.png" alt="Subscription audit with price increases and duplicates flagged" style="width: 100%; display: block; border-radius: 8px; border: 1px solid #E1E4E8">
         </figure>
-        <figure>
-          <figcaption><span class="q">“How is my money invested across my brokerages? What's my unrealized gain?”</span><a class="go" href="try/portfolio/">try it →</a></figcaption>
-          <a class="shot" href="try/portfolio/"><img src="examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages"></a>
+        <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px">
+          <figcaption style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 10px"><span style="font-size: 18px; line-height: 1.4; color: #111A26; font-weight: 500">“How is my money invested across my brokerages? What's my unrealized gain?”</span><a class="try" href="try/portfolio/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="" style="width: 20px; height: 20px; display: block">Try this prompt<span class="arr">→</span></a></figcaption>
+          <img src="examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages" style="width: 100%; display: block; border-radius: 8px; border: 1px solid #E1E4E8">
         </figure>
-        <figure>
-          <figcaption><span class="q">“Chart my net worth this year and tell me what moved it.”</span><a class="go" href="try/net-worth/">try it →</a></figcaption>
-          <a class="shot" href="try/net-worth/"><img src="examples/4.png" alt="Net worth: monthly chart for the year and what moved it"></a>
+        <figure style="margin: 0; display: flex; flex-direction: column; gap: 12px">
+          <figcaption style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 10px"><span style="font-size: 18px; line-height: 1.4; color: #111A26; font-weight: 500">“Chart my net worth this year and tell me what moved it.”</span><a class="try" href="try/net-worth/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="" style="width: 20px; height: 20px; display: block">Try this prompt<span class="arr">→</span></a></figcaption>
+          <img src="examples/4.png" alt="Net worth: monthly chart for the year and what moved it" style="width: 100%; display: block; border-radius: 8px; border: 1px solid #E1E4E8">
         </figure>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section id="details">
-    <div class="col">
-      <h2>Details</h2>
-      <dl>
-        <dt>What it reads</dt><dd>Balances, transactions, holdings with tax lots, and investment activity, through Plaid's Transactions and Investments products.</dd>
-        <dt>What it won't do</dt><dd>It never requests Plaid's Auth or Identity products, so it never sees account and routing numbers or your personal details. It has no way to move money, and it never deletes a connection.</dd>
-        <dt>Where things live</dt><dd>Plaid keys and access tokens in your macOS Keychain under the service <code>fin</code>. Everything else in <code>~/.config/fin/state.json</code>, readable only by you.</dd>
-        <dt>What it costs</dt><dd>Nothing. Plaid's free Trial plan connects up to 10 institutions; <code>fin items</code> shows how many you've used. fin is MIT licensed.</dd>
-        <dt>What you need</dt><dd>A Mac, <a href="https://go.dev/dl/">Go</a> 1.26 or newer, and about fifteen minutes, most of it signing in to your banks.</dd>
-      </dl>
-    </div>
-  </section>
+    <section style="max-width: 1040px; margin: 0 auto; padding: 88px 24px 0">
+      <p style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #7D8794; margin: 0 0 10px">// same data, two readers</p>
+      <h2 style="font-size: 32px; letter-spacing: -0.03em; font-weight: 600; color: #111A26; margin: 0 0 12px">Tables for you. JSON for your agent.</h2>
+      <p style="color: #4A5666; margin: 0 0 32px; max-width: 640px">In a terminal, fin prints tables. When an agent runs it, it prints JSON, with an <code style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 15px">errors</code> list that says what needs you.</p>
+      <div class="terms">
+        <div class="tw">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid #243041; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #6F7E90">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: #2D394A"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #2D394A"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #2D394A"></span>
+            <span style="margin-left: 8px">you · zsh</span>
+          </div>
+<pre><span style="color: #6F7E90">$</span> <span style="color: #FFFFFF">fin accounts</span>
+<span style="color: #81B1CF; font-weight: 600">Accounts · 18 across 6 Items</span>
+<span style="color: #4E5D70">╭──────────┬────────────────────┬──────┬─────────────────┬──────────╮</span>
+<span style="color: #4E5D70">│</span> <span style="color: #81B1CF; font-weight: 600">Item</span>     <span style="color: #4E5D70">│</span> <span style="color: #81B1CF; font-weight: 600">Account</span>            <span style="color: #4E5D70">│</span> <span style="color: #81B1CF; font-weight: 600">Mask</span> <span style="color: #4E5D70">│</span> <span style="color: #81B1CF; font-weight: 600">Type</span>            <span style="color: #4E5D70">│</span>  <span style="color: #81B1CF; font-weight: 600">Current</span> <span style="color: #4E5D70">│</span>
+<span style="color: #4E5D70">├──────────┼────────────────────┼──────┼─────────────────┼──────────┤</span>
+<span style="color: #4E5D70">│</span> chase    <span style="color: #4E5D70">│</span> Sapphire Preferred <span style="color: #4E5D70">│</span> 4242 <span style="color: #4E5D70">│</span> credit card     <span style="color: #4E5D70">│</span>  1834.12 <span style="color: #4E5D70">│</span>
+<span style="color: #4E5D70">│</span> chase    <span style="color: #4E5D70">│</span> Total Checking     <span style="color: #4E5D70">│</span> 8810 <span style="color: #4E5D70">│</span> checking        <span style="color: #4E5D70">│</span>  6120.40 <span style="color: #4E5D70">│</span>
+<span style="color: #4E5D70">│</span> fidelity <span style="color: #4E5D70">│</span> Roth IRA           <span style="color: #4E5D70">│</span> 0917 <span style="color: #4E5D70">│</span> roth investment <span style="color: #4E5D70">│</span> <span style="color: #3FB97A">48210.55</span> <span style="color: #4E5D70">│</span>
+<span style="color: #4E5D70">│</span> schwab   <span style="color: #4E5D70">│</span> Brokerage          <span style="color: #4E5D70">│</span> 3301 <span style="color: #4E5D70">│</span> brokerage       <span style="color: #4E5D70">│</span> <span style="color: #3FB97A">96215.00</span> <span style="color: #4E5D70">│</span>
+<span style="color: #4E5D70">╰──────────┴────────────────────┴──────┴─────────────────┴──────────╯</span>
+<span style="color: #6F7E90">14 more accounts · fin accounts --json for the full list</span></pre>
+        </div>
+        <div class="tw">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid #243041; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #6F7E90">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: #2D394A"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #2D394A"></span><span style="width: 10px; height: 10px; border-radius: 50%; background: #2D394A"></span>
+            <span style="margin-left: 8px">agent · stdout is not a terminal</span>
+          </div>
+<pre><span style="color: #6F7E90">$</span> <span style="color: #FFFFFF">fin accounts --json</span>
+{
+  <span style="color: #81B1CF; font-weight: 600">"accounts"</span>: [
+    {
+      <span style="color: #81B1CF; font-weight: 600">"item"</span>: <span style="color: #E2C08D">"chase"</span>,
+      <span style="color: #81B1CF; font-weight: 600">"name"</span>: <span style="color: #E2C08D">"Sapphire Preferred"</span>,
+      <span style="color: #81B1CF; font-weight: 600">"mask"</span>: <span style="color: #E2C08D">"4242"</span>,
+      <span style="color: #81B1CF; font-weight: 600">"subtype"</span>: <span style="color: #E2C08D">"credit card"</span>,
+      <span style="color: #81B1CF; font-weight: 600">"balances"</span>: {
+        <span style="color: #81B1CF; font-weight: 600">"current"</span>: <span style="color: #3FB97A">1834.12</span>,
+        <span style="color: #81B1CF; font-weight: 600">"limit"</span>: <span style="color: #3FB97A">15000</span>,
+        <span style="color: #81B1CF; font-weight: 600">"iso_currency_code"</span>: <span style="color: #E2C08D">"USD"</span>
+      }
+    },
+    <span style="color: #6F7E90">…</span>
+  ],
+  <span style="color: #81B1CF; font-weight: 600">"errors"</span>: []
+}</pre>
+        </div>
+      </div>
+    </section>
 
-  <section>
-    <div class="col">
-      <h2>Commands</h2>
-      <ul class="cmds">
-        <li>fin init<span>What's set up, what's next, and a prompt for your agent</span></li>
-        <li>fin link<span>Connect a bank, card or brokerage through Plaid Link</span></li>
-        <li>fin accounts<span>Balances for every account</span></li>
-        <li>fin transactions<span>Bank and card transactions, newest first</span></li>
-        <li>fin holdings<span>Positions with cost basis and tax lots</span></li>
-        <li>fin investments<span>Buys, sells, dividends and fees</span></li>
-        <li>fin items<span>Connection health, consent expiry, slots used</span></li>
-      </ul>
-      <p style="margin-top:18px">Add <code>--json</code> for scripts. The <a href="https://github.com/kilianc/fin#readme">README</a> has the rest.</p>
-    </div>
-  </section>
-</main>
+    <section style="max-width: 1040px; margin: 0 auto; padding: 88px 24px 0">
+      <p style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #7D8794; margin: 0 0 10px">// fin help security</p>
+      <h2 style="font-size: 32px; letter-spacing: -0.03em; font-weight: 600; color: #111A26; margin: 0 0 28px">Read-only, local, yours.</h2>
+      <div class="help" style="font-size: 16px; border-top: 1px solid #E1E4E8; padding-top: 20px">
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #356B8D">reads</span><span style="color: #4A5666">Balances, transactions, holdings with tax lots, investment activity.</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #356B8D">never requests</span><span style="color: #4A5666">Plaid Auth or Identity: no account numbers, no personal details. Cannot move money.</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #356B8D">secrets</span><span style="color: #4A5666">macOS Keychain, service "fin". State in ~/.config/fin/state.json, mode 0600.</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #356B8D">servers</span><span style="color: #4A5666">None. fin calls Plaid's API from your laptop and prints the answer.</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #356B8D">cost</span><span style="color: #4A5666">Free on Plaid's Trial plan, up to 10 institutions. MIT licensed.</span>
+      </div>
+      <div style="margin-top: 40px; background: #FFFFFF; border: 1px solid #E1E4E8; border-radius: 10px; padding: 16px 20px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #111A26; overflow-wrap: anywhere"><span style="color: #9AA3AE">$</span> go install github.com/kilianc/fin/cmd/fin@latest <span style="color: #9AA3AE">&amp;&amp;</span> fin init</div>
+    </section>
+  </main>
 
-<footer><div class="col">
-  <span>fin · MIT</span><span class="sp"></span>
-  <a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a>
-</div></footer>
-<script>
-document.querySelectorAll("[data-copy]").forEach(function (b) {
-  b.onclick = function () {
-    navigator.clipboard.writeText(document.getElementById(b.dataset.copy).textContent);
-    b.textContent = "copied";
-  };
-});
-</script>
+  <footer style="max-width: 1040px; margin: 96px auto 0; padding: 20px 24px 48px; border-top: 1px solid #E1E4E8; display: flex; gap: 12px; align-items: center; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #7D8794">
+    <span>fin · MIT</span><span style="flex: 1"></span><a href="https://github.com/kilianc/fin" style="color: #3A4656">github.com/kilianc/fin</a>
+  </footer>
+</div>
 </body>
 </html>
