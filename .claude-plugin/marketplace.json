@@ -1,0 +1,15 @@
+{
+  "name": "fin",
+  "description": "fin, a CLI for your financial data, built for the AI era",
+  "owner": {
+    "name": "Kilian Ciuffolo",
+    "url": "https://github.com/kilianc"
+  },
+  "plugins": [
+    {
+      "name": "fin",
+      "source": "./",
+      "description": "Read your own bank, card and brokerage data from your AI agent, through Plaid, on your machine."
+    }
+  ]
+}

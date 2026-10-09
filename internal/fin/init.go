@@ -88,9 +88,17 @@ func (a *App) cmdInit(ctx context.Context, args []string) (*result, error) {
 	}
 	body := map[string]any{
 		"tagline": Tagline, "status": status, "prompt": agentPrompt, "copied": copied,
-		"open_in": openIn,
+		"open_in": openIn, "skill": SkillInstall,
 	}
 	return &result{body: body, message: a.renderInit(status, copied)}, nil
+}
+
+// SkillInstall teaches an agent to use fin: Claude Code installs the plugin
+// from this repository's marketplace, and Codex reads the same skill from
+// ~/.agents/skills.
+var SkillInstall = map[string][]string{
+	"claude": {"/plugin marketplace add kilianc/fin", "/plugin install fin@fin"},
+	"codex":  {"curl -fsSL --create-dirs -o ~/.agents/skills/fin/SKILL.md https://raw.githubusercontent.com/kilianc/fin/main/skills/fin/SKILL.md"},
 }
 
 func (a *App) hasCredentials(env plaid.Env) (bool, error) {
@@ -136,6 +144,10 @@ func (a *App) renderInit(s initStatus, copied bool) string {
 	} else {
 		b.WriteString(ui.Muted.Render("Run fin init --copy to put it on your clipboard.") + "\n")
 	}
+
+	b.WriteString("\n" + ui.Bold.Render("Teach your agent fin.") + "\n")
+	b.WriteString("In Claude Code: " + strings.Join(SkillInstall["claude"], ui.Muted.Render(" then ")) + "\n")
+	b.WriteString("In Codex: " + SkillInstall["codex"][0] + "\n")
 	return b.String()
 }
 

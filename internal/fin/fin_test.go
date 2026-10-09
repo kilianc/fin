@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"html/template"
 	"os"
@@ -733,6 +734,49 @@ func TestSitePagesShareOneStyle(t *testing.T) {
 		}
 		if strings.Contains(page, "<style") || strings.Contains(page, ` style="`) {
 			t.Errorf("%s has styles of its own; put them in docs/site.css", path)
+		}
+	}
+}
+
+// TestSkillShipsAsAPlugin keeps the skill, the plugin manifests, the Codex
+// symlink and the install lines that fin init and the README print in step.
+func TestSkillShipsAsAPlugin(t *testing.T) {
+	read := func(path string) string {
+		b, err := os.ReadFile("../../" + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	skill := read("skills/fin/SKILL.md")
+	if !strings.HasPrefix(skill, "---\nname: fin\ndescription: ") {
+		t.Error("skills/fin/SKILL.md needs frontmatter starting with name: fin and a description")
+	}
+	if codex := read(".agents/skills/fin/SKILL.md"); codex != skill {
+		t.Error(".agents/skills/fin should link to skills/fin for Codex")
+	}
+	var plugin struct{ Name string }
+	var market struct {
+		Name    string
+		Plugins []struct{ Name, Source string }
+	}
+	if err := json.Unmarshal([]byte(read(".claude-plugin/plugin.json")), &plugin); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(read(".claude-plugin/marketplace.json")), &market); err != nil {
+		t.Fatal(err)
+	}
+	if len(market.Plugins) != 1 || market.Plugins[0].Name != plugin.Name || market.Plugins[0].Source != "./" {
+		t.Errorf("marketplace should list the repo root as plugin %q, got %+v", plugin.Name, market.Plugins)
+	}
+	install := "/plugin install " + plugin.Name + "@" + market.Name
+	if !slices.Contains(SkillInstall["claude"], install) {
+		t.Errorf("fin init should print %q", install)
+	}
+	readme := read("README.md")
+	for _, line := range append(SkillInstall["claude"], SkillInstall["codex"]...) {
+		if !strings.Contains(readme, line) {
+			t.Errorf("README is missing %q", line)
 		}
 	}
 }

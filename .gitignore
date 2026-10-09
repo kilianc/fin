@@ -14,6 +14,15 @@
 !/scripts/generate-mascot.py
 !/mascot.png
 !/mascot-plaid.png
+!/.claude-plugin/
+!/.claude-plugin/*.json
+!/skills/
+!/skills/*/
+!/skills/*/SKILL.md
+!/.agents/
+!/.agents/skills/
+!/.agents/skills/*
+!/docs/*.css
 !/docs/
 !/docs/*.svg
 !/docs/index.html

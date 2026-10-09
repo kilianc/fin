@@ -86,6 +86,23 @@ Code drives your browser through [Claude in Chrome](https://claude.com/chrome).
 Using another agent? `fin init` shows what's done and what's next, and prints
 the same prompt (`fin init --copy` puts it on your clipboard).
 
+### Teach your agent fin
+
+fin ships a [skill](skills/fin/SKILL.md) that tells an agent when to reach for
+fin, how to read its JSON, and what never to do without asking. In Claude
+Code, install it as a plugin:
+
+```text
+/plugin marketplace add kilianc/fin
+/plugin install fin@fin
+```
+
+Codex reads the same skill from `~/.agents/skills`:
+
+```bash
+curl -fsSL --create-dirs -o ~/.agents/skills/fin/SKILL.md https://raw.githubusercontent.com/kilianc/fin/main/skills/fin/SKILL.md
+```
+
 If you'd rather do it yourself, here's the whole flow:
 
 1. **Sign up for Plaid.** Go to <https://dashboard.plaid.com/signup> and choose
