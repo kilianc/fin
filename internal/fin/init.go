@@ -98,7 +98,7 @@ func (a *App) cmdInit(ctx context.Context, args []string) (*result, error) {
 // ~/.agents/skills.
 var SkillInstall = map[string][]string{
 	"claude": {"/plugin marketplace add kilianc/fin", "/plugin install fin@fin"},
-	"codex":  {"curl -fsSL --create-dirs -o ~/.agents/skills/fin/SKILL.md https://raw.githubusercontent.com/kilianc/fin/main/skills/fin/SKILL.md"},
+	"codex":  {"curl -fsSL --create-dirs -o ~/.agents/skills/fin/SKILL.md https://raw.githubusercontent.com/kilianc/fin/main/plugins/fin/skills/fin/SKILL.md"},
 }
 
 func (a *App) hasCredentials(env plaid.Env) (bool, error) {

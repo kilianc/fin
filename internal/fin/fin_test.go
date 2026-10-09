@@ -748,26 +748,26 @@ func TestSkillShipsAsAPlugin(t *testing.T) {
 		}
 		return string(b)
 	}
-	skill := read("skills/fin/SKILL.md")
+	skill := read("plugins/fin/skills/fin/SKILL.md")
 	if !strings.HasPrefix(skill, "---\nname: fin\ndescription: ") {
-		t.Error("skills/fin/SKILL.md needs frontmatter starting with name: fin and a description")
+		t.Error("plugins/fin/skills/fin/SKILL.md needs frontmatter starting with name: fin and a description")
 	}
 	if codex := read(".agents/skills/fin/SKILL.md"); codex != skill {
-		t.Error(".agents/skills/fin should link to skills/fin for Codex")
+		t.Error(".agents/skills/fin should link to plugins/fin/skills/fin for Codex")
 	}
 	var plugin struct{ Name string }
 	var market struct {
 		Name    string
 		Plugins []struct{ Name, Source string }
 	}
-	if err := json.Unmarshal([]byte(read(".claude-plugin/plugin.json")), &plugin); err != nil {
+	if err := json.Unmarshal([]byte(read("plugins/fin/.claude-plugin/plugin.json")), &plugin); err != nil {
 		t.Fatal(err)
 	}
 	if err := json.Unmarshal([]byte(read(".claude-plugin/marketplace.json")), &market); err != nil {
 		t.Fatal(err)
 	}
-	if len(market.Plugins) != 1 || market.Plugins[0].Name != plugin.Name || market.Plugins[0].Source != "./" {
-		t.Errorf("marketplace should list the repo root as plugin %q, got %+v", plugin.Name, market.Plugins)
+	if len(market.Plugins) != 1 || market.Plugins[0].Name != plugin.Name || market.Plugins[0].Source != "./plugins/fin" {
+		t.Errorf("marketplace should list ./plugins/fin as plugin %q, got %+v", plugin.Name, market.Plugins)
 	}
 	install := "/plugin install " + plugin.Name + "@" + market.Name
 	if !slices.Contains(SkillInstall["claude"], install) {

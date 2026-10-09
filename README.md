@@ -88,7 +88,7 @@ the same prompt (`fin init --copy` puts it on your clipboard).
 
 ### Teach your agent fin
 
-fin ships a [skill](skills/fin/SKILL.md) that tells an agent when to reach for
+fin ships a [skill](plugins/fin/skills/fin/SKILL.md) that tells an agent when to reach for
 fin, how to read its JSON, and what never to do without asking. In Claude
 Code, install it as a plugin:
 
@@ -100,7 +100,7 @@ Code, install it as a plugin:
 Codex reads the same skill from `~/.agents/skills`:
 
 ```bash
-curl -fsSL --create-dirs -o ~/.agents/skills/fin/SKILL.md https://raw.githubusercontent.com/kilianc/fin/main/skills/fin/SKILL.md
+curl -fsSL --create-dirs -o ~/.agents/skills/fin/SKILL.md https://raw.githubusercontent.com/kilianc/fin/main/plugins/fin/skills/fin/SKILL.md
 ```
 
 If you'd rather do it yourself, here's the whole flow:

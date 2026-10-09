@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "fin",
-      "source": "./",
+      "source": "./plugins/fin",
       "description": "Read your own bank, card and brokerage data from your AI agent, through Plaid, on your machine."
     }
   ]
