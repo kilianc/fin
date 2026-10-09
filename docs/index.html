@@ -292,7 +292,7 @@
 (function(){
   var tabs=document.querySelectorAll('.shell-tabs button'), modes=document.querySelectorAll('.shell-mode button'), mode='table';
   function show(k){
-    tabs.forEach(function(t){var on=t.dataset.tab===k;t.setAttribute('aria-selected',on);document.getElementById('pane-'+t.dataset.tab).hidden=!on;if(on&&t.parentNode.scrollWidth>t.parentNode.clientWidth)t.parentNode.scrollLeft=t.offsetLeft-12;});
+    tabs.forEach(function(t){var on=t.dataset.tab===k;t.setAttribute('aria-selected',on);document.getElementById('pane-'+t.dataset.tab).hidden=!on;if(on&&t.parentNode.scrollWidth>t.parentNode.clientWidth)t.parentNode.scrollLeft=t.offsetLeft-t.parentNode.offsetLeft-16;});
     document.querySelector('.shell-mode').classList.toggle('off',k==='agent');
   }
   function setMode(m){

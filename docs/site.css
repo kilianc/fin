@@ -56,18 +56,18 @@ br.lg { display: block; }
 
 /* terminal */
 .shell { background: var(--term); border-radius: 12px; overflow: hidden; box-shadow: var(--lift); }
-.shell-bar { display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 0 10px 0 16px; border-bottom: 1px solid var(--term-rule); font: 12.5px var(--mono); color: var(--term-muted); }
+.shell-bar { display: flex; align-items: center; gap: 20px; min-height: 42px; padding: 0 16px; border-bottom: 1px solid var(--term-rule); font: 12.5px var(--mono); color: var(--term-muted); }
 .shell-bar .label { flex: 1; min-width: 0; }
 .dots { display: flex; gap: 8px; flex: none; }
 .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--term-dim); }
-.shell-tabs { display: flex; align-self: flex-end; gap: 2px; flex: 1; min-width: 0; padding-top: 8px; overflow-x: auto; scrollbar-width: none; }
-.shell button { font: 12.5px var(--mono); color: var(--term-muted); background: none; border: 0; cursor: pointer; white-space: nowrap; }
-.shell-tabs button { padding: 9px 12px 10px; border-radius: 8px 8px 0 0; }
-.shell-tabs button:hover { color: var(--term-ink); }
-.shell-tabs button[aria-selected="true"] { color: #FFFFFF; background: var(--term2); box-shadow: inset 0 2px 0 var(--blue); }
-.shell-mode { display: flex; flex: none; padding: 2px; border: 1px solid var(--term-dim); border-radius: 7px; }
-.shell-mode button { padding: 3px 10px; border-radius: 5px; }
-.shell-mode button[aria-pressed="true"] { color: var(--term); background: var(--blue); }
+.shell-tabs { display: flex; align-self: stretch; gap: 20px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.shell button { font: 12.5px var(--mono); color: var(--term-muted); background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap; }
+.shell button:hover { color: var(--term-ink); }
+.shell-tabs button { display: flex; align-items: center; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.shell-tabs button[aria-selected="true"] { color: #FFFFFF; border-bottom-color: var(--blue); }
+.shell-mode { display: flex; flex: none; gap: 10px; }
+.shell-mode button[aria-pressed="true"] { color: #FFFFFF; }
+.shell-mode button + button::before { content: "/"; color: var(--term-dim); margin-right: 10px; }
 .shell-mode.off { visibility: hidden; }
 .shell .copy { padding: 4px 10px; border: 1px solid var(--term-dim); border-radius: 6px; color: var(--term-ink); }
 .shell .copy:hover { border-color: var(--blue); color: #FFFFFF; }
@@ -137,10 +137,10 @@ br.lg { display: block; }
   .display { font-size: 38px; }
   .lede { font-size: 18px; }
   .section, .section.first { padding-top: 56px; }
-  .shell-bar { flex-wrap: wrap; padding: 0 10px; }
+  .shell-bar { flex-wrap: wrap; row-gap: 0; }
   .shell-bar .dots { display: none; }
-  .shell-tabs { flex: 1 1 100%; }
-  .shell-mode { margin: 2px 0 8px auto; }
+  .shell-tabs { flex: 1 1 100%; min-height: 42px; }
+  .shell-mode { margin: 4px 0 10px auto; }
   .pager { grid-template-columns: minmax(0, 1fr); }
   .pager .next { grid-column: 1; }
 }
