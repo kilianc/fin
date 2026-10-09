@@ -325,7 +325,7 @@ Steps:
   var b=document.getElementById('copy-setup');
   b.onclick=function(){
     navigator.clipboard.writeText(document.getElementById('setup-prompt').content.textContent);
-    var img=b.querySelector('img');img.src='copied-prompt.svg';img.alt='Copied to clipboard';
+    var img=b.querySelector('img');img.src='copied-prompt.svg';img.alt='Prompt copied';
     setTimeout(function(){img.src='copy-prompt.svg';img.alt='Copy the setup prompt';},2400);
   };
 })();
