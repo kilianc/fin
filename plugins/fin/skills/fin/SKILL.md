@@ -91,6 +91,9 @@ orders, so an Amazon charge can be broken down by item:
 - Amazon charges some orders in several payments, one per shipment, and does
   not say which items each payment covered. Report those at the order level;
   don't guess which items a payment paid for.
+- Avoid counting an order's items and its matched bank charge twice.
+- After a return or refund, `fin amazon sync --order ID` reads just that
+  order again.
 - After a sync, categorize new items: `fin amazon categorize --json` lists
   them; save with `fin amazon categorize --set --json` and a JSON list on
   stdin: `[{"item": "111-…#1", "category": "HOME_IMPROVEMENT", "detailed":
@@ -99,9 +102,13 @@ orders, so an Amazon charge can be broken down by item:
   things bought repeatedly. Ask the user when an item's purpose is unclear.
 - `AMAZON_RATE_LIMITED` means Amazon refused requests. fin won't ask again
   before `retry_at`; don't retry sooner, and answer from what is stored.
+- `AMAZON_SIGNIN_EXPIRED` and `COSTCO_SIGNIN_EXPIRED` mean the store wants a
+  full sign-in. Its home page can still greet the user by name; the error
+  names the orders page to open in Chrome. Once they've signed in there,
+  `fin amazon login <name>` (or `fin costco login <name>`) again.
 - `fin amazon login <name>` needs the user: macOS asks them to allow
   "Chrome Safe Storage". Never run it, or `fin amazon logout`, without their
-  go-ahead in chat. It reads back to a week before the epoch (see below).
+  go-ahead in chat. It reads back to a week before the epoch (see above).
 
 ## Costco receipts and online orders (experimental)
 
@@ -141,8 +148,7 @@ online order).
   and reparsing. `fin sheet` includes a Costco items tab.
 - Avoid counting a receipt's items and its matched bank charge twice.
 - `COSTCO_RATE_LIMITED` includes `retry_at`; answer from stored data and do
-  not retry sooner. `COSTCO_SIGNIN_EXPIRED` needs the user to sign in to
-  costco.com in Chrome, then run `fin costco login <name>` again.
+  not retry sooner.
 - Ask in chat before connecting or logging out. Login reads the selected
   Chrome profile once; macOS may ask for Chrome Safe Storage if its MSAL
   cache is encrypted. Tokens are sealed locally with a Keychain key. This

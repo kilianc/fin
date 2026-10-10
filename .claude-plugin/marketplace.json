@@ -9,7 +9,7 @@
     {
       "name": "fin",
       "source": "./plugins/fin",
-      "description": "Read your own bank, card and brokerage data from your AI agent, through Plaid, on your machine."
+      "description": "Read your own bank, card and brokerage data, and Amazon and Costco purchases item by item, from your AI agent, on your machine."
     }
   ]
 }

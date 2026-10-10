@@ -26,6 +26,9 @@ step() { printf '\n== %s\n' "$*"; }
 [[ -z "$(git status --porcelain)" ]] || fail "the working tree is not clean"
 [[ "$(git branch --show-current)" == "main" ]] || fail "release from main"
 command -v gh >/dev/null || fail "needs the GitHub CLI (gh)"
+# Claude Code updates an installed plugin only when its version changes.
+plugin=$(sed -n 's/^ *"version": "\(.*\)",$/\1/p' plugins/fin/.claude-plugin/plugin.json)
+[[ "$plugin" == "$version" ]] || fail "plugins/fin/.claude-plugin/plugin.json is at $plugin; set its version to $version and commit"
 if tagged=$(git rev-parse -q --verify "refs/tags/$tag^{commit}"); then
   [[ "$tagged" == "$(git rev-parse HEAD)" ]] || fail "$tag already exists on another commit"
   if draft=$(gh release view "$tag" --json isDraft -q .isDraft 2>/dev/null); then
