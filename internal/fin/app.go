@@ -306,4 +306,4 @@ func parseDate(flagName, value string) (string, error) {
 }
 
 // Tagline is the one sentence every new user sees.
-const Tagline = "fin is a local, read-only tool for you and your AI agents: your financial data goes from Plaid straight to this machine, your keys stay in your macOS Keychain, and you own all of it end to end."
+const Tagline = "fin is a local, read-only tool for you and your AI agents: your bank, card and brokerage data comes from Plaid, and your Amazon and Costco purchases item by item from your own sign-in, straight to this machine. Your keys stay in your macOS Keychain, and you own all of it end to end."
