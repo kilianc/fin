@@ -113,6 +113,7 @@ type linkOnlyReporter struct{ a *App }
 
 func (r linkOnlyReporter) Start(int, string) {}
 func (r linkOnlyReporter) Done(int, string)  {}
+func (r linkOnlyReporter) Feed(string)       {}
 func (r linkOnlyReporter) Link(label, url string) {
 	fmt.Fprintf(r.a.Stderr, "%s\n%s\n", label, url)
 }
@@ -149,7 +150,7 @@ func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, it
 		}
 	}
 	if len(accts) > 0 {
-		_, amazonErrs, err := a.syncAmazonAll(ctx, s, st, accts, amazonSync{})
+		_, amazonErrs, err := a.syncAmazonAll(ctx, s, st, accts, amazonSync{}, nil)
 		if err != nil {
 			return nil, err
 		}

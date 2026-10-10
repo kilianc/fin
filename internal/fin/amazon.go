@@ -1,6 +1,7 @@
 package fin
 
 import (
+	"cmp"
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
@@ -202,11 +203,8 @@ type amazonSync struct {
 }
 
 // syncAmazon reads payments and the order pages they point to, as opts
-// says. progress, if set, hears what it is doing.
-func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, acct state.AmazonAccount, opts amazonSync, progress func(step int, detail string)) (*amazonSyncView, error) {
-	if progress == nil {
-		progress = func(int, string) {}
-	}
+// says. progress hears what it is doing.
+func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, acct state.AmazonAccount, opts amazonSync, progress amazonProgress) (*amazonSyncView, error) {
 	until, err := s.AmazonLimitedUntil(ctx, acct.Name)
 	if err != nil {
 		return nil, storeErr(err)
@@ -257,7 +255,7 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	// Each page is saved as it arrives, so a sync cut short by Amazon keeps
 	// what it read; a full re-read prunes rows Amazon no longer lists only
 	// once it reaches the end.
-	progress(0, "")
+	progress.step(0, "")
 	seen := map[string]bool{}
 	fresh := []string{}
 	added := 0
@@ -289,7 +287,12 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 				return true
 			}
 		}
-		progress(0, fmt.Sprintf("%d payments since %s", len(seen), epoch))
+		for _, p := range page {
+			progress.feed(fmt.Sprintf("%s  %-40s %9s", shortDate(p.Date), truncate(cmp.Or(p.Descriptor, p.Method), 40), dollars(p.Amount)))
+		}
+		if len(page) > 0 {
+			progress.step(0, fmt.Sprintf("%d so far, back to %s", len(seen), longDate(page[len(page)-1].Date)))
+		}
 		return past || (!full && allKnown)
 	})
 	if saveErr != nil {
@@ -319,13 +322,14 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 
 // readAmazonOrders reads and stores the given order pages, then saves the
 // renewed session and the account's last sync.
-func (a *App) readAmazonOrders(ctx context.Context, s *store.Store, st *state.State, acct state.AmazonAccount, client *amazon.Client, ids []string, view *amazonSyncView, now time.Time, progress func(step int, detail string)) (*amazonSyncView, error) {
-	progress(1, fmt.Sprintf("0 of %d", len(ids)))
+func (a *App) readAmazonOrders(ctx context.Context, s *store.Store, st *state.State, acct state.AmazonAccount, client *amazon.Client, ids []string, view *amazonSyncView, now time.Time, progress amazonProgress) (*amazonSyncView, error) {
+	progress.step(1, fmt.Sprintf("0 of %d", len(ids)))
+	start := time.Now()
 	// One page at a time: the client spaces requests at a person's pace.
 	var stop error
 	for i, id := range ids {
 		page, err := client.OrderPage(ctx, id)
-		progress(1, fmt.Sprintf("%d of %d", i+1, len(ids)))
+		progress.step(1, orderProgress(i+1, len(ids), time.Since(start)))
 		switch {
 		case errors.Is(err, amazon.ErrSignIn), errors.Is(err, amazon.ErrRateLimited), errors.Is(err, context.Canceled):
 			stop = err
@@ -345,6 +349,14 @@ func (a *App) readAmazonOrders(ctx context.Context, s *store.Store, st *state.St
 		if perr != nil {
 			o = nil
 			view.Unreadable++
+		} else {
+			for _, it := range o.Items {
+				title := it.Title
+				if it.Quantity > 1 {
+					title += fmt.Sprintf(" ×%d", it.Quantity)
+				}
+				progress.feed(fmt.Sprintf("%s  %-40s %9s", shortDate(o.Date), truncate(title, 40), dollars(it.Cost)))
+			}
 		}
 		if err := s.ApplyAmazonOrder(ctx, acct.Name, id, page, o, perr, now); err != nil {
 			stop = storeErr(err)
@@ -387,6 +399,60 @@ func (a *App) amazonEpoch(ctx context.Context, s *store.Store, st *state.State) 
 		return day.AddDate(0, 0, -7).Format("2006-01-02"), nil
 	}
 	return a.Now().AddDate(-2, 0, 0).Format("2006-01-02"), nil
+}
+
+// amazonProgress hears what a sync is doing: Step how far each step is,
+// Feed each thing it finds. Either may be nil.
+type amazonProgress struct {
+	Step func(step int, detail string)
+	Feed func(line string)
+}
+
+func (p amazonProgress) step(i int, detail string) {
+	if p.Step != nil {
+		p.Step(i, detail)
+	}
+}
+
+func (p amazonProgress) feed(line string) {
+	if p.Feed != nil {
+		p.Feed(line)
+	}
+}
+
+// orderProgress is "34/104", a bar, and the time left at the pace so far.
+func orderProgress(done, total int, took time.Duration) string {
+	s := fmt.Sprintf("%d/%d  %s", done, total, ui.Bar(done, total, 12))
+	if done < 3 || done >= total {
+		return s
+	}
+	switch left := took / time.Duration(done) * time.Duration(total-done); {
+	case left < time.Minute:
+		return s + "  <1 min"
+	default:
+		return s + fmt.Sprintf("  ~%d min", int(left.Round(time.Minute)/time.Minute))
+	}
+}
+
+func dollars(c amazon.Cents) string {
+	if c < 0 {
+		return "−$" + (-c).String()
+	}
+	return "$" + c.String()
+}
+
+func shortDate(day string) string {
+	if t, err := time.Parse("2006-01-02", day); err == nil {
+		return t.Format("Jan _2")
+	}
+	return day
+}
+
+func longDate(day string) string {
+	if t, err := time.Parse("2006-01-02", day); err == nil {
+		return t.Format("Jan 2, 2006")
+	}
+	return day
 }
 
 // amazonLimitedErr says Amazon refused requests and when fin will ask again.
@@ -432,10 +498,15 @@ func (a *App) amazonErr(ctx context.Context, s *store.Store, acct state.AmazonAc
 
 // syncAmazonAll syncs every Amazon account in the environment, turning each
 // account's failure into an ItemError so the others still sync.
-func (a *App) syncAmazonAll(ctx context.Context, s *store.Store, st *state.State, accts []state.AmazonAccount, opts amazonSync) ([]amazonSyncView, []ItemError, error) {
+// progress, if set, gives each account's progress by its index.
+func (a *App) syncAmazonAll(ctx context.Context, s *store.Store, st *state.State, accts []state.AmazonAccount, opts amazonSync, progress func(k int) amazonProgress) ([]amazonSyncView, []ItemError, error) {
 	views, errs := []amazonSyncView{}, []ItemError{}
-	for _, acct := range accts {
-		v, err := a.syncAmazon(ctx, s, st, acct, opts, nil)
+	for k, acct := range accts {
+		var p amazonProgress
+		if progress != nil {
+			p = progress(k)
+		}
+		v, err := a.syncAmazon(ctx, s, st, acct, opts, p)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return nil, nil, err
@@ -507,19 +578,43 @@ func (a *App) cmdAmazonSync(ctx context.Context, args []string) (*result, error)
 	}
 	var views []amazonSyncView
 	var errs []ItemError
-	run := func(ctx context.Context) error {
-		var err error
-		views, errs, err = a.syncAmazonAll(ctx, s, st, accts, amazonSync{Full: *full, Orders: orders})
-		return err
-	}
+	opts := amazonSync{Full: *full, Orders: orders}
 	if a.showSpinner() {
-		msg := "Reading your Amazon payments and orders…"
-		if len(orders) > 0 {
-			msg = "Reading the Amazon order pages again…"
+		// Each account has a payments step and an orders step.
+		var steps []string
+		for _, acct := range accts {
+			steps = append(steps, acct.Name+": payments", acct.Name+": orders")
 		}
-		err = ui.Wait(ctx, a.Stdin, a.Stderr, msg, run)
+		a.onScreen = true
+		_, err = ui.Flow(ctx, a.Stdin, a.Stderr, ui.FlowOptions{Title: "fin → Amazon", Steps: steps}, func(ctx context.Context, r ui.Reporter) (ui.FlowResult, error) {
+			var err error
+			views, errs, err = a.syncAmazonAll(ctx, s, st, accts, opts, func(k int) amazonProgress {
+				return amazonProgress{Step: func(i int, detail string) {
+					if i == 1 {
+						r.Done(2*k, "")
+					}
+					r.Start(2*k+i, detail)
+				}, Feed: r.Feed}
+			})
+			if err != nil {
+				return ui.FlowResult{}, err
+			}
+			for k, v := range views {
+				r.Done(2*k, fmt.Sprintf("%d new", v.Payments))
+				r.Done(2*k+1, fmt.Sprintf("%d read", v.Orders))
+			}
+			msg := "Done."
+			if len(errs) > 0 {
+				msg = errs[0].Message
+			}
+			return ui.FlowResult{Message: msg}, nil
+		})
+		a.onScreen = false
+		if errors.Is(err, ui.ErrCancelled) {
+			err = context.Canceled
+		}
 	} else {
-		err = run(ctx)
+		views, errs, err = a.syncAmazonAll(ctx, s, st, accts, opts, nil)
 	}
 	if err != nil {
 		return nil, err
@@ -645,11 +740,14 @@ func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error
 			return ui.FlowResult{}, err
 		}
 		defer s.Close()
-		view, err = a.syncAmazon(ctx, s, st, acct, amazonSync{Full: true}, func(i int, detail string) {
-			if i == 1 {
-				r.Done(2, "")
-			}
-			r.Start(i+2, detail)
+		view, err = a.syncAmazon(ctx, s, st, acct, amazonSync{Full: true}, amazonProgress{
+			Step: func(i int, detail string) {
+				if i == 1 {
+					r.Done(2, "")
+				}
+				r.Start(i+2, detail)
+			},
+			Feed: r.Feed,
 		})
 		if err != nil {
 			return ui.FlowResult{}, err

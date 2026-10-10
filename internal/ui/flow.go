@@ -21,6 +21,9 @@ type Reporter interface {
 	Done(i int, detail string)
 	// Link shows a URL the user should open; o opens it.
 	Link(label, url string)
+	// Feed shows a line of what the work just found, under the steps; the
+	// screen keeps the last few, newest first.
+	Feed(line string)
 }
 
 // FlowResult is what a Flow shows once its work succeeds.
@@ -62,6 +65,7 @@ type (
 		detail string
 	}
 	linkMsg     struct{ label, url string }
+	feedMsg     string
 	flowDoneMsg struct {
 		res FlowResult
 		err error
@@ -79,8 +83,12 @@ type flowModel struct {
 	finished  bool
 	cancel    context.CancelFunc
 	notice    string
+	feed      []string
 	w, h      int
 }
+
+// feedLines is how many Feed lines the screen keeps.
+const feedLines = 5
 
 func (m flowModel) Init() tea.Cmd { return m.spinner.Tick }
 
@@ -99,6 +107,8 @@ func (m flowModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case linkMsg:
 		m.linkLabel, m.linkURL = msg.label, msg.url
+	case feedMsg:
+		m.feed = append([]string{string(msg)}, m.feed[:min(len(m.feed), feedLines-1)]...)
 	case flowDoneMsg:
 		m.finished = true
 		m.linkLabel, m.linkURL = "", ""
@@ -175,6 +185,16 @@ func (m flowModel) View() tea.View {
 		}
 		b.WriteString(hang("  "+mark+" ", label, width) + "\n")
 	}
+	if len(m.feed) > 0 && !m.finished {
+		b.WriteString("\n")
+		for i, line := range m.feed {
+			line = "    " + truncate(line, width-4)
+			if i > 0 {
+				line = Muted.Render(line)
+			}
+			b.WriteString(line + "\n")
+		}
+	}
 	if m.linkURL != "" {
 		b.WriteString("\n" + Box(Bold.Render(m.linkLabel)+"\n"+Link(m.linkURL, m.linkURL)+"\n\n"+
 			Muted.Render("The browser opened it. Press o to open it again."), width) + "\n")
@@ -246,6 +266,24 @@ type flowReporter struct{ p *tea.Program }
 func (r flowReporter) Start(i int, detail string) { r.p.Send(stepMsg{i, stepRunning, detail}) }
 func (r flowReporter) Done(i int, detail string)  { r.p.Send(stepMsg{i, stepDone, detail}) }
 func (r flowReporter) Link(label, url string)     { r.p.Send(linkMsg{label, url}) }
+func (r flowReporter) Feed(line string)           { r.p.Send(feedMsg(line)) }
+
+// Bar draws done of total as a bar width cells wide.
+func Bar(done, total, width int) string {
+	if total <= 0 {
+		return ""
+	}
+	n := min(done*width/total, width)
+	return Accent.Render(strings.Repeat("━", n)) + Muted.Render(strings.Repeat("─", width-n))
+}
+
+func truncate(s string, width int) string {
+	r := []rune(s)
+	if width < 2 || len(r) <= width {
+		return s
+	}
+	return string(r[:width-1]) + "…"
+}
 
 // Flow runs fn on a full-screen view that shows each step's progress, any
 // URL the user needs to open, and the result, then waits for a key so the
@@ -297,6 +335,8 @@ func (r PlainReporter) Done(i int, detail string) {
 	}
 	Print(r.W, Line(Good, msg)+"\n")
 }
+
+func (r PlainReporter) Feed(string) {}
 
 func (r PlainReporter) Link(label, url string) {
 	Print(r.W, label+"\n"+url+"\n")
