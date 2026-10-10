@@ -211,3 +211,28 @@ func TestAmazonRateLimitKeepsWhatWasRead(t *testing.T) {
 		t.Errorf("payments after finishing = %v, want 3", n)
 	}
 }
+
+func TestAmazonReadsBackOnlyToTheEpoch(t *testing.T) {
+	ta, srv := amazonApp(t)
+	srv.Rows = append(srv.Rows, amazontest.Payment("-$5.00", "Jan 2, 2020", "114-0000005-0000005", "Visa", "AMZN Mktp US", "Charged"))
+	code, body := ta.run(t, "amazon", "login", "pat", "--since", "2026-09-01", "--json")
+	if code != exitOK {
+		t.Fatalf("login exit %d: %s", code, ta.stderr)
+	}
+	if sync := body["sync"].(map[string]any); sync["since"] != "2026-09-01" || sync["new_payments"] != 2.0 {
+		t.Errorf("sync = %v; payments before the epoch were read", sync)
+	}
+	if n := srv.Count("/payments-portal/data/iris/live/v1/data/manage/get-transactions"); n != 2 {
+		t.Errorf("payments pages read = %d, want 2: it should stop at the first page past the epoch", n)
+	}
+
+	// Without --since, the epoch follows the bank history, less a week.
+	ta2, _ := amazonApp(t)
+	if code, _ := ta2.run(t, "sync", "--json"); code != exitOK {
+		t.Fatalf("bank sync exit %d: %s", code, ta2.stderr)
+	}
+	_, body = ta2.run(t, "amazon", "login", "pat", "--json")
+	if since := body["sync"].(map[string]any)["since"]; since != "2026-08-27" {
+		t.Errorf("default epoch = %v, want a week before the oldest bank transaction (2026-09-03)", since)
+	}
+}

@@ -62,6 +62,9 @@ type AmazonAccount struct {
 	ProfileName string     `json:"profile_name"` // the name Chrome shows for it
 	ConnectedAt time.Time  `json:"connected_at"`
 	LastSync    *time.Time `json:"last_sync,omitempty"`
+	// Since is the first day to read, YYYY-MM-DD. Empty means from the
+	// oldest bank transaction fin has, since nothing older can match.
+	Since string `json:"since,omitempty"`
 }
 
 // AmazonForEnv returns the Amazon accounts connected in env.

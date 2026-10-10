@@ -22,8 +22,8 @@ create table if not exists amazon_accounts (
 	last_sync timestamptz,
 	status    varchar
 );
--- complete: a read of the payments list has reached its end at least once.
-alter table amazon_accounts add column if not exists complete boolean default false;
+-- complete_since: payments are stored without gaps back to this date.
+alter table amazon_accounts add column if not exists complete_since date;
 create table if not exists amazon_payments (
 	payment_key       varchar primary key,
 	account           varchar not null,
@@ -173,6 +173,14 @@ select t.transaction_id, t.item_id, t.account_id, t.date, t.authorized_date, t.n
 from amazon_splits s join transactions t using (transaction_id);
 `
 
+// EarliestTransaction is the date of the oldest stored bank transaction, or
+// "" when there is none.
+func (s *Store) EarliestTransaction(ctx context.Context) (string, error) {
+	var d sql.NullString
+	err := s.db.QueryRowContext(ctx, `select min(date)::varchar from transactions`).Scan(&d)
+	return d.String, err
+}
+
 // AmazonPaymentKeys returns the keys of the payments stored for account.
 func (s *Store) AmazonPaymentKeys(ctx context.Context, account string) (map[string]bool, error) {
 	rows, err := s.db.QueryContext(ctx, `select payment_key from amazon_payments where account = ?`, account)
@@ -217,9 +225,9 @@ func (s *Store) ApplyAmazonPayments(ctx context.Context, account, profile string
 	return tx.Commit()
 }
 
-// PruneAmazonPayments records that a read reached the end of the account's
-// payments list, and deletes the payments it did not see.
-func (s *Store) PruneAmazonPayments(ctx context.Context, account string, keep map[string]bool) error {
+// PruneAmazonPayments records that a read went back to since without gaps,
+// and deletes the account's payments it did not see.
+func (s *Store) PruneAmazonPayments(ctx context.Context, account, since string, keep map[string]bool) error {
 	keys := make([]string, 0, len(keep))
 	for k := range keep {
 		keys = append(keys, k)
@@ -232,7 +240,7 @@ func (s *Store) PruneAmazonPayments(ctx context.Context, account string, keep ma
 	if _, err := tx.ExecContext(ctx, `delete from amazon_payments where account = ? and not list_contains(?::varchar[], payment_key)`, account, keys); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `update amazon_accounts set complete = true where account = ?`, account); err != nil {
+	if _, err := tx.ExecContext(ctx, `update amazon_accounts set complete_since = ?::date where account = ?`, since, account); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -245,15 +253,15 @@ func (s *Store) SetAmazonAccountStatus(ctx context.Context, account, profile, st
 	return err
 }
 
-// AmazonHistoryComplete reports whether a read of the account's payments
-// list has ever reached its end. Until it has, syncs read the whole list.
-func (s *Store) AmazonHistoryComplete(ctx context.Context, account string) (bool, error) {
-	var done sql.NullBool
-	err := s.db.QueryRowContext(ctx, `select complete from amazon_accounts where account = ?`, account).Scan(&done)
+// AmazonCompleteSince is the date back to which the account's payments are
+// stored without gaps, or "" when no read has gone back far enough yet.
+func (s *Store) AmazonCompleteSince(ctx context.Context, account string) (string, error) {
+	var since sql.NullString
+	err := s.db.QueryRowContext(ctx, `select complete_since::varchar from amazon_accounts where account = ?`, account).Scan(&since)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return "", nil
 	}
-	return done.Valid && done.Bool, err
+	return since.String, err
 }
 
 // AmazonOrdersToFetch lists the account's physical orders whose page should

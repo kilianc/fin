@@ -80,9 +80,12 @@ orders, and Amazon charges can be split by item:
   "HOME_IMPROVEMENT_HARDWARE", "asin_default": true}]`. Use Plaid's
   categories (the list comes back in `categories`); set `asin_default` for
   things bought repeatedly. Ask the user when an item's purpose is unclear.
-- `fin amazon login <name>` needs the user: macOS asks them to allow
-  "Chrome Safe Storage". Never run it, or `fin amazon logout`, without their
-  go-ahead in chat.
+- `fin amazon login <name> [--since DATE]` needs the user: macOS asks them
+  to allow "Chrome Safe Storage". Never run it, or `fin amazon logout`,
+  without their go-ahead in chat. Ask from when they want Amazon read (an
+  account can be decades old; a household may only want the orders since
+  they started sharing money). Without `--since`, fin reads back to a week
+  before the oldest bank transaction. `fin amazon sync --since DATE` changes it.
 
 ## Rules
 

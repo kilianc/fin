@@ -60,7 +60,7 @@ func TestAmazonMatchesSplitsAndSpending(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := s.PruneAmazonPayments(ctx, "pat", map[string]bool{"p-x": true}); err != nil {
+	if err := s.PruneAmazonPayments(ctx, "pat", "2026-01-01", map[string]bool{"p-x": true}); err != nil {
 		t.Fatal(err)
 	}
 	if rows := queryRows(t, s, `select count(*) from amazon_payments`); rows[0][0] != int64(0) {
@@ -73,8 +73,15 @@ func TestAmazonMatchesSplitsAndSpending(t *testing.T) {
 	for _, p := range payments {
 		keep[p.Key] = true
 	}
-	if err := s.PruneAmazonPayments(ctx, "pat", keep); err != nil {
+	if err := s.PruneAmazonPayments(ctx, "pat", "2026-01-01", keep); err != nil {
 		t.Fatal(err)
+	}
+
+	if got, _ := s.AmazonCompleteSince(ctx, "pat"); got != "2026-01-01" {
+		t.Errorf("complete since = %q", got)
+	}
+	if got, _ := s.EarliestTransaction(ctx); got != "2026-08-01" {
+		t.Errorf("earliest transaction = %q", got)
 	}
 
 	since := syncedAt.AddDate(0, 0, -60)

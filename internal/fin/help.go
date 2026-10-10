@@ -247,9 +247,13 @@ and which can change or stop working at any time. US amazon.com only.
                                  first time); macOS asks once to allow
                                  "Chrome Safe Storage"
       --profile P                the Chrome profile, by directory or name
+      --since DATE               first day to read, such as when you began
+                                 sharing finances (default: a week before
+                                 your oldest bank transaction)
       --no-sync                  connect without reading anything yet
   fin amazon sync [name]         read new payments and orders; fin sync does
       --full                     this too. --full re-reads every payment
+      --since DATE               change the first day to read
   fin amazon categorize          items without a category
       --all                      every item
       --set ITEM CATEGORY [DETAILED] [--product]
@@ -278,7 +282,7 @@ up with bank transactions. In fin sql:
 The sign-in is kept encrypted in fin's data directory, with its key in the
 Keychain. Your Chrome stays signed in; fin never changes it.`,
 		examples: []string{
-			"fin amazon login home",
+			"fin amazon login home --since 2025-05-01",
 			"fin amazon categorize --set 111-1234567-1234567#2 HOME_IMPROVEMENT --product",
 			"fin sql \"select category, sum(amount) from spending where amount > 0 group by 1 order by 2 desc\"",
 		},

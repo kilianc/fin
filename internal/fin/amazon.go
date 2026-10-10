@@ -183,6 +183,7 @@ func (a *App) amazonBase() string {
 
 type amazonSyncView struct {
 	Account    string     `json:"account"`
+	Since      string     `json:"since"`
 	Payments   int        `json:"new_payments"`
 	Orders     int        `json:"orders_read"`
 	Unreadable int        `json:"orders_unreadable"`
@@ -206,12 +207,16 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	if err != nil {
 		return nil, storeErr(err)
 	}
-	complete, err := s.AmazonHistoryComplete(ctx, acct.Name)
+	epoch, err := a.amazonEpoch(ctx, s, acct)
+	if err != nil {
+		return nil, err
+	}
+	complete, err := s.AmazonCompleteSince(ctx, acct.Name)
 	if err != nil {
 		return nil, storeErr(err)
 	}
-	// Until one read has reached the end of the list, read all of it.
-	full = full || !complete
+	// Until one read has gone back to the epoch without a gap, read all of it.
+	full = full || complete == "" || complete > epoch
 
 	// Each page is saved as it arrives, so a sync cut short by Amazon keeps
 	// what it read; a full re-read prunes rows Amazon no longer lists only
@@ -222,7 +227,16 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	fresh := []string{}
 	added := 0
 	var saveErr error
-	_, err = client.Payments(ctx, acct.Name, func(page []amazon.Payment) bool {
+	_, err = client.Payments(ctx, acct.Name, func(all []amazon.Payment) bool {
+		// The list is newest first: past the epoch, nothing more is needed.
+		page, past := []amazon.Payment{}, false
+		for _, p := range all {
+			if p.Date < epoch {
+				past = true
+				continue
+			}
+			page = append(page, p)
+		}
 		allKnown := true
 		for _, p := range page {
 			seen[p.Key] = true
@@ -235,8 +249,8 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 		if saveErr = s.ApplyAmazonPayments(ctx, acct.Name, acct.Profile, page, now); saveErr != nil {
 			return true
 		}
-		progress(0, fmt.Sprintf("%d payments", len(seen)))
-		return !full && allKnown
+		progress(0, fmt.Sprintf("%d payments since %s", len(seen), epoch))
+		return past || (!full && allKnown)
 	})
 	if saveErr != nil {
 		return nil, storeErr(saveErr)
@@ -245,7 +259,7 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 		return nil, a.amazonErr(ctx, s, acct, err)
 	}
 	if full {
-		if err := s.PruneAmazonPayments(ctx, acct.Name, seen); err != nil {
+		if err := s.PruneAmazonPayments(ctx, acct.Name, epoch, seen); err != nil {
 			return nil, storeErr(err)
 		}
 	}
@@ -254,7 +268,7 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	if err != nil {
 		return nil, storeErr(err)
 	}
-	view := &amazonSyncView{Account: acct.Name, Payments: added}
+	view := &amazonSyncView{Account: acct.Name, Since: epoch, Payments: added}
 	progress(1, fmt.Sprintf("0 of %d", len(ids)))
 	type fetched struct {
 		id   string
@@ -340,6 +354,23 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	return view, nil
 }
 
+// amazonEpoch is the first day to read for an account: the date it was
+// given, else a week before the oldest bank transaction stored (Amazon dates
+// a charge up to a few days before the bank does), else two years back.
+func (a *App) amazonEpoch(ctx context.Context, s *store.Store, acct state.AmazonAccount) (string, error) {
+	if acct.Since != "" {
+		return acct.Since, nil
+	}
+	first, err := s.EarliestTransaction(ctx)
+	if err != nil {
+		return "", storeErr(err)
+	}
+	if day, err := time.Parse("2006-01-02", first); err == nil {
+		return day.AddDate(0, 0, -7).Format("2006-01-02"), nil
+	}
+	return a.Now().AddDate(-2, 0, 0).Format("2006-01-02"), nil
+}
+
 func (a *App) amazonErr(ctx context.Context, s *store.Store, acct state.AmazonAccount, err error) error {
 	switch {
 	case errors.Is(err, amazon.ErrSignIn):
@@ -389,12 +420,13 @@ func (a *App) syncAmazonAll(ctx context.Context, s *store.Store, st *state.State
 func (a *App) cmdAmazonSync(ctx context.Context, args []string) (*result, error) {
 	fs := flag.NewFlagSet("amazon sync", flag.ContinueOnError)
 	full := fs.Bool("full", false, "re-read every payment, not just new ones")
+	since := fs.String("since", "", "first day to read from now on, YYYY-MM-DD")
 	pos, err := parseArgs(fs, args)
 	if err != nil {
 		return nil, err
 	}
 	if len(pos) > 1 {
-		return nil, usageErr("usage: fin amazon sync [name] [--full]")
+		return nil, usageErr("usage: fin amazon sync [name] [--full] [--since DATE]")
 	}
 	st, err := a.loadState()
 	if err != nil {
@@ -410,6 +442,19 @@ func (a *App) cmdAmazonSync(ctx context.Context, args []string) (*result, error)
 	}
 	if len(accts) == 0 {
 		return nil, newErr("NO_AMAZON_ACCOUNT", "no Amazon account is connected; run fin amazon login <name>")
+	}
+	if *since != "" {
+		day, err := parseDate("since", *since)
+		if err != nil {
+			return nil, err
+		}
+		for i := range accts {
+			accts[i].Since = day
+			st.PutAmazon(accts[i])
+		}
+		if err := a.saveState(st); err != nil {
+			return nil, err
+		}
 	}
 	s, err := a.openStore(ctx)
 	if err != nil {
@@ -487,6 +532,7 @@ func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error
 	fs := flag.NewFlagSet("amazon login", flag.ContinueOnError)
 	profileFlag := fs.String("profile", "", "the Chrome profile, by directory or name")
 	noSync := fs.Bool("no-sync", false, "connect without reading payments and orders yet")
+	since := fs.String("since", "", "first day to read, YYYY-MM-DD (default: your oldest bank transaction)")
 	pos, err := parseArgs(fs, args)
 	if err != nil {
 		return nil, err
@@ -515,6 +561,11 @@ func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error
 		acct = state.AmazonAccount{Name: name, Env: string(a.Env), ConnectedAt: a.Now().UTC()}
 	}
 	acct.Profile, acct.ProfileName = profile.Dir, profile.Name
+	if *since != "" {
+		if acct.Since, err = parseDate("since", *since); err != nil {
+			return nil, err
+		}
+	}
 
 	var view *amazonSyncView
 	work := func(ctx context.Context, r ui.Reporter) (ui.FlowResult, error) {
