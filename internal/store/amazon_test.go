@@ -139,12 +139,14 @@ func TestAmazonMatchesSplitsAndSpending(t *testing.T) {
 	if len(splits) != 3 || splits[0][1] != 34.66 || splits[1][1] != 13.43 || splits[2][1] != 3.9 {
 		t.Errorf("charge splits = %v", splits)
 	}
-	if sum := queryRows(t, s, `select sum(amount)::double from amazon_splits where transaction_id = 'refund'`); sum[0][0] != -15.5 {
-		t.Errorf("refund splits add up to %v", sum[0][0])
+	// The 15.50 refund goes to the cable, the item Amazon marks refunded.
+	refund := queryRows(t, s, `select line, amount from amazon_splits where transaction_id = 'refund'`)
+	if len(refund) != 1 || refund[0][0] != int32(2) || refund[0][1] != -15.5 {
+		t.Errorf("refund splits = %v", refund)
 	}
 
 	total := queryRows(t, s, `select sum(amount)::double, count(*) from spending`)
-	if total[0][0] != 51.99-15.50+9+9+4.25 || total[0][1] != int64(3+3+3) {
+	if total[0][0] != 51.99-15.50+9+9+4.25 || total[0][1] != int64(3+1+3) {
 		t.Errorf("spending = %v; it must keep every dollar and list items in place of matched charges", total)
 	}
 
