@@ -142,9 +142,6 @@ func (m flowModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m flowModel) View() tea.View {
 	width := min(max(m.w-4, 40), 72)
 	var b strings.Builder
-	if m.h >= 34 && m.w >= 50 {
-		b.WriteString(renderFinColor(20) + "\n\n")
-	}
 	b.WriteString(Brand.Render(m.opts.Title) + "\n")
 	if m.opts.Subtitle != "" {
 		b.WriteString(lipgloss.NewStyle().Width(width).Render(Muted.Render(m.opts.Subtitle)) + "\n")
@@ -187,9 +184,21 @@ func (m flowModel) View() tea.View {
 	}
 	b.WriteString("\n" + Muted.Render(m.keys()))
 
-	content := lipgloss.NewStyle().Width(width).Render(b.String())
-	if m.w > 0 && m.h > 0 {
-		content = lipgloss.Place(m.w, m.h, lipgloss.Center, lipgloss.Center, content)
+	return fullScreen(m.w, m.h, width, b.String())
+}
+
+// fullScreen centers body on the screen, with the mascot above it when there
+// is room to draw it legibly. Shrunk much below 32 columns the artwork turns
+// to noise, so smaller screens get the text alone.
+func fullScreen(w, h, width int, body string) tea.View {
+	body = lipgloss.NewStyle().Width(width).Render(body)
+	content := body
+	if rows := h - lipgloss.Height(body) - 4; w > 0 && h > 0 {
+		if size := min(rows*2, 48, w-4) &^ 1; size >= 32 {
+			mascot := lipgloss.PlaceHorizontal(width, lipgloss.Center, renderFinColor(size))
+			content = mascot + "\n\n" + body
+		}
+		content = lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, content)
 	}
 	v := tea.NewView(content)
 	v.AltScreen = true

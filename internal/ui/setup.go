@@ -226,9 +226,6 @@ func (m setupModel) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 func (m setupModel) View() tea.View {
 	width := min(max(m.w-4, 44), 72)
 	var b strings.Builder
-	if m.h >= 40 && m.w >= 50 {
-		b.WriteString(renderFinColor(24) + "\n\n")
-	}
 	envTag := lipgloss.NewStyle().Foreground(lipgloss.Color("#00184B")).Background(accent).Padding(0, 1).Render(m.env)
 	b.WriteString(Brand.Render("Set up fin") + "  " + envTag + "\n")
 	b.WriteString(wrap(Muted.Render("Save your Plaid keys in the macOS Keychain. fin checks them with Plaid first, and they never leave this Mac."), width) + "\n\n")
@@ -282,13 +279,7 @@ func (m setupModel) View() tea.View {
 	}
 	b.WriteString("\n" + Muted.Render(m.keys()))
 
-	content := lipgloss.NewStyle().Width(width).Render(b.String())
-	if m.w > 0 && m.h > 0 {
-		content = lipgloss.Place(m.w, m.h, lipgloss.Center, lipgloss.Center, content)
-	}
-	v := tea.NewView(content)
-	v.AltScreen = true
-	return v
+	return fullScreen(m.w, m.h, width, b.String())
 }
 
 func (m setupModel) keys() string {
