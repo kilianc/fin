@@ -108,7 +108,7 @@ func TestReceiptDateIsTheLocalDay(t *testing.T) {
 }
 
 func TestReceiptTenders(t *testing.T) {
-	for _, kind := range []string{"Costco Shop Card", "Executive Reward", "Cash"} {
+	for _, kind := range []string{"Costco Shop Card", "Executive Reward", "Cash", "INS BENEFIT"} {
 		r := costcotest.Receipt("synthetic-1", "2026-09-02")
 		r["tenderArray"].([]any)[0].(map[string]any)["tenderTypeName"] = kind
 		parsed, err := costco.ParseReceipt(costcotest.Raw(t, r))

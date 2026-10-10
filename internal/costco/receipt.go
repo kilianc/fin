@@ -18,7 +18,7 @@ import (
 
 // ParserVersion changes whenever receipt parsing changes, so kept JSON can
 // be read again without asking Costco.
-const ParserVersion = 1
+const ParserVersion = 2
 
 // Receipt is a warehouse receipt as Costco shows it. Discounts remain lines
 // of their own. Error is set, and Items and Tenders are empty, when fin
@@ -102,10 +102,12 @@ var (
 	discountOf = regexp.MustCompile(`^/\s*([0-9]+)$`)
 )
 
-// noBank are the tender types paid without a bank or card account.
+// noBank are the tender types paid without a bank or card account of the
+// shopper's: cash, Costco cards, rewards and health-plan benefit cards.
 var noBank = map[string]bool{"cash": true, "shop card": true, "costco shop card": true, "cash card": true, "costco cash card": true,
 	"gift card": true, "costco gift card": true, "executive reward": true, "executive rewards": true,
-	"reward certificate": true, "rewards certificate": true, "citi reward certificate": true}
+	"reward certificate": true, "rewards certificate": true, "citi reward certificate": true,
+	"ins benefit": true, "insurance benefit": true}
 
 // ParseReceipt reads one warehouse receipt. Missing totals or lines that
 // do not reconcile are an error, never an invented adjustment.
