@@ -196,3 +196,12 @@ func TestClientStopsAtTheFirstRateLimit(t *testing.T) {
 		t.Errorf("made %d requests after a 429, want 1", n)
 	}
 }
+
+func TestPageTitleNamesAnUnexpectedPage(t *testing.T) {
+	if got := pageTitle([]byte("<html><head><title>\n  Amazon.com:   Your Account &amp; Lists</title></head></html>")); got != "Amazon.com: Your Account & Lists" {
+		t.Errorf("title = %q", got)
+	}
+	if got := pageTitle([]byte("<html>no title</html>")); got != "" {
+		t.Errorf("title = %q", got)
+	}
+}

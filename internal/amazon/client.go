@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"net/url"
@@ -201,6 +202,22 @@ type pageProps struct {
 
 var nextData = regexp.MustCompile(`(?is)<script\b[^>]*\bid\s*=\s*["']__NEXT_DATA__["'][^>]*>(.*?)</script\s*>`)
 
+var titleTag = regexp.MustCompile(`(?is)<title\b[^>]*>(.*?)</title\s*>`)
+
+// pageTitle is a page's <title>, which names an unexpected page, such as a
+// verification step, without repeating anything personal on it.
+func pageTitle(page []byte) string {
+	m := titleTag.FindSubmatch(page)
+	if m == nil {
+		return ""
+	}
+	t := strings.Join(strings.Fields(html.UnescapeString(string(m[1]))), " ")
+	if len(t) > 120 {
+		t = t[:120]
+	}
+	return t
+}
+
 // Check loads the payments page, which also proves the session is signed in.
 func (c *Client) Check(ctx context.Context) error { return c.bootstrap(ctx) }
 
@@ -214,6 +231,9 @@ func (c *Client) bootstrap(ctx context.Context) error {
 	if m == nil {
 		if signInPage(page) {
 			return ErrSignIn
+		}
+		if t := pageTitle(page); t != "" {
+			return fmt.Errorf("amazon: the payments page changed; fin cannot read it (Amazon showed %q)", t)
 		}
 		return errors.New("amazon: the payments page changed; fin cannot read it")
 	}
