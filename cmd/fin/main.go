@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -24,7 +25,18 @@ import (
 )
 
 // version is set by scripts/build.sh with -ldflags "-X main.version=X.Y.Z".
+// Otherwise it comes from the module version go install records, such as
+// v0.2.0 for go install github.com/kilianc/fin/cmd/fin@latest.
 var version = "dev"
+
+func init() {
+	if version != "dev" {
+		return
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok && strings.HasPrefix(bi.Main.Version, "v") {
+		version = strings.TrimPrefix(bi.Main.Version, "v")
+	}
+}
 
 func main() {
 	os.Exit(run())

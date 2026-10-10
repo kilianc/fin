@@ -70,6 +70,7 @@ Steps:
       <button type="button" role="tab" id="tab-accounts" aria-controls="pane-accounts" aria-selected="false" data-tab="accounts">fin accounts</button>
       <button type="button" role="tab" id="tab-transactions" aria-controls="pane-transactions" aria-selected="false" data-tab="transactions">fin transactions</button>
       <button type="button" role="tab" id="tab-holdings" aria-controls="pane-holdings" aria-selected="false" data-tab="holdings">fin holdings</button>
+      <button type="button" role="tab" id="tab-sql" aria-controls="pane-sql" aria-selected="false" data-tab="sql">duckdb</button>
     </div>
     <div class="shell-mode" role="group" aria-label="Output format">
       <button type="button" data-mode="table" aria-pressed="true">table</button>
@@ -248,6 +249,66 @@ Steps:
         },
         <span class="t-mute">…</span>
       ]
+    },
+    <span class="t-mute">…</span>
+  ]
+}</pre>
+  </div>
+  <div class="shell-pane" role="tabpanel" id="pane-sql" aria-labelledby="tab-sql" hidden>
+<pre data-show="table"><span class="t-mute">$</span> <span class="t-hi">fin sql "</span><span class="t-key">select</span> category,
+                  sum(amount) <span class="t-key">filter</span> (month(date) = 8) <span class="t-key">as</span> aug,
+                  sum(amount) <span class="t-key">filter</span> (month(date) = 9) <span class="t-key">as</span> sep,
+                  round(100 * (sep - aug) / aug) <span class="t-key">as</span> pct
+           <span class="t-key">from</span> transactions
+           <span class="t-key">where</span> amount &gt; 0
+             <span class="t-key">and</span> date <span class="t-key">between</span> <span class="t-str">&#x27;2026-08-01&#x27;</span> <span class="t-key">and</span> <span class="t-str">&#x27;2026-09-30&#x27;</span>
+           <span class="t-key">group by</span> category
+           <span class="t-key">order by</span> sep <span class="t-key">desc</span><span class="t-hi">"</span>
+<span class="t-head">6 rows</span>
+<span class="t-dim">╭─────────────────────┬────────┬────────┬─────╮</span>
+<span class="t-dim">│</span> <span class="t-head">category</span>            <span class="t-dim">│</span>    <span class="t-head">aug</span> <span class="t-dim">│</span>    <span class="t-head">sep</span> <span class="t-dim">│</span> <span class="t-head">pct</span> <span class="t-dim">│</span>
+<span class="t-dim">├─────────────────────┼────────┼────────┼─────┤</span>
+<span class="t-dim">│</span> RENT_AND_UTILITIES  <span class="t-dim">│</span>   2850 <span class="t-dim">│</span>   2850 <span class="t-dim">│</span>   0 <span class="t-dim">│</span>
+<span class="t-dim">│</span> FOOD_AND_DRINK      <span class="t-dim">│</span> 1153.8 <span class="t-dim">│</span>   1318 <span class="t-dim">│</span>  14 <span class="t-dim">│</span>
+<span class="t-dim">│</span> TRAVEL              <span class="t-dim">│</span>  814.6 <span class="t-dim">│</span> 1203.6 <span class="t-dim">│</span>  48 <span class="t-dim">│</span>
+<span class="t-dim">│</span> GENERAL_MERCHANDISE <span class="t-dim">│</span> 1700.4 <span class="t-dim">│</span>  484.4 <span class="t-dim">│</span> -72 <span class="t-dim">│</span>
+<span class="t-dim">│</span> TRANSPORTATION      <span class="t-dim">│</span>  412.3 <span class="t-dim">│</span>  389.6 <span class="t-dim">│</span>  -6 <span class="t-dim">│</span>
+<span class="t-dim">│</span> ENTERTAINMENT       <span class="t-dim">│</span>  189.9 <span class="t-dim">│</span>  236.4 <span class="t-dim">│</span>  24 <span class="t-dim">│</span>
+<span class="t-dim">╰─────────────────────┴────────┴────────┴─────╯</span>
+<span class="t-mute">From ~/.local/share/fin/production.duckdb, synced Oct 9, 09:12. Run fin sync to refresh.</span></pre>
+<pre data-show="json" hidden><span class="t-mute">$</span> <span class="t-hi">fin sql --json "</span><span class="t-key">select</span> category,
+                         sum(amount) <span class="t-key">filter</span> (month(date) = 8) <span class="t-key">as</span> aug,
+                         sum(amount) <span class="t-key">filter</span> (month(date) = 9) <span class="t-key">as</span> sep,
+                         round(100 * (sep - aug) / aug) <span class="t-key">as</span> pct
+                  <span class="t-key">from</span> transactions
+                  <span class="t-key">where</span> amount &gt; 0
+                    <span class="t-key">and</span> date <span class="t-key">between</span> <span class="t-str">&#x27;2026-08-01&#x27;</span> <span class="t-key">and</span> <span class="t-str">&#x27;2026-09-30&#x27;</span>
+                  <span class="t-key">group by</span> category
+                  <span class="t-key">order by</span> sep <span class="t-key">desc</span><span class="t-hi">"</span>
+{
+  <span class="t-key">&quot;columns&quot;</span>: [<span class="t-str">&quot;category&quot;</span>, <span class="t-str">&quot;aug&quot;</span>, <span class="t-str">&quot;sep&quot;</span>, <span class="t-str">&quot;pct&quot;</span>],
+  <span class="t-key">&quot;env&quot;</span>: <span class="t-str">&quot;production&quot;</span>,
+  <span class="t-key">&quot;rows&quot;</span>: [
+    {
+      <span class="t-key">&quot;aug&quot;</span>: <span class="t-ok">2850</span>,
+      <span class="t-key">&quot;category&quot;</span>: <span class="t-str">&quot;RENT_AND_UTILITIES&quot;</span>,
+      <span class="t-key">&quot;pct&quot;</span>: <span class="t-ok">0</span>,
+      <span class="t-key">&quot;sep&quot;</span>: <span class="t-ok">2850</span>
+    },
+    {
+      <span class="t-key">&quot;aug&quot;</span>: <span class="t-ok">1153.8</span>,
+      <span class="t-key">&quot;category&quot;</span>: <span class="t-str">&quot;FOOD_AND_DRINK&quot;</span>,
+      <span class="t-key">&quot;pct&quot;</span>: <span class="t-ok">14</span>,
+      <span class="t-key">&quot;sep&quot;</span>: <span class="t-ok">1318</span>
+    },
+    <span class="t-mute">…</span>
+  ],
+  <span class="t-key">&quot;synced&quot;</span>: [
+    {
+      <span class="t-key">&quot;item&quot;</span>: <span class="t-str">&quot;chase&quot;</span>,
+      <span class="t-key">&quot;item_id&quot;</span>: <span class="t-str">&quot;eVBnVMp7zdTJLkRNr33Rs6zr7KNJqBFL9DrE6&quot;</span>,
+      <span class="t-key">&quot;transactions_update_status&quot;</span>: <span class="t-str">&quot;HISTORICAL_UPDATE_COMPLETE&quot;</span>,
+      <span class="t-key">&quot;last_sync&quot;</span>: <span class="t-str">&quot;2026-10-09T16:12:00Z&quot;</span>
     },
     <span class="t-mute">…</span>
   ]
