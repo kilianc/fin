@@ -51,7 +51,7 @@ create table if not exists product_categories (
 // quantity, cost (with its share of tax, shipping and discounts) and
 // transaction_id (a bank transaction that paid for the order, if one
 // matched). A new retailer adds its select here.
-var retailerItemSources = []string{amazonItemSource, costcoItemSource}
+var retailerItemSources = []string{amazonItemSource, costcoItemSource, costcoOrderItemSource}
 
 // retailerItemsView is every retailer's items with their category: the
 // item's own, else its product's.
@@ -283,8 +283,10 @@ func nullable(s string) *string {
 // possible bank transactions. A card's last four digits are not used: the
 // card number a store prints is often not the account number Plaid masks
 // (debit cards, many credit cards), so it cannot rule a match out.
-// source, key and merchant are trusted SQL from each retailer's schema.
-func retailerMatches(source, key string, days int, merchant string) string {
+// The source gives each payment a days column: how far apart its date and
+// the bank's may be. source, key and merchant are trusted SQL from each
+// retailer's schema.
+func retailerMatches(source, key, merchant string) string {
 	return fmt.Sprintf(`with p as (%s),
 bank as (
 	select t.transaction_id, t.amount, coalesce(t.authorized_date, t.date) as day
@@ -293,7 +295,7 @@ bank as (
 ),
 cand as (
 	select p.%s, b.transaction_id, count(*) over (partition by b.transaction_id) as per_transaction
-	from p join bank b on b.amount = p.amount and b.day between p.date - %d and p.date + %d
+	from p join bank b on b.amount = p.amount and b.day between p.date - p.days and p.date + p.days
 	where not p.no_bank
 ),
 agg as (
@@ -301,12 +303,12 @@ agg as (
 		max(per_transaction) as per_transaction
 	from cand group by %s
 )
-select p.* exclude (no_bank),
+select p.* exclude (no_bank, days),
 	case when p.no_bank then 'no_bank_charge'
 		when agg.candidates is null then 'unmatched'
 		when agg.candidates = 1 and agg.per_transaction = 1 then 'exact'
 		else 'ambiguous' end as match,
 	case when agg.candidates = 1 and agg.per_transaction = 1 then agg.transaction_id end as transaction_id,
 	coalesce(agg.candidates, 0) as candidates
-from p left join agg using (%s);`, source, merchant, key, days, days, key, key, key)
+from p left join agg using (%s);`, source, merchant, key, key, key, key)
 }

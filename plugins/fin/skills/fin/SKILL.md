@@ -1,6 +1,6 @@
 ---
 name: fin
-description: Read the user's own bank, credit card and brokerage data, Amazon orders and Costco warehouse receipts with fin, a local read-only command-line tool. Use it when the user asks about their real money (spending, subscriptions, accounts, net worth, portfolio, cash flow), retailer purchases or wants help setting fin up.
+description: Read the user's own bank, credit card and brokerage data, Amazon orders and Costco receipts and orders with fin, a local read-only command-line tool. Use it when the user asks about their real money (spending, subscriptions, accounts, net worth, portfolio, cash flow), retailer purchases or wants help setting fin up.
 license: MIT
 ---
 
@@ -11,7 +11,7 @@ balances, transactions, holdings and investment activity from their banks,
 cards and brokerages through Plaid, keeps its keys in the macOS Keychain, and
 prints JSON when an agent runs it. It cannot move money and never asks Plaid
 for account numbers or personal details. Connected retailers add Amazon order
-items and Costco warehouse receipt items, using the user's own sign-in.
+items and Costco receipt and online order items, using the user's own sign-in.
 
 ## First, check it's ready
 
@@ -39,8 +39,8 @@ items and Costco warehouse receipt items, using the user's own sign-in.
 | `fin paths [database]` | Where the state file and the DuckDB file are |
 | `fin amazon` | Amazon accounts connected for itemizing orders (experimental), with items left to categorize |
 | `fin amazon categorize [--set]` | Items without a category; `--set` saves them (see below) |
-| `fin costco` | Costco accounts connected for warehouse receipts and items (experimental) |
-| `fin costco categorize [--set]` | Uncategorized receipt lines; the same category workflow as Amazon |
+| `fin costco` | Costco accounts connected for receipts, online orders and items (experimental) |
+| `fin costco categorize [--set]` | Uncategorized Costco items; the same category workflow as Amazon |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Buys, sells, dividends, fees |
 | `fin epoch [DATE]` | The first day of the finances the user wants reported |
@@ -103,32 +103,38 @@ orders, so an Amazon charge can be broken down by item:
   "Chrome Safe Storage". Never run it, or `fin amazon logout`, without their
   go-ahead in chat. It reads back to a week before the epoch (see below).
 
-## Costco warehouse receipts (experimental)
+## Costco receipts and online orders (experimental)
 
-If `fin costco` lists accounts, `fin sync` also reads Costco warehouse
-receipts. `fin costco sync [name]` reads only Costco, back to a week before
-the epoch or oldest bank transaction (else two years). Each saved window
-advances the initial read; an interrupted sync resumes there. Later syncs
-reread the last 60 days for returns. Gas, car wash and online orders are not
-included.
+If `fin costco` lists accounts, `fin sync` also reads Costco warehouse, gas
+station and car wash receipts and costco.com orders. `fin costco sync
+[name]` reads only Costco, back to a week before the epoch or oldest bank
+transaction (else two years). Each saved window advances the initial read;
+an interrupted sync resumes there. Later syncs reread the last 60 days for
+returns. fin sees only the signed-in membership: purchases family make with
+a Costco Shop Card the user gave them are not there (buying the card is an
+online order).
 
 - `retailer_items` includes Costco with `retailer = 'costco'`, `product` =
-  Costco's item number, `order_id` = receipt barcode and `line` = position.
-  An item handle is `<account>/<barcode>#<line>`. `cost` is the line's amount
-  plus its share of the tax Costco charged on taxed lines (`tax_flag` Y) and
-  their discounts; untaxed lines get none, and receipt items sum to the
-  total. Keep negative discount lines (`discount_for` names the line) as
-  their own items; their `product` is the discounted item's number, so a
-  product category covers them.
-- `costco_receipts` holds totals and raw JSON; a receipt with `error` set
-  could not be read and has no items (report it, don't reconstruct it).
-  `costco_items` holds receipt lines, `costco_tenders` each payment.
-  `costco_matches` matches each payment, not the receipt: `exact`,
-  `ambiguous`, `unmatched` or `no_bank_charge` (cash, shop card, rewards),
-  on amount, bank authorized date (else date) within ±3 days, Costco
-  merchant/name (a receipt's `card_last4` is the card number, which often
-  differs from the account's `mask`, so it is not used). Never turn an
-  ambiguous or unmatched payment into a guessed bank match.
+  Costco's item number, `order_id` = receipt barcode or order number, `line`
+  = position. Item handles are `<account>/<barcode or order>#<line>`.
+  Receipt or order items always sum to its total. On a receipt, `cost` is
+  the amount plus its share of the tax Costco charged on taxed lines
+  (`tax_flag` Y) and their discounts; untaxed lines get none. Keep negative
+  discount lines (`discount_for` names the line) as their own items; their
+  `product` is the discounted item's number, so a product category covers
+  them. On an online order Costco doesn't say which item a coupon, fee or
+  the tax belongs to, so they are shared by amount.
+- `costco_receipts` and `costco_orders` hold totals and raw JSON; a row with
+  `error` set could not be read and has no items (report it, don't
+  reconstruct it). `costco_items`/`costco_order_items` hold lines,
+  `costco_tenders`/`costco_order_payments` each payment. `costco_matches`
+  matches each payment (`source` warehouse or online): `exact`,
+  `ambiguous`, `unmatched` or `no_bank_charge` (cash, shop card, rewards,
+  coupons), on amount, Costco merchant/name, and the bank's authorized date
+  (else date) within 3 days of a receipt or 10 of an order (costco.com
+  charges when it ships). A receipt's `card_last4` is the card number,
+  which often differs from the account's `mask`, so it is not used. Never
+  turn an ambiguous or unmatched payment into a guessed bank match.
 - Use `fin costco categorize --json`, then `fin costco categorize --set
   --json` with the same JSON list and Plaid categories described above.
   `product: true` sets a default by item number. Categories survive resyncs

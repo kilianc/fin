@@ -16,9 +16,9 @@ import (
 	"github.com/kilianc/fin/internal/money"
 )
 
-// ParserVersion changes whenever receipt parsing changes, so kept JSON can
+// ParserVersion changes whenever receipt or order parsing changes, so kept JSON can
 // be read again without asking Costco.
-const ParserVersion = 2
+const ParserVersion = 3
 
 // Receipt is a warehouse receipt as Costco shows it. Discounts remain lines
 // of their own. Error is set, and Items and Tenders are empty, when fin
@@ -102,12 +102,22 @@ var (
 	discountOf = regexp.MustCompile(`^/\s*([0-9]+)$`)
 )
 
-// noBank are the tender types paid without a bank or card account of the
-// shopper's: cash, Costco cards, rewards and health-plan benefit cards.
-var noBank = map[string]bool{"cash": true, "shop card": true, "costco shop card": true, "cash card": true, "costco cash card": true,
-	"gift card": true, "costco gift card": true, "executive reward": true, "executive rewards": true,
-	"reward certificate": true, "rewards certificate": true, "citi reward certificate": true,
-	"ins benefit": true, "insurance benefit": true}
+// noBank are the payment types that leave no bank charge of the shopper's:
+// cash, Costco shop and cash cards, rewards, coupons and health-plan
+// benefit cards. Keys are lower case without spaces.
+var noBank = map[string]bool{"cash": true, "shopcard": true, "costcoshopcard": true, "cashcard": true, "costcocashcard": true,
+	"giftcard": true, "costcogiftcard": true, "executivereward": true, "executiverewards": true,
+	"rewardcertificate": true, "rewardscertificate": true, "citirewardcertificate": true,
+	"insbenefit": true, "insurancebenefit": true, "coupon": true}
+
+// noBankCharge reports whether a payment of this type (or, when the type
+// is empty, this description) leaves no bank charge.
+func noBankCharge(kind, description string) bool {
+	if strings.TrimSpace(kind) == "" {
+		kind = description
+	}
+	return noBank[strings.ToLower(strings.Join(strings.Fields(kind), ""))]
+}
 
 // ParseReceipt reads one warehouse receipt. Missing totals or lines that
 // do not reconcile are an error, never an invented adjustment.
@@ -197,11 +207,7 @@ func ParseReceipt(raw []byte) (*Receipt, error) {
 		if m := lastFour.FindStringSubmatch(strings.TrimSpace(t.Account)); m != nil {
 			tender.Last4 = m[1]
 		}
-		kind := strings.TrimSpace(strings.ToLower(t.Type))
-		if kind == "" {
-			kind = strings.TrimSpace(strings.ToLower(t.Description))
-		}
-		tender.NoBankCharge = noBank[kind]
+		tender.NoBankCharge = noBankCharge(t.Type, t.Description)
 		o.Tenders = append(o.Tenders, tender)
 	}
 	return o, nil
@@ -284,6 +290,16 @@ func receiptDate(day, dateTime string) (string, error) {
 // Window is an inclusive date range. Windows walks backwards at most 90
 // days at a time, without gaps or overlapping endpoints.
 type Window struct{ Start, End string }
+
+// format writes the window's days in layout, as each Costco query wants.
+func (w Window) format(layout string) (string, string, error) {
+	start, err := time.Parse("2006-01-02", w.Start)
+	if err != nil {
+		return "", "", err
+	}
+	end, err := time.Parse("2006-01-02", w.End)
+	return start.Format(layout), end.Format(layout), err
+}
 
 func Windows(since, until string) ([]Window, error) {
 	start, err := time.Parse("2006-01-02", since)

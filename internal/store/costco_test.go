@@ -64,13 +64,13 @@ func TestCostcoMatchesOnlyBasicFacts(t *testing.T) {
 		r = append(r, receipt)
 	}
 	r = append(r, costco.Unreadable([]byte(`{"transactionBarcode": "odd", "transactionDate": "2026-09-02", "total": 170}`), errors.New("costco: receipt items and tax do not add up to its total")))
-	if err := s.ApplyCostcoReceipts(ctx, "pat", "Default", r, syncedAt); err != nil {
+	if err := s.ApplyCostco(ctx, "pat", "Default", r, nil, syncedAt); err != nil {
 		t.Fatal(err)
 	}
 	want := map[string]string{"exact#1": "exact", "refund#1": "exact", "duplicate#1": "ambiguous", "shared1#1": "ambiguous", "shared2#1": "ambiguous",
 		"wrong-card#1": "exact", "too-late#1": "unmatched", "wrong-merchant#1": "unmatched", "authorized#1": "exact", "split#1": "exact",
 		"split#2": "no_bank_charge", "shop-card#1": "no_bank_charge", "no-mask#1": "exact", "missing#1": "unmatched", "cashback#1": "exact", "no-tenders#0": "exact"}
-	rows := queryRows(t, s, `select payment_key, match, transaction_id from costco_matches`)
+	rows := queryRows(t, s, `select payment_key, match, transaction_id from costco_matches where source = 'warehouse'`)
 	if len(rows) != len(want) {
 		t.Errorf("matches = %v", rows)
 	}
@@ -100,19 +100,19 @@ func TestCostcoCategoriesReparseAndForget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.ApplyCostcoReceipts(ctx, "pat", "Default", []costco.Receipt{*r}, syncedAt); err != nil {
+	if err := s.ApplyCostco(ctx, "pat", "Default", []costco.Receipt{*r}, nil, syncedAt); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.SetCategories(ctx, "costco", []CategoryChange{{Item: "pat/synthetic-1#1", Category: "PERSONAL_CARE", Product: true}, {Item: "pat/synthetic-1#2", Category: "FOOD_AND_DRINK"}}, syncedAt); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.ApplyCostcoReceipts(ctx, "pat", "Default", []costco.Receipt{*r}, syncedAt); err != nil {
+	if err := s.ApplyCostco(ctx, "pat", "Default", []costco.Receipt{*r}, nil, syncedAt); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.db.ExecContext(ctx, `update costco_receipts set parser = 0; update costco_items set cost = 0`); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := s.ReparseCostcoReceipts(ctx, "pat"); err != nil || n != 1 {
+	if n, err := s.ReparseCostco(ctx, "pat"); err != nil || n != 1 {
 		t.Fatalf("reparse=%d %v", n, err)
 	}
 	items, err := s.RetailerItems(ctx, "costco", ItemFilter{})
@@ -134,16 +134,16 @@ func TestCostcoCategoriesReparseAndForget(t *testing.T) {
 	if _, err := s.db.ExecContext(ctx, `update costco_receipts set parser = 0, raw = json_object('transactionBarcode', 'synthetic-1', 'total', 1)`); err != nil {
 		t.Fatal(err)
 	}
-	if n, err := s.ReparseCostcoReceipts(ctx, "pat"); err != nil || n != 1 {
+	if n, err := s.ReparseCostco(ctx, "pat"); err != nil || n != 1 {
 		t.Fatalf("reparse unreadable=%d %v", n, err)
 	}
 	if rows := queryRows(t, s, `select error is not null, (select count(*) from costco_items) from costco_receipts`); rows[0][0] != true || rows[0][1] != int64(0) {
 		t.Errorf("unreadable reparse = %v", rows)
 	}
-	if err := s.ApplyCostcoReceipts(ctx, "pat", "Default", []costco.Receipt{*r}, syncedAt); err != nil {
+	if err := s.ApplyCostco(ctx, "pat", "Default", []costco.Receipt{*r}, nil, syncedAt); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.ApplyCostcoReceipts(ctx, "sam", "Profile 1", []costco.Receipt{*r}, syncedAt); err != nil {
+	if err := s.ApplyCostco(ctx, "sam", "Profile 1", []costco.Receipt{*r}, nil, syncedAt); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.DeleteCostcoAccount(ctx, "pat"); err != nil {
@@ -154,5 +154,41 @@ func TestCostcoCategoriesReparseAndForget(t *testing.T) {
 	}
 	if rows := queryRows(t, s, `select count(*) from retailer_items where retailer='costco' and account='sam'`); rows[0][0] != int64(3) {
 		t.Error("forget removed another account")
+	}
+}
+
+func TestCostcoOnlineOrdersMatchTheCardWhenItShips(t *testing.T) {
+	ctx := context.Background()
+	s, _ := openTemp(t)
+	// Charged when it shipped, two days after the order.
+	if err := s.Apply(ctx, ItemSync{ItemID: "bank", Item: "bank", Cursor: "c", SyncedAt: syncedAt,
+		Accounts: []plaid.Account{{AccountID: "visa", Name: "Visa", Type: "credit", Mask: ptr("2054")}},
+		Upserts:  []plaid.Transaction{{TransactionID: "shipped", AccountID: "visa", Date: "2026-10-10", Amount: 45.81, Name: "Costco"}}}); err != nil {
+		t.Fatal(err)
+	}
+	o, err := costco.ParseOrder(costcotest.Raw(t, costcotest.Order("1000000001", "2026-10-08")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ApplyCostco(ctx, "pat", "Default", nil, []costco.Order{*o}, syncedAt); err != nil {
+		t.Fatal(err)
+	}
+	rows := queryRows(t, s, `select payment, match, transaction_id from costco_matches where source = 'online' order by payment`)
+	if len(rows) != 2 || rows[0][1] != "exact" || rows[0][2] != "shipped" || rows[1][1] != "no_bank_charge" {
+		t.Fatalf("matches = %v", rows)
+	}
+	items := queryRows(t, s, `select item, product, order_id, cost, transaction_id from retailer_items where retailer = 'costco' order by line`)
+	if len(items) != 2 || items[0][0] != "pat/1000000001#1" || items[0][1] != "2005928" || items[0][4] != "shipped" {
+		t.Fatalf("items = %v", items)
+	}
+	sums, err := s.CostcoSummaries(ctx)
+	if err != nil || sums["pat"].Orders != 1 || sums["pat"].Items != 2 || sums["pat"].Matched != 1 {
+		t.Fatalf("summary = %+v %v", sums, err)
+	}
+	if err := s.DeleteCostcoAccount(ctx, "pat"); err != nil {
+		t.Fatal(err)
+	}
+	if rows := queryRows(t, s, `select (select count(*) from costco_orders) + (select count(*) from costco_order_items) + (select count(*) from costco_order_payments)`); rows[0][0] != int64(0) {
+		t.Errorf("forget kept orders: %v", rows)
 	}
 }

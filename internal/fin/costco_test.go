@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -53,7 +55,7 @@ func TestCostcoLoginSyncCategorizeSheetAndLogout(t *testing.T) {
 	if code != exitOK || len(body["costco"].([]any)) != 1 {
 		t.Fatalf("sync=%v stderr=%s", body, ta.stderr)
 	}
-	code, body = ta.run(t, "sql", "--json", `select barcode, match from costco_matches order by barcode`)
+	code, body = ta.run(t, "sql", "--json", `select order_id, match from costco_matches order by order_id`)
 	if code != exitOK || body["rows"].([]any)[1].(map[string]any)["match"] != "exact" {
 		t.Fatalf("matches=%v", body)
 	}
@@ -326,5 +328,31 @@ func TestCostcoLoginTurnedDownLeavesNoAccount(t *testing.T) {
 	}
 	if code, body := ta.run(t, "costco", "profiles", "--json"); code != exitOK || len(body["profiles"].([]any)) == 0 {
 		t.Errorf("profiles exit=%d body=%v", code, body)
+	}
+}
+
+func TestCostcoSyncReadsOnlineOrdersAPageAtATime(t *testing.T) {
+	ta, srv := costcoApp(t)
+	for i := range 12 {
+		srv.Orders = append(srv.Orders, costcotest.Raw(t, costcotest.Order(fmt.Sprintf("10000000%02d", i), "2026-09-1"+strconv.Itoa(i%10))))
+	}
+	code, body := ta.run(t, "costco", "login", "home", "--json")
+	if code != exitOK {
+		t.Fatalf("login exit=%d stderr=%s", code, ta.stderr)
+	}
+	if v := body["costco"].([]any)[0].(map[string]any); v["orders_read"] != 12.0 || v["items_read"] != 6.0+24.0 {
+		t.Errorf("sync view=%v", v)
+	}
+	// 4 windows: one list page each, a second page in the window with 12
+	// orders, and one details request per order.
+	if srv.OrderRequests != 4+1+12 {
+		t.Errorf("order requests = %d", srv.OrderRequests)
+	}
+	code, body = ta.run(t, "costco", "--json")
+	if acct := body["accounts"].([]any)[0].(map[string]any); code != exitOK || acct["online_orders"] != 12.0 || acct["items"] != 30.0 {
+		t.Errorf("list=%v", body)
+	}
+	if code, body := ta.run(t, "costco", "categorize", "--json"); code != exitOK || len(body["items"].([]any)) != 30 {
+		t.Errorf("categorize=%v", body)
 	}
 }

@@ -175,83 +175,174 @@ func (c *Client) refresh(ctx context.Context) error {
 	return nil
 }
 
-// Receipts reads one inclusive window of warehouse receipts with their
-// items. A partial GraphQL response cannot mark a window complete.
-func (c *Client) Receipts(ctx context.Context, window Window) ([]Receipt, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	format := func(day string) (string, error) {
-		d, err := time.Parse("2006-01-02", day)
-		return d.Format("1/02/2006"), err
-	}
-	start, err := format(window.Start)
+// graphql posts one query to Costco's orders API and returns the data of
+// a 200 response. An expired ID token is renewed once; a response with
+// GraphQL errors is an error, never partial data.
+func (c *Client) graphql(ctx context.Context, kind, query string, variables any, data any) error {
+	body, err := json.Marshal(map[string]any{"query": query, "variables": variables})
 	if err != nil {
-		return nil, err
-	}
-	end, err := format(window.End)
-	if err != nil {
-		return nil, err
-	}
-	body, err := json.Marshal(map[string]any{"query": receiptsQuery, "variables": map[string]string{
-		"startDate": start, "endDate": end, "documentType": "warehouse", "documentSubType": "all"}})
-	if err != nil {
-		return nil, err
+		return err
 	}
 	for attempt := 0; attempt < 2; attempt++ {
 		if c.session.IDToken == "" || time.Until(c.session.IDExpires) < 2*time.Minute {
 			if err := c.refresh(ctx); err != nil {
-				return nil, err
+				return err
 			}
 		}
-		data, status, err := c.request(ctx, c.ordersURL, "receipts", "application/json-patch+json", body, c.session.IDToken)
+		raw, status, err := c.request(ctx, c.ordersURL, kind, "application/json-patch+json", body, c.session.IDToken)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if status == 401 && attempt == 0 {
 			c.session.IDToken = ""
 			continue
 		}
 		if status == 401 || status == 403 || (status >= 300 && status < 400) {
-			return nil, ErrSignIn
+			return ErrSignIn
 		}
 		if status != 200 {
-			return nil, fmt.Errorf("costco: receipts: HTTP %d", status)
+			return fmt.Errorf("costco: %s: HTTP %d", kind, status)
 		}
 		var r struct {
-			Data struct {
-				Receipts *struct {
-					Rows []json.RawMessage `json:"receipts"`
-				} `json:"receiptsWithCounts"`
-			} `json:"data"`
+			Data   json.RawMessage   `json:"data"`
 			Errors []json.RawMessage `json:"errors"`
 		}
-		if json.Unmarshal(data, &r) != nil || r.Data.Receipts == nil || r.Data.Receipts.Rows == nil {
-			return nil, errors.New("costco: receipts response changed format")
+		if json.Unmarshal(raw, &r) != nil || len(r.Data) == 0 || string(r.Data) == "null" {
+			return fmt.Errorf("costco: %s response changed format", kind)
 		}
 		if len(r.Errors) > 0 {
-			return nil, errors.New("costco: receipts query returned errors")
+			return fmt.Errorf("costco: %s query returned errors", kind)
 		}
-		// A receipt fin cannot read is kept as unreadable rather than
-		// stopping the window; a repeated barcode keeps the last copy.
-		out := make([]Receipt, 0, len(r.Data.Receipts.Rows))
-		at := map[string]int{}
-		for _, raw := range r.Data.Receipts.Rows {
-			receipt, err := ParseReceipt(raw)
-			if err != nil {
-				u := Unreadable(raw, err)
-				receipt = &u
-			}
-			if i, ok := at[receipt.Barcode]; ok {
-				out[i] = *receipt
-				continue
-			}
-			at[receipt.Barcode] = len(out)
-			out = append(out, *receipt)
+		if json.Unmarshal(r.Data, data) != nil {
+			return fmt.Errorf("costco: %s response changed format", kind)
 		}
-		return out, nil
+		return nil
 	}
-	return nil, ErrSignIn
+	return ErrSignIn
 }
+
+// Receipts reads one inclusive window of warehouse, gas station and car
+// wash receipts with their items. A partial response cannot mark a window
+// complete.
+func (c *Client) Receipts(ctx context.Context, window Window) ([]Receipt, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	start, end, err := window.format("1/02/2006")
+	if err != nil {
+		return nil, err
+	}
+	var r struct {
+		Receipts *struct {
+			Rows []json.RawMessage `json:"receipts"`
+		} `json:"receiptsWithCounts"`
+	}
+	if err := c.graphql(ctx, "receipts", receiptsQuery, map[string]string{
+		"startDate": start, "endDate": end, "documentType": "all", "documentSubType": "all"}, &r); err != nil {
+		return nil, err
+	}
+	if r.Receipts == nil || r.Receipts.Rows == nil {
+		return nil, errors.New("costco: receipts response changed format")
+	}
+	// A receipt fin cannot read is kept as unreadable rather than
+	// stopping the window; a repeated barcode keeps the last copy.
+	out := make([]Receipt, 0, len(r.Receipts.Rows))
+	at := map[string]int{}
+	for _, raw := range r.Receipts.Rows {
+		receipt, err := ParseReceipt(raw)
+		if err != nil {
+			u := Unreadable(raw, err)
+			receipt = &u
+		}
+		if i, ok := at[receipt.Barcode]; ok {
+			out[i] = *receipt
+			continue
+		}
+		at[receipt.Barcode] = len(out)
+		out = append(out, *receipt)
+	}
+	return out, nil
+}
+
+// onlineWarehouse is the warehouse number costco.com orders are filed under.
+const onlineWarehouse = "847"
+
+// ordersPage is how many orders the order list returns at a time.
+const ordersPage = 10
+
+// Orders reads the costco.com orders placed in one inclusive window: the
+// order list a page at a time, then each order's details.
+func (c *Client) Orders(ctx context.Context, window Window) ([]Order, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	start, end, err := window.format("2006-1-02")
+	if err != nil {
+		return nil, err
+	}
+	var numbers []string
+	seen := map[string]bool{}
+	for page := 1; ; page++ {
+		var r struct {
+			Lists []struct {
+				Total  int `json:"totalNumberOfRecords"`
+				Orders []struct {
+					Number scalar `json:"orderNumber"`
+				} `json:"bcOrders"`
+			} `json:"getOnlineOrders"`
+		}
+		if err := c.graphql(ctx, "orders", ordersQuery, map[string]any{"startDate": start, "endDate": end,
+			"pageNumber": page, "pageSize": ordersPage, "warehouseNumber": onlineWarehouse}, &r); err != nil {
+			return nil, err
+		}
+		if len(r.Lists) == 0 {
+			return nil, errors.New("costco: orders response changed format")
+		}
+		list := r.Lists[0]
+		for _, o := range list.Orders {
+			if n := string(o.Number); n != "" && !seen[n] {
+				seen[n] = true
+				numbers = append(numbers, n)
+			}
+		}
+		if len(list.Orders) == 0 || page*ordersPage >= list.Total {
+			break
+		}
+	}
+	out := make([]Order, 0, len(numbers))
+	for _, n := range numbers {
+		var r struct {
+			Order json.RawMessage `json:"getOrderDetails"`
+		}
+		if err := c.graphql(ctx, "order", orderQuery, map[string]any{"orderNumbers": []string{n}}, &r); err != nil {
+			return nil, err
+		}
+		order, err := ParseOrder(r.Order)
+		if err != nil {
+			u := UnreadableOrder(n, r.Order, err)
+			order = &u
+		}
+		out = append(out, *order)
+	}
+	return out, nil
+}
+
+const ordersQuery = `query getOnlineOrders($startDate: String!, $endDate: String!, $pageNumber: Int, $pageSize: Int, $warehouseNumber: String!) {
+  getOnlineOrders(startDate: $startDate, endDate: $endDate, pageNumber: $pageNumber, pageSize: $pageSize, warehouseNumber: $warehouseNumber) {
+    pageNumber pageSize totalNumberOfRecords
+    bcOrders { orderNumber: sourceOrderNumber orderPlacedDate: orderedDate orderTotal status }
+  }
+}`
+
+const orderQuery = `query getOrderDetails($orderNumbers: [String]) {
+  getOrderDetails(orderNumbers: $orderNumbers) {
+    orderNumber: sourceOrderNumber orderPlacedDate: orderedDate status
+    merchandiseTotal discountAmount shippingAndHandling retailDeliveryFee grocerySurcharge frozenSurchargeFee
+    nonMemberSurchargeAmount uSTaxTotal1 orderTotal shopCardAppliedAmount walletShopCardAppliedAmount
+    orderPayment { paymentType totalCharged }
+    shipToAddress: orderShipTos {
+      orderLineItems { itemNumber itemDescription: sourceItemDescription price: unitPrice quantity: orderedTotalQuantity merchandiseTotalAmount lineNumber isFeeItem }
+    }
+  }
+}`
 
 const receiptsQuery = `query receiptsWithCounts($startDate: String!, $endDate: String!, $documentType: String!, $documentSubType: String!) {
   receiptsWithCounts(startDate: $startDate, endDate: $endDate, documentType: $documentType, documentSubType: $documentSubType) {

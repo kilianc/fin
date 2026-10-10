@@ -91,33 +91,35 @@ This uses amazon.com's own website endpoints with your session. Amazon offers
 no API for it and its Conditions of Use do not allow it, so it can break or be
 blocked at any time. US amazon.com only. See `fin help amazon`.
 
-### Itemize Costco warehouse receipts (experimental)
+### Itemize Costco receipts and orders (experimental)
 
 `fin costco login home` reads your costco.com sign-in from a Chrome profile,
-verifies it, then reads your warehouse receipts and their items. Use
-`--profile "Profile 2"` to pick a profile, or `--no-sync` to connect first.
-`fin sync` includes connected Costco accounts; `fin costco sync [name]`
-reads just Costco. Initial reads resume after the last saved date window;
-later syncs reread 60 days to catch returns.
+verifies it, then reads your warehouse, gas and car wash receipts and your
+costco.com orders, with their items. Use `--profile "Profile 2"` to pick a
+profile, or `--no-sync` to connect first. `fin sync` includes connected
+Costco accounts; `fin costco sync [name]` reads just Costco. Initial reads
+resume after the last saved date window; later syncs reread 60 days to
+catch returns.
 
-Each item's `cost` includes its share of the tax Costco charged on it, to
-the cent; untaxed items get none. Discount lines stay separate with negative
-costs. `fin costco categorize` uses the same categories as Amazon, with
-defaults by Costco item number, and `fin sheet` adds a Costco items tab.
-`costco_matches` matches each payment on a receipt (a card, not the shop
-card or cash beside it) on amount, date and Costco merchant/name. Ambiguous
-matches are never guessed. A receipt fin cannot
-read is kept, flagged, and never stops a sync.
+Every item has a `cost`, and a receipt's or order's items add up to its
+total, to the cent. On a receipt, tax goes only to the items Costco taxed;
+discounts stay separate negative lines. `fin costco categorize` uses the
+same categories as Amazon, with defaults by Costco item number, and `fin
+sheet` adds a Costco items tab. `costco_matches` matches each card payment
+(not the shop card, coupons or cash beside it) to your bank on amount, date
+and merchant. Ambiguous matches are never guessed. A receipt or order fin
+cannot read is kept, flagged, and never stops a sync.
 
 ```text
 $ fin sql "select date, title, cost, category, transaction_id
            from retailer_items where retailer = 'costco'"
 ```
 
-US warehouse receipts only. Costco's undocumented website endpoints may be
-against its terms and can break or be blocked. This is off until you connect
-an account. `fin costco logout home` forgets that account's session and
-receipts. See `fin help costco`.
+US only, and only the signed-in membership: what family buys with a Shop
+Card you gave them is on their receipts. Costco's undocumented website
+endpoints may be against its terms and can break or be blocked. This is off
+until you connect an account. `fin costco logout home` forgets that
+account's session, receipts and orders. See `fin help costco`.
 
 ## What you need
 
@@ -311,7 +313,7 @@ and slot.
 | `fin paths [database]` | Where the state file and the DuckDB file are |
 | `fin sheet [--open]` | Keep a Google Sheet with your transactions and balances |
 | `fin amazon [login\|sync\|categorize\|logout]` | Itemize Amazon orders and split their charges by category (experimental) |
-| `fin costco [login\|sync\|categorize\|logout]` | Itemize Costco warehouse receipts (experimental) |
+| `fin costco [login\|sync\|categorize\|logout]` | Itemize Costco receipts and online orders (experimental) |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Investment transactions |
 

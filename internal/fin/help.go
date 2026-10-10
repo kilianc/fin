@@ -195,9 +195,12 @@ With a retailer connected (fin amazon or fin costco), also:
   product_categories  retailer, product, category, category_detailed, set_at
   retailer_accounts   retailer, account, last_sync, status, limited_until
 and the retailer's own tables (fin help amazon, fin help costco):
-  costco_receipts     warehouse receipt totals and raw JSON
+  costco_receipts     warehouse, gas and car wash receipts, raw JSON kept
   costco_items        receipt lines, item numbers, amounts and costs
-  costco_matches      receipt totals matched to bank transactions
+  costco_tenders      each payment on a receipt
+  costco_orders       costco.com orders, raw JSON kept
+  costco_order_items  order lines; costco_order_payments each payment
+  costco_matches      each payment matched to a bank transaction
 
 Amounts use Plaid's sign: positive is money out, negative is money in.`,
 		examples: []string{
@@ -318,18 +321,20 @@ Keychain. Your Chrome stays signed in; fin never changes it.`,
 	},
 	{
 		name: "costco", usage: "fin costco [list|login|sync|categorize|profiles|logout]", group: groupMore,
-		summary: "Itemize Costco warehouse receipts (experimental)",
-		detail: `Experimental. Reads US Costco warehouse receipts and their items with the
-sign-in your Chrome profile holds. This uses Costco's undocumented website
-endpoints, may be against its terms, and can break or be blocked at any time.
-It is off until you connect an account. Gas, car wash and online orders are
-not included.
+		summary: "Itemize Costco receipts and costco.com orders (experimental)",
+		detail: `Experimental. Reads your US Costco warehouse, gas station and car wash
+receipts and your costco.com orders, with their items, using the sign-in
+your Chrome profile holds. This uses Costco's undocumented website
+endpoints, may be against its terms, and can break or be blocked at any
+time. It is off until you connect an account. It sees only the signed-in
+membership: what family buys with a Costco Shop Card you gave them is on
+their receipts, not yours (buying the card is an order of yours).
 
-  fin costco                     accounts, receipts, items, matches, status
+  fin costco                     accounts, receipts, orders, items, matches
   fin costco login <name>         read the sign-in from Chrome, verify it,
-                                 then read receipts; --profile P picks a
-                                 Chrome profile; --no-sync connects only
-  fin costco sync [name]          read receipts; fin sync does this too
+                                 then sync; --profile P picks a Chrome
+                                 profile; --no-sync connects only
+  fin costco sync [name]          read receipts and orders; fin sync does too
   fin costco categorize          items without a category; --all lists all
                                  --set reads a JSON list on stdin, or takes
                                  <item> <category> [--detailed C] [--product]
@@ -337,20 +342,24 @@ not included.
   fin costco logout <name>        forget the session and account's stored rows
 
 Reads back to a week before fin epoch, or the oldest bank transaction, else
-two years. Windows are saved newest first; an interrupted initial sync
-resumes at the next window. Later syncs read new days and reread the last
-60 days for returns, including any gap since the last successful sync.
-Requests are one at a time, a few seconds apart. COSTCO_RATE_LIMITED includes
-retry_at; do not retry before it. COSTCO_SIGNIN_EXPIRED needs a fresh login.
+two years, in 90-day windows saved newest first; an interrupted initial
+sync resumes at the next window. Later syncs read new days and reread the
+last 60 days for returns, including any gap since the last successful sync.
+Requests are one at a time, a few seconds apart; each order's details are
+one request. COSTCO_RATE_LIMITED includes retry_at; do not retry before it.
+COSTCO_SIGNIN_EXPIRED needs a fresh login.
 
-Every money value is kept to the cent. Each item's cost is its amount plus
-its share of the tax Costco charged: taxed lines (tax_flag Y) and their
-discounts share it by amount, untaxed lines cost what they say, and items
-sum to the receipt total. A discount ("/ 1234567") stays its own negative
-line; discount_for is the line it takes money off. A receipt fin cannot
-read is kept with its raw JSON and error, without items, and is read again
-when fin's parser changes; it never stops a sync. fin stores what Costco
-shows; it guesses nothing.
+Every money value is kept to the cent, and an order's or receipt's items
+add up to its total. On a receipt, each item's cost is its amount plus its
+share of the tax Costco charged: taxed lines (tax_flag Y) and their
+discounts share it by amount; untaxed lines cost what they say. A discount
+("/ 1234567") stays its own negative line; discount_for is the line it
+takes money off. On an online order, Costco does not say which item a
+coupon, fee or the tax belongs to, so each item's cost is its amount plus
+its share of all of them, by amount. A receipt or order fin cannot read is
+kept with its raw JSON and error, without items, and read again when fin's
+parser changes; it never stops a sync. fin stores what Costco shows; it
+guesses nothing.
 
 Tables (fin sql):
   costco_receipts  account, barcode, date, warehouse_number, warehouse_name,
@@ -360,22 +369,30 @@ Tables (fin sql):
                    unit_price, amount, tax_flag, department, discount_for, cost
   costco_tenders   account, barcode, tender, type, description, card_last4,
                    amount, no_bank_charge: each payment on a receipt
+  costco_orders    account, order_number, date, status, merchandise,
+                   discount, shipping, fees, tax, total, error, raw (JSON)
+  costco_order_items     account, order_number, line, item_number, title,
+                         quantity, unit_price, amount, cost
+  costco_order_payments  account, order_number, payment, type, amount,
+                         no_bank_charge (coupons, shop cards)
   costco_matches   each payment's match and transaction_id: exact, ambiguous,
-                   unmatched, no_bank_charge. Same amount, bank authorized_date
-                   (else date) within ±3 days and a Costco merchant/name
-                   (card_last4 is the card, not the bank account). A
-                   receipt paid two ways matches each card payment on its
-                   own; cash, shop cards and rewards have no bank charge; a
+                   unmatched, no_bank_charge; source is warehouse or online,
+                   order_id the barcode or order number. Same amount, a
+                   Costco merchant/name, and the bank's authorized_date
+                   (else date) within 3 days of a receipt or 10 of an order
+                   (costco.com charges when it ships). card_last4 is the
+                   card, not the bank account, so it is not used. A receipt
+                   paid two ways matches each card payment on its own; a
                    receipt listing no payments is matched on its total
-                   (tender 0). Several candidates on either side are
+                   (payment 0). Several candidates on either side are
                    ambiguous, never guessed.
 
 retailer_items includes Costco with retailer = 'costco', product = its item
 number (a discount's is the item it discounts, so a product category covers
-it), order_id = barcode, line = the receipt position, and transaction_id =
-the first matched card payment. Its item handle is <account>/<barcode>#<line>.
-Quantities can be fractional (sold by weight). Categories survive resyncs
-and reparsing.
+it), order_id = barcode or order number, line = the position, and
+transaction_id = the first matched card payment. Item handles are
+<account>/<barcode or order number>#<line>. Quantities can be fractional
+(gallons, items sold by weight). Categories survive resyncs and reparsing.
 fin sheet includes a Costco items tab. Avoid counting both items and their
 matched bank charge as spending.`,
 		examples: []string{

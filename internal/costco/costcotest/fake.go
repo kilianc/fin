@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -33,6 +34,23 @@ func Receipt(barcode, day string) map[string]any {
 	}
 }
 
+// Order makes a costco.com order's details shaped like a real one: lines
+// listed last first, an order-wide coupon, tax, and the card charge with
+// the coupon beside it as a payment.
+func Order(number, day string) map[string]any {
+	return map[string]any{
+		"orderNumber": number, "orderPlacedDate": day + "T12:40:12.51", "status": "Shipped",
+		"merchandiseTotal": 45.97, "discountAmount": 4.0, "shippingAndHandling": 0.0, "retailDeliveryFee": 0.0, "grocerySurcharge": 0.0,
+		"frozenSurchargeFee": 0.0, "nonMemberSurchargeAmount": 0.0, "uSTaxTotal1": 3.84, "orderTotal": 45.81,
+		"shopCardAppliedAmount": 0.0, "walletShopCardAppliedAmount": 0.0,
+		"orderPayment": []any{map[string]any{"paymentType": "Visa", "totalCharged": 45.81}, map[string]any{"paymentType": "Coupon", "totalCharged": 4.0}},
+		"shipToAddress": []any{map[string]any{"orderLineItems": []any{
+			map[string]any{"itemNumber": "1998930", "itemDescription": "SYNTHETIC TEE", "price": 11.99, "quantity": 2, "merchandiseTotalAmount": 23.98, "lineNumber": 2, "isFeeItem": false},
+			map[string]any{"itemNumber": "2005928", "itemDescription": "SYNTHETIC CREWNECK", "price": 21.99, "quantity": 1, "merchandiseTotalAmount": 21.99, "lineNumber": 1, "isFeeItem": false},
+		}}},
+	}
+}
+
 func Raw(t *testing.T, r map[string]any) json.RawMessage {
 	t.Helper()
 	b, err := json.Marshal(r)
@@ -52,12 +70,16 @@ func ChromeDir(t *testing.T) string {
 	return dir
 }
 
-// Server accepts only synthetic tokens, records date windows, and can stop
-// one window to exercise interrupted syncs. Fields are set between calls.
+// Server accepts only synthetic tokens, records receipt date windows, and
+// can stop one window to exercise interrupted syncs. It serves Rows as
+// receipts and Orders as costco.com orders, a page of OrdersPage at a time.
+// Fields are set between calls.
 type Server struct {
 	*httptest.Server
 	mu                sync.Mutex
 	Rows              []json.RawMessage
+	Orders            []json.RawMessage
+	OrderRequests     int
 	FailureAt, Status int
 	RefreshStatus     int
 	windows           []costco.Window
@@ -101,22 +123,65 @@ func New(t *testing.T) *Server {
 			t.Error("missing Costco headers")
 		}
 		var request struct {
-			Variables map[string]string `json:"variables"`
+			Query     string         `json:"query"`
+			Variables map[string]any `json:"variables"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Error(err)
 		}
-		if request.Variables["documentType"] != "warehouse" {
-			t.Error("asked for more than warehouse receipts")
-		}
-		day := func(key string) string {
-			d, err := time.Parse("1/02/2006", request.Variables[key])
+		day := func(layout, key string) string {
+			v, _ := request.Variables[key].(string)
+			d, err := time.Parse(layout, v)
 			if err != nil {
 				t.Error(err)
 			}
 			return d.Format("2006-01-02")
 		}
-		window := costco.Window{Start: day("startDate"), End: day("endDate")}
+		placed := func(raw json.RawMessage) (string, string) {
+			var o struct {
+				Number string `json:"orderNumber"`
+				Placed string `json:"orderPlacedDate"`
+			}
+			if err := json.Unmarshal(raw, &o); err != nil {
+				t.Error(err)
+			}
+			return o.Number, o.Placed[:10]
+		}
+		switch {
+		case strings.HasPrefix(request.Query, "query getOnlineOrders"):
+			s.OrderRequests++
+			start, end := day("2006-1-02", "startDate"), day("2006-1-02", "endDate")
+			if request.Variables["warehouseNumber"] != "847" {
+				t.Error("orders asked of the wrong warehouse")
+			}
+			var in []map[string]any
+			for _, raw := range s.Orders {
+				n, d := placed(raw)
+				if d >= start && d <= end {
+					in = append(in, map[string]any{"orderNumber": n, "orderPlacedDate": d})
+				}
+			}
+			page, size := int(request.Variables["pageNumber"].(float64)), int(request.Variables["pageSize"].(float64))
+			from, to := min((page-1)*size, len(in)), min(page*size, len(in))
+			json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"getOnlineOrders": []any{map[string]any{
+				"pageNumber": page, "pageSize": size, "totalNumberOfRecords": len(in), "bcOrders": in[from:to]}}}})
+			return
+		case strings.HasPrefix(request.Query, "query getOrderDetails"):
+			s.OrderRequests++
+			want := request.Variables["orderNumbers"].([]any)[0]
+			for _, raw := range s.Orders {
+				if n, _ := placed(raw); n == want {
+					fmt.Fprintf(w, `{"data":{"getOrderDetails":%s}}`, raw)
+					return
+				}
+			}
+			fmt.Fprint(w, `{"data":{"getOrderDetails":null}}`)
+			return
+		}
+		if request.Variables["documentType"] != "all" || request.Variables["documentSubType"] != "all" {
+			t.Error("did not ask for every warehouse, gas and car wash receipt")
+		}
+		window := costco.Window{Start: day("1/02/2006", "startDate"), End: day("1/02/2006", "endDate")}
 		s.windows = append(s.windows, window)
 		if s.FailureAt > 0 && len(s.windows) == s.FailureAt {
 			w.WriteHeader(s.Status)

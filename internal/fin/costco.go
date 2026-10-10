@@ -47,16 +47,17 @@ type costcoSyncView struct {
 	Since      string     `json:"since"`
 	Receipts   int        `json:"receipts_read"`
 	Unreadable int        `json:"receipts_unreadable"`
+	Orders     int        `json:"orders_read"`
 	Items      int        `json:"items_read"`
 	LastSync   *time.Time `json:"last_sync"`
 }
 
 func (v *costcoSyncView) summary() (string, int, string) {
-	detail := fmt.Sprintf("%d receipts, %d items", v.Receipts, v.Items)
+	detail := fmt.Sprintf("%d receipts, %d orders, %d items", v.Receipts, v.Orders, v.Items)
 	if v.Unreadable > 0 {
 		detail += fmt.Sprintf(", %d unreadable", v.Unreadable)
 	}
-	return v.Account, v.Receipts, detail
+	return v.Account, v.Receipts + v.Orders, detail
 }
 
 // syncCostco saves each date window before advancing coverage. An initial
@@ -100,10 +101,14 @@ func (a *App) syncCostco(ctx context.Context, s *store.Store, st *state.State, a
 		if err != nil {
 			return nil, a.syncErr(ctx, s, acct, err)
 		}
+		orders, err := client.Orders(ctx, window)
+		if err != nil {
+			return nil, a.syncErr(ctx, s, acct, err)
+		}
 		slices.SortFunc(receipts, func(a, b costco.Receipt) int {
 			return cmp.Or(cmp.Compare(b.Date, a.Date), cmp.Compare(b.Barcode, a.Barcode))
 		})
-		if err := s.ApplyCostcoReceipts(ctx, acct.Name, acct.Profile, receipts, now.UTC()); err != nil {
+		if err := s.ApplyCostco(ctx, acct.Name, acct.Profile, receipts, orders, now.UTC()); err != nil {
 			return nil, storeErr(err)
 		}
 		// A recent refresh must not move the history boundary forward.
@@ -137,9 +142,19 @@ func (a *App) syncCostco(ctx context.Context, s *store.Store, st *state.State, a
 				progress.feed(feedLine(r.Date, it.Title, it.Cost.USD()))
 			}
 		}
+		view.Orders += len(orders)
+		for _, o := range orders {
+			if o.Error != "" {
+				view.Unreadable++
+			}
+			view.Items += len(o.Lines)
+			for _, l := range o.Lines {
+				progress.feed(feedLine(o.Date, l.Title, l.Cost.USD()))
+			}
+		}
 		progress.step(0, countProgress(i+1, len(windows), time.Since(start)))
 	}
-	if _, err := s.ReparseCostcoReceipts(ctx, acct.Name); err != nil {
+	if _, err := s.ReparseCostco(ctx, acct.Name); err != nil {
 		return nil, storeErr(err)
 	}
 	if err := s.SetRetailerSynced(ctx, acct.Retailer, acct.Name, acct.Profile, now.UTC()); err != nil {
@@ -258,7 +273,7 @@ func (a *App) cmdCostcoSync(ctx context.Context, args []string) (*result, error)
 		return nil, err
 	}
 	defer s.Close()
-	views, errs, err := a.runSync(ctx, st, costcoRetailer, accts, []string{"receipts"},
+	views, errs, err := a.runSync(ctx, st, costcoRetailer, accts, []string{"receipts and orders"},
 		func(acct state.RetailerAccount, p syncProgress) (any, error) {
 			return a.syncCostco(ctx, s, st, acct, p)
 		},
@@ -266,11 +281,11 @@ func (a *App) cmdCostcoSync(ctx context.Context, args []string) (*result, error)
 	if err != nil {
 		return nil, err
 	}
-	t := &ui.Table{Title: fmt.Sprintf("Costco · %d synced", len(views)), Headers: []string{"Account", "Receipts read", "Items read", "Unreadable"}, Right: []int{1, 2, 3},
+	t := &ui.Table{Title: fmt.Sprintf("Costco · %d synced", len(views)), Headers: []string{"Account", "Receipts read", "Orders read", "Items read", "Unreadable"}, Right: []int{1, 2, 3, 4},
 		Footer: "Stored in " + a.storePath() + ". Categorize new items with fin costco categorize."}
 	for _, v := range views {
 		v := v.(*costcoSyncView)
-		t.Rows = append(t.Rows, []string{v.Account, strconv.Itoa(v.Receipts), strconv.Itoa(v.Items), strconv.Itoa(v.Unreadable)})
+		t.Rows = append(t.Rows, []string{v.Account, strconv.Itoa(v.Receipts), strconv.Itoa(v.Orders), strconv.Itoa(v.Items), strconv.Itoa(v.Unreadable)})
 	}
 	return &result{body: map[string]any{"env": a.Env, "store": a.storePath(), "costco": views, "errors": errs}, table: t, errors: errs}, nil
 }
@@ -349,7 +364,7 @@ type costcoAccountView struct {
 
 func (a *App) cmdCostcoList(ctx context.Context, args []string) (*result, error) {
 	return listRetailer(a, ctx, costcoRetailer, args, (*store.Store).CostcoSummaries,
-		[]string{"Account", "Chrome profile", "Receipts", "Items", "To categorize", "Matched", "Last sync", "Status"}, []int{2, 3, 4, 5},
+		[]string{"Account", "Chrome profile", "Receipts", "Orders", "Items", "To categorize", "Matched", "Last sync", "Status"}, []int{2, 3, 4, 5, 6},
 		func(acct state.RetailerAccount, sum store.CostcoSummary) (any, []string) {
 			sum.Account = acct.Name
 			if sum.LastSync == nil {
@@ -357,7 +372,7 @@ func (a *App) cmdCostcoList(ctx context.Context, args []string) (*result, error)
 			}
 			view := costcoAccountView{CostcoSummary: sum, Profile: acct.ProfileName, ConnectedAt: acct.ConnectedAt}
 			matched := fmt.Sprintf("%d of %d", sum.Matched, sum.Matched+sum.Unmatched+sum.Ambiguous)
-			return view, []string{acct.Name, acct.ProfileName, strconv.Itoa(sum.Receipts), strconv.Itoa(sum.Items),
+			return view, []string{acct.Name, acct.ProfileName, strconv.Itoa(sum.Receipts), strconv.Itoa(sum.Orders), strconv.Itoa(sum.Items),
 				strconv.Itoa(sum.Uncategorized), matched, fmtTime(sum.LastSync), sum.Status}
 		})
 }
