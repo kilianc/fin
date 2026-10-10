@@ -18,7 +18,7 @@ import (
 
 // amazonRetailer is Amazon in what retailers share. Its Sync and Forget are
 // set in init: they lead back to retailers, which would be a cycle here.
-var amazonRetailer = retailer{ID: "amazon", Name: "Amazon", Site: "amazon.com", SignIn: amazon.ErrSignIn}
+var amazonRetailer = retailer{ID: "amazon", Name: "Amazon", Site: "amazon.com", Orders: "https://www.amazon.com/your-orders/orders", SignIn: amazon.ErrSignIn}
 
 func init() {
 	amazonRetailer.Sync = func(a *App, ctx context.Context, s *store.Store, st *state.State, acct state.RetailerAccount, p syncProgress) (any, error) {

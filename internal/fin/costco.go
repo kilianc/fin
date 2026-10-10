@@ -17,7 +17,7 @@ import (
 	"github.com/kilianc/fin/internal/ui"
 )
 
-var costcoRetailer = retailer{ID: "costco", Name: "Costco", Site: "costco.com", SignIn: costco.ErrSignIn}
+var costcoRetailer = retailer{ID: "costco", Name: "Costco", Site: "costco.com", Orders: "https://www.costco.com/myaccount/#/app/4900eb1f-0c10-4bd9-99c3-c59e6c1ecebf/ordersandpurchases", SignIn: costco.ErrSignIn}
 
 func init() {
 	costcoRetailer.Sync = func(a *App, ctx context.Context, s *store.Store, st *state.State, acct state.RetailerAccount, p syncProgress) (any, error) {

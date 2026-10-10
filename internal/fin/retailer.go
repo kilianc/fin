@@ -35,6 +35,9 @@ type retailer struct {
 	ID   string // "amazon": its name in state, tables, files, the Keychain and error codes
 	Name string // "Amazon"
 	Site string // "amazon.com", where people sign in
+	// Orders is the page that needs a full sign-in. A home page can greet
+	// someone by name while this page still asks for their password.
+	Orders string
 	// SignIn is the error the retailer's client returns once the site no
 	// longer accepts the saved sign-in.
 	SignIn error
@@ -198,7 +201,8 @@ func signInErr(acct state.RetailerAccount) *CLIError {
 	r := findRetailer(acct.Retailer)
 	action := fmt.Sprintf("run fin %s login %s", r.ID, acct.Name)
 	return &CLIError{Code: r.code("SIGNIN_EXPIRED"),
-		Message: fmt.Sprintf("%s no longer accepts the %s sign-in; sign in to %s in Chrome, then %s", r.Name, acct.Name, r.Name, action),
+		Message: fmt.Sprintf("%s no longer accepts the %s sign-in. Its home page may still greet you by name; open %s in Chrome profile %q, sign in if it asks, then %s",
+			r.Name, acct.Name, r.Orders, acct.ProfileName, action),
 		Details: map[string]any{"action": action}, exit: exitError}
 }
 
@@ -767,7 +771,7 @@ func (a *App) loginErr(ctx context.Context, s *store.Store, r retailer, acct sta
 	case errors.Is(err, context.Canceled):
 		return err
 	case errors.Is(err, r.SignIn):
-		return newErr(r.code("NOT_SIGNED_IN"), "%s did not accept the sign-in from Chrome profile %q; sign in at %s in that profile and run this again", r.Name, profile, r.Site)
+		return newErr(r.code("NOT_SIGNED_IN"), "%s did not accept the sign-in from Chrome profile %q. Its home page may still greet you by name; open %s in that profile, sign in if it asks, then run this again", r.Name, profile, r.Orders)
 	case errors.Is(err, pace.ErrRateLimited):
 		if s == nil {
 			opened, oerr := a.openStore(ctx)

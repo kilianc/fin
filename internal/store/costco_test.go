@@ -68,7 +68,7 @@ func TestCostcoMatchesOnlyBasicFacts(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]string{"exact#1": "exact", "refund#1": "exact", "duplicate#1": "ambiguous", "shared1#1": "ambiguous", "shared2#1": "ambiguous",
-		"wrong-card#1": "unmatched", "too-late#1": "unmatched", "wrong-merchant#1": "unmatched", "authorized#1": "exact", "split#1": "exact",
+		"wrong-card#1": "exact", "too-late#1": "unmatched", "wrong-merchant#1": "unmatched", "authorized#1": "exact", "split#1": "exact",
 		"split#2": "no_bank_charge", "shop-card#1": "no_bank_charge", "no-mask#1": "exact", "missing#1": "unmatched", "cashback#1": "exact", "no-tenders#0": "exact"}
 	rows := queryRows(t, s, `select payment_key, match, transaction_id from costco_matches`)
 	if len(rows) != len(want) {
@@ -88,7 +88,7 @@ func TestCostcoMatchesOnlyBasicFacts(t *testing.T) {
 		t.Errorf("split receipt item transaction = %v", rows)
 	}
 	sums, err := s.CostcoSummaries(ctx)
-	if err != nil || sums["pat"].Receipts != len(r) || sums["pat"].Unreadable != 1 || sums["pat"].Matched != 7 {
+	if err != nil || sums["pat"].Receipts != len(r) || sums["pat"].Unreadable != 1 || sums["pat"].Matched != 8 {
 		t.Fatalf("summary=%+v err=%v", sums, err)
 	}
 }

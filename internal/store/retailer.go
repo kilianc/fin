@@ -277,21 +277,23 @@ func nullable(s string) *string {
 	return &s
 }
 
-// retailerMatches matches whole retailer payments on basic facts only.
-// Both sides must be unique: two receipts competing for one transaction
-// are as ambiguous as one receipt with two possible bank transactions.
+// retailerMatches matches whole retailer payments on basic facts only:
+// amount, date and merchant. Both sides must be unique: two receipts
+// competing for one transaction are as ambiguous as one receipt with two
+// possible bank transactions. A card's last four digits are not used: the
+// card number a store prints is often not the account number Plaid masks
+// (debit cards, many credit cards), so it cannot rule a match out.
 // source, key and merchant are trusted SQL from each retailer's schema.
 func retailerMatches(source, key string, days int, merchant string) string {
 	return fmt.Sprintf(`with p as (%s),
 bank as (
-	select t.transaction_id, t.amount, coalesce(t.authorized_date, t.date) as day, nullif(a.mask, '') as mask
-	from transactions t left join accounts a using (account_id)
+	select t.transaction_id, t.amount, coalesce(t.authorized_date, t.date) as day
+	from transactions t
 	where regexp_matches(lower(coalesce(t.merchant_name, '') || ' ' || coalesce(t.name, '')), '%s')
 ),
 cand as (
 	select p.%s, b.transaction_id, count(*) over (partition by b.transaction_id) as per_transaction
 	from p join bank b on b.amount = p.amount and b.day between p.date - %d and p.date + %d
-		and (p.card_last4 is null or b.mask is null or b.mask = p.card_last4)
 	where not p.no_bank
 ),
 agg as (

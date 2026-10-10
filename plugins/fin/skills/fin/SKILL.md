@@ -126,7 +126,8 @@ included.
   `costco_matches` matches each payment, not the receipt: `exact`,
   `ambiguous`, `unmatched` or `no_bank_charge` (cash, shop card, rewards),
   on amount, bank authorized date (else date) within ±3 days, Costco
-  merchant/name and last four when both sides show them. Never turn an
+  merchant/name (a receipt's `card_last4` is the card number, which often
+  differs from the account's `mask`, so it is not used). Never turn an
   ambiguous or unmatched payment into a guessed bank match.
 - Use `fin costco categorize --json`, then `fin costco categorize --set
   --json` with the same JSON list and Plaid categories described above.

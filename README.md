@@ -105,8 +105,8 @@ the cent; untaxed items get none. Discount lines stay separate with negative
 costs. `fin costco categorize` uses the same categories as Amazon, with
 defaults by Costco item number, and `fin sheet` adds a Costco items tab.
 `costco_matches` matches each payment on a receipt (a card, not the shop
-card or cash beside it) on amount, date, Costco merchant/name and card last
-four when known. Ambiguous matches are never guessed. A receipt fin cannot
+card or cash beside it) on amount, date and Costco merchant/name. Ambiguous
+matches are never guessed. A receipt fin cannot
 read is kept, flagged, and never stops a sync.
 
 ```text

@@ -362,8 +362,8 @@ Tables (fin sql):
                    amount, no_bank_charge: each payment on a receipt
   costco_matches   each payment's match and transaction_id: exact, ambiguous,
                    unmatched, no_bank_charge. Same amount, bank authorized_date
-                   (else date) within ±3 days, Costco merchant/name and card
-                   last four versus account mask when both are known. A
+                   (else date) within ±3 days and a Costco merchant/name
+                   (card_last4 is the card, not the bank account). A
                    receipt paid two ways matches each card payment on its
                    own; cash, shop cards and rewards have no bank charge; a
                    receipt listing no payments is matched on its total
