@@ -52,6 +52,21 @@ the prompt in Claude Code or Codex.
 </tr>
 </table>
 
+## No agent? Use SQL or a spreadsheet
+
+fin keeps your transactions and balances in a DuckDB file on your Mac.
+`fin sync` brings it up to date and `fin sql` queries it, read-only:
+
+```text
+$ fin sql "select category, sum(amount) as spent from transactions
+           where amount > 0 and date >= '2026-09-01' group by 1 order by 2 desc"
+```
+
+Or run `fin sheet`, and fin keeps a Google Sheet in your Drive with the same
+data, a Transactions tab and an Accounts tab, ready for pivot tables and
+charts. Run it again to refresh. fin can see that one spreadsheet and nothing
+else in your Drive.
+
 ## What you need
 
 - A Mac. fin keeps your keys in the macOS Keychain.
@@ -541,13 +556,16 @@ Common codes:
 | `NO_SLOTS` | All 10 production slots are used |
 | `LINK_TIMEOUT`, `LINK_EXITED`, `LINK_FAILED` | Link did not add an Item |
 | `RECONNECT_INCOMPLETE` | Link finished but the Item is still unhealthy |
+| `GOOGLE_SIGNIN_EXPIRED` | Google no longer accepts fin's sign-in; run `fin sheet --login` |
+| `GOOGLE_SIGNIN_CANCELLED` | The user declined Google sign-in |
+| `GOOGLE_SHEETS_ERROR` | The Sheets API failed; the message says why |
 | Plaid codes such as `INVALID_API_KEYS` | Passed through, with `details.request_id` |
 
 ## Development
 
 ```bash
 make build       # universal macOS binary at bin/fin (VERSION=0.2.0 to stamp it)
-make release VERSION=0.2.0   # test, build, tag v0.2.0 and upload to GitHub Releases
+make release VERSION=0.2.0   # test, build, tag v0.2.0, upload and verify; rerun to resume
 make test        # unit tests against a fake Plaid client
 make e2e         # end-to-end run against the real Plaid sandbox
 make docs        # regenerate setup, try, and privacy pages from their source

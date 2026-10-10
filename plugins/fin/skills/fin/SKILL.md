@@ -35,6 +35,7 @@ for account numbers or personal details.
 | `fin sync` | Pulls new and changed transactions into a local DuckDB file |
 | `fin sql "<query>"` | Read-only DuckDB SQL over that file (`fin help sql` lists the tables) |
 | `fin sheet` | Syncs and writes everything to a Google Sheet; the first run needs the user to sign in to Google in the browser |
+| `fin paths [database]` | Where the state file and the DuckDB file are |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Buys, sells, dividends, fees |
 | `fin institutions <name>` | Whether Plaid supports a bank, before using a slot |
@@ -67,7 +68,9 @@ are `YYYY-MM-DD`.
   Pass `--yes` only after they agree; without a terminal, `fin link` stops
   with `CONFIRMATION_REQUIRED` instead of prompting.
 - `fin link` and `fin reconnect` wait until the user finishes in the browser.
-  Run them in the background and read the Hosted Link URL from stderr.
+  Run them in the background and read the Hosted Link URL from stderr. So
+  does `fin sheet` the first time, while the user signs in to Google; the
+  sign-in URL is on stderr.
 - Never ask for, print or store the Plaid secret. Only `fin setup`, run by
   the user in their own terminal, takes it. If they use Plaid's own CLI,
   `plaid login` followed by `fin setup --from-plaid` imports the keys with
