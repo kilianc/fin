@@ -25,7 +25,7 @@ const amazonItemSource = `select 'amazon' as retailer, o.account, i.order_id || 
 		where m.match = 'exact' and m.amount > 0 and list_contains(m.order_ids, i.order_id)) as transaction_id
 from amazon_items i join amazon_orders o using (order_id)`
 
-const amazonSchema = `
+var amazonSchema = `
 create table if not exists amazon_payments (
 	payment_key       varchar primary key,
 	account           varchar not null,
@@ -75,48 +75,12 @@ create table if not exists amazon_items (
 	cost          decimal(18, 4) not null,
 	primary key (order_id, line)
 );
--- Each Amazon payment and the bank transaction it became: same amount, the
--- bank's date within four days, an Amazon-looking merchant, and the card's
--- last four digits when the order page showed them. Ambiguous cases are
--- reported, never guessed.
-create or replace view amazon_matches as
-with p as (
-	select p.*, (
-		select first(o.card_last4) from amazon_orders o where list_contains(p.order_ids, o.order_id)
-	) as card_last4,
-	lower(coalesce(p.payment_method, '')) like '%gift card%' or lower(coalesce(p.payment_method, '')) like '%points%' as no_bank
-	from amazon_payments p
-),
-bank as (
-	select t.transaction_id, t.amount, coalesce(t.authorized_date, t.date) as day, a.mask
-	from transactions t left join accounts a using (account_id)
-	where regexp_matches(lower(coalesce(t.merchant_name, '') || ' ' || t.name), 'amazon|amzn|audible|kindle|prime video')
-),
-cand as (
-	select p.payment_key, b.transaction_id,
-		count(*) over (partition by b.transaction_id) as per_transaction
-	from p join bank b on b.amount = p.amount
-		and b.day between p.date - 4 and p.date + 4
-		and (p.card_last4 is null or b.mask is null or b.mask = p.card_last4)
-	where not p.no_bank
-),
-agg as (
-	select payment_key, count(*) as candidates, any_value(transaction_id) as transaction_id,
-		max(per_transaction) as per_transaction
-	from cand group by payment_key
-)
-select p.payment_key, p.account, p.date, p.amount, p.payment_method, p.descriptor, p.status, p.order_ids,
-	p.card_last4,
-	case
-		when p.no_bank then 'no_bank_charge'
-		when agg.candidates is null then 'unmatched'
-		when agg.candidates = 1 and agg.per_transaction = 1 then 'exact'
-		else 'ambiguous'
-	end as match,
-	case when agg.candidates = 1 and agg.per_transaction = 1 then agg.transaction_id end as transaction_id,
-	coalesce(agg.candidates, 0) as candidates
-from p left join agg using (payment_key);
-`
+` + "create or replace view amazon_matches as " + retailerMatches(`
+	select p.payment_key, p.account, p.date, p.amount, p.payment_method, p.descriptor, p.status, p.order_ids,
+		(select first(o.card_last4) from amazon_orders o where list_contains(p.order_ids, o.order_id)) as card_last4,
+		lower(coalesce(p.payment_method, '')) like '%gift card%' or lower(coalesce(p.payment_method, '')) like '%points%' as no_bank,
+		true as matchable
+	from amazon_payments p`, "payment_key", 4, "amazon|amzn|audible|kindle|prime video")
 
 // AmazonPaymentKeys returns the keys of the payments stored for account.
 func (s *Store) AmazonPaymentKeys(ctx context.Context, account string) (map[string]bool, error) {

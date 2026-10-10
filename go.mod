@@ -8,6 +8,7 @@ require (
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/duckdb/duckdb-go/v2 v2.10506.0
+	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/net v0.58.0
 	golang.org/x/oauth2 v0.37.0
 	golang.org/x/term v0.47.0
@@ -31,6 +32,7 @@ require (
 	github.com/duckdb/duckdb-go-bindings/lib/windows-amd64 v0.10506.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
+	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.3 // indirect

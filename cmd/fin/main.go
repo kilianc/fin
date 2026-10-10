@@ -16,7 +16,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"golang.org/x/term"
 
-	"github.com/kilianc/fin/internal/amazon"
+	"github.com/kilianc/fin/internal/chrome"
 	"github.com/kilianc/fin/internal/fin"
 	"github.com/kilianc/fin/internal/keychain"
 	"github.com/kilianc/fin/internal/plaid"
@@ -72,8 +72,9 @@ func run() int {
 		StatePath:      statePath,
 		DataDir:        dataDir,
 		PlaidCLIConfig: filepath.Join(configDir, "plaid-cli", "config.json"),
-		Chrome:         amazon.Chrome{Dir: amazon.DefaultChromeDir(), SafeStorage: amazon.SafeStorageFromKeychain},
+		Chrome:         chrome.Chrome{Dir: chrome.DefaultChromeDir(), SafeStorage: chrome.SafeStorageFromKeychain},
 		AmazonPause:    3 * time.Second,
+		CostcoPause:    3 * time.Second,
 		Google:         googleClient(),
 		Secrets:        keychain.Keychain{Service: "fin"},
 		NewPlaid: func(env plaid.Env, clientID, secret string) fin.Plaid {

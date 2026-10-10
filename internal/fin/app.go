@@ -11,8 +11,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/kilianc/fin/internal/amazon"
+	"github.com/kilianc/fin/internal/chrome"
 	"github.com/kilianc/fin/internal/keychain"
+	"github.com/kilianc/fin/internal/pace"
 	"github.com/kilianc/fin/internal/plaid"
 	"github.com/kilianc/fin/internal/sheets"
 	"github.com/kilianc/fin/internal/state"
@@ -67,14 +68,17 @@ type App struct {
 	SheetsBase string
 	// PlaidCLIConfig is Plaid's own CLI config.json, read by fin setup --from-plaid.
 	PlaidCLIConfig string
-	// Chrome is where fin amazon login reads Amazon cookies, and AmazonBase
-	// the Amazon website (empty means amazon.com).
-	Chrome     amazon.Chrome
+	// Chrome is the browser retailers read once at login.
+	// Endpoint overrides and zero pauses are for local test servers.
+	Chrome     chrome.Chrome
 	AmazonBase string
 	// AmazonPause spaces out requests to Amazon.
-	AmazonPause time.Duration
-	Secrets     Secrets
-	NewPlaid    func(env plaid.Env, clientID, secret string) Plaid
+	AmazonPause     time.Duration
+	CostcoPause     time.Duration
+	CostcoTokenURL  string
+	CostcoOrdersURL string
+	Secrets         Secrets
+	NewPlaid        func(env plaid.Env, clientID, secret string) Plaid
 
 	Stdin  io.Reader
 	Stdout io.Writer
@@ -95,8 +99,9 @@ type App struct {
 	// Debug prints a summary of each Link poll to stderr (FIN_DEBUG=1).
 	Debug bool
 
-	human     bool
-	envSource string
+	retailerGates map[string]*pace.Gate
+	human         bool
+	envSource     string
 	// onScreen is set while a full-screen ui.Flow owns the terminal, so
 	// nothing inside it starts a spinner of its own.
 	onScreen bool

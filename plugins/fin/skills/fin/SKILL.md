@@ -1,6 +1,6 @@
 ---
 name: fin
-description: Read the user's own bank, credit card and brokerage data (balances, transactions, holdings, investment activity) with fin, a read-only command-line tool that fetches it from Plaid on their machine. Use it when the user asks about their real money (spending, subscriptions, accounts, net worth, portfolio, cash flow) or wants help setting fin up.
+description: Read the user's own bank, credit card and brokerage data, Amazon orders and Costco warehouse receipts with fin, a local read-only command-line tool. Use it when the user asks about their real money (spending, subscriptions, accounts, net worth, portfolio, cash flow), retailer purchases or wants help setting fin up.
 license: MIT
 ---
 
@@ -10,7 +10,8 @@ fin is a local command-line tool for the user's own financial data. It reads
 balances, transactions, holdings and investment activity from their banks,
 cards and brokerages through Plaid, keeps its keys in the macOS Keychain, and
 prints JSON when an agent runs it. It cannot move money and never asks Plaid
-for account numbers or personal details.
+for account numbers or personal details. Connected retailers add Amazon order
+items and Costco warehouse receipt items, using the user's own sign-in.
 
 ## First, check it's ready
 
@@ -38,6 +39,8 @@ for account numbers or personal details.
 | `fin paths [database]` | Where the state file and the DuckDB file are |
 | `fin amazon` | Amazon accounts connected for itemizing orders (experimental), with items left to categorize |
 | `fin amazon categorize [--set]` | Items without a category; `--set` saves them (see below) |
+| `fin costco` | Costco accounts connected for warehouse receipts and items (experimental) |
+| `fin costco categorize [--set]` | Uncategorized receipt lines; the same category workflow as Amazon |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Buys, sells, dividends, fees |
 | `fin epoch [DATE]` | The first day of the finances the user wants reported |
@@ -99,6 +102,40 @@ orders, so an Amazon charge can be broken down by item:
 - `fin amazon login <name>` needs the user: macOS asks them to allow
   "Chrome Safe Storage". Never run it, or `fin amazon logout`, without their
   go-ahead in chat. It reads back to a week before the epoch (see below).
+
+## Costco warehouse receipts (experimental)
+
+If `fin costco` lists accounts, `fin sync` also reads Costco warehouse
+receipts. `fin costco sync [name]` reads only Costco, back to a week before
+the epoch or oldest bank transaction (else two years). Each saved window
+advances the initial read; an interrupted sync resumes there. Later syncs
+reread the last 60 days for returns. Gas, car wash and online orders are not
+included.
+
+- `retailer_items` includes Costco with `retailer = 'costco'`, `product` =
+  Costco's item number, `order_id` = receipt barcode and `line` = position.
+  An item handle is `<account>/<barcode>#<line>`. `cost` is the line's amount
+  plus its share of tax; receipt items sum to the total. Keep negative
+  discount lines as their own items. Do not merge them with purchases.
+- `costco_receipts` holds totals and raw JSON; `costco_items` holds receipt
+  lines. `costco_matches` has `exact`, `ambiguous`, `unmatched` and
+  `no_bank_charge` outcomes using the receipt total, bank authorized date
+  (else date) within ±3 days, Costco merchant/name and last four when both
+  sides show them. Split tenders remain unmatched. Never turn an ambiguous
+  or unmatched receipt into a guessed bank match.
+- Use `fin costco categorize --json`, then `fin costco categorize --set
+  --json` with the same JSON list and Plaid categories described above.
+  `product: true` sets a default by item number. Categories survive resyncs
+  and reparsing. `fin sheet` includes a Costco items tab.
+- Avoid counting a receipt's items and its matched bank charge twice.
+- `COSTCO_RATE_LIMITED` includes `retry_at`; answer from stored data and do
+  not retry sooner. `COSTCO_SIGNIN_EXPIRED` needs the user to sign in to
+  costco.com in Chrome, then run `fin costco login <name>` again.
+- Ask in chat before connecting or logging out. Login reads the selected
+  Chrome profile once; macOS may ask for Chrome Safe Storage if its MSAL
+  cache is encrypted. Tokens are sealed locally with a Keychain key. This
+  uses undocumented US costco.com endpoints, may be against its terms, and
+  can break or be blocked. Nothing runs until the user connects an account.
 
 ## Rules
 

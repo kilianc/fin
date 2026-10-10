@@ -91,6 +91,32 @@ This uses amazon.com's own website endpoints with your session. Amazon offers
 no API for it and its Conditions of Use do not allow it, so it can break or be
 blocked at any time. US amazon.com only. See `fin help amazon`.
 
+### Itemize Costco warehouse receipts (experimental)
+
+`fin costco login home` reads your costco.com sign-in from a Chrome profile,
+verifies it, then reads your warehouse receipts and their items. Use
+`--profile "Profile 2"` to pick a profile, or `--no-sync` to connect first.
+`fin sync` includes connected Costco accounts; `fin costco sync [name]`
+reads just Costco. Initial reads resume after the last saved date window;
+later syncs reread 60 days to catch returns.
+
+Each item's `cost` includes its share of tax, to the cent. Discount lines
+stay separate with negative costs. `fin costco categorize` uses the same
+categories as Amazon, with defaults by Costco item number, and `fin sheet`
+adds a Costco items tab. `costco_matches` matches receipt totals on amount,
+date, Costco merchant/name and card last four when known. Ambiguous matches
+and split tenders are never guessed.
+
+```text
+$ fin sql "select date, title, cost, category, transaction_id
+           from retailer_items where retailer = 'costco'"
+```
+
+US warehouse receipts only. Costco's undocumented website endpoints may be
+against its terms and can break or be blocked. This is off until you connect
+an account. `fin costco logout home` forgets that account's session and
+receipts. See `fin help costco`.
+
 ## What you need
 
 - A Mac. fin keeps your keys in the macOS Keychain.
@@ -283,6 +309,7 @@ and slot.
 | `fin paths [database]` | Where the state file and the DuckDB file are |
 | `fin sheet [--open]` | Keep a Google Sheet with your transactions and balances |
 | `fin amazon [login\|sync\|categorize\|logout]` | Itemize Amazon orders and split their charges by category (experimental) |
+| `fin costco [login\|sync\|categorize\|logout]` | Itemize Costco warehouse receipts (experimental) |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Investment transactions |
 
@@ -587,7 +614,9 @@ Common codes:
 | `GOOGLE_SHEETS_ERROR` | The Sheets API failed; the message says why |
 | `AMAZON_SIGNIN_EXPIRED` | Amazon dropped the sign-in; sign in in Chrome, then `fin amazon login <name>` |
 | `AMAZON_RATE_LIMITED` | Amazon is limiting requests; what was read is saved, `fin amazon sync` later |
-| `PROFILE_REQUIRED` | Several Chrome profiles are signed in to Amazon; `details.profiles` lists them for `--profile` |
+| `COSTCO_SIGNIN_EXPIRED` | Costco dropped the sign-in; sign in in Chrome, then `fin costco login <name>` |
+| `COSTCO_RATE_LIMITED` | Costco is limiting requests; wait until `retry_at` before syncing again |
+| `PROFILE_REQUIRED` | Several Chrome profiles are signed in to the retailer; `details.profiles` lists them for `--profile` |
 | Plaid codes such as `INVALID_API_KEYS` | Passed through, with `details.request_id` |
 
 ## Development

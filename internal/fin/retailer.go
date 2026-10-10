@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kilianc/fin/internal/chrome"
 	"github.com/kilianc/fin/internal/keychain"
 	"github.com/kilianc/fin/internal/pace"
 	"github.com/kilianc/fin/internal/state"
@@ -599,7 +600,7 @@ func (a *App) cmdCategorize(ctx context.Context, r retailer, args []string) (*re
 			Footer:  fmt.Sprintf("Set one with fin %s categorize --set ITEM CATEGORY [--product].", r.ID),
 		}
 		for _, it := range items {
-			t.Rows = append(t.Rows, []string{it.Item, it.Date, truncate(it.Title, 48), strconv.Itoa(it.Quantity),
+			t.Rows = append(t.Rows, []string{it.Item, it.Date, truncate(it.Title, 48), strconv.FormatFloat(it.Quantity, 'f', -1, 64),
 				strconv.FormatFloat(it.Cost, 'f', 2, 64), deref(it.Category)})
 		}
 		return &result{body: map[string]any{"items": items, "categories": pfcPrimary}, table: t}, nil
@@ -653,4 +654,181 @@ func (a *App) cmdCategorize(ctx context.Context, r retailer, args []string) (*re
 	}
 	msg := ui.Line(ui.Good, fmt.Sprintf("Saved %d categories", len(changes))) + ui.Muted.Render(fmt.Sprintf("  %d items left to categorize", len(left)))
 	return &result{body: map[string]any{"saved": len(changes), "uncategorized": len(left)}, message: msg}, nil
+}
+
+// cmdRetailer dispatches the commands every retailer shares.
+func (a *App) cmdRetailer(ctx context.Context, r retailer, args []string, list, login, sync, profiles command) (*result, error) {
+	sub, rest := "", args
+	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		sub, rest = args[0], args[1:]
+	}
+	switch sub {
+	case "", "list":
+		return list(ctx, rest)
+	case "login":
+		return login(ctx, rest)
+	case "sync":
+		return sync(ctx, rest)
+	case "categorize":
+		return a.cmdCategorize(ctx, r, rest)
+	case "logout":
+		return a.cmdLogout(ctx, r, rest)
+	case "profiles":
+		if profiles != nil {
+			return profiles(ctx, rest)
+		}
+	}
+	return nil, usageErr("unknown subcommand %q; run fin help %s", sub, r.ID)
+}
+
+// connectedAccounts selects one named account, or all of a retailer's.
+func (a *App) connectedAccounts(st *state.State, r retailer, name string) ([]state.RetailerAccount, error) {
+	accts := st.RetailerAccounts(r.ID, string(a.Env))
+	if name != "" {
+		acct, ok := st.FindRetailer(r.ID, string(a.Env), name)
+		if !ok {
+			return nil, a.noAccountErr(st, r, name)
+		}
+		accts = []state.RetailerAccount{acct}
+	}
+	if len(accts) == 0 {
+		return nil, newErr("NO_"+r.code("ACCOUNT"), "no %s account is connected; run fin %s login <name>", r.Name, r.ID)
+	}
+	return accts, nil
+}
+
+// chromeProfiles lists profile names and asks the retailer whether each has
+// a sign-in. It does not decrypt credentials or contact the website.
+func (a *App) chromeProfiles(r retailer, signed func(chrome.Chrome, string) (bool, error)) ([]chromeProfile, error) {
+	profiles, err := a.Chrome.Profiles()
+	if errors.Is(err, chrome.ErrNoChrome) {
+		return nil, newErr("NO_CHROME", "fin %s reads your %s sign-in from Google Chrome, which is not set up on this Mac", r.ID, r.Name)
+	}
+	if err != nil {
+		return nil, newErr("CHROME_ERROR", "%v", err)
+	}
+	out := make([]chromeProfile, len(profiles))
+	for i, p := range profiles {
+		ok, err := signed(a.Chrome, p.Dir)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, newErr("CHROME_ERROR", "%v", err)
+		}
+		out[i] = chromeProfile{Dir: p.Dir, Name: p.Name, SignedIn: ok}
+	}
+	return out, nil
+}
+
+// loginAccount parses a retailer login and selects its local Chrome profile.
+// The caller verifies the session before saving this account or its state.
+func (a *App) loginAccount(r retailer, args []string, profiles func() ([]chromeProfile, error)) (*state.State, state.RetailerAccount, chromeProfile, bool, error) {
+	var acct state.RetailerAccount
+	var profile chromeProfile
+	fs := flag.NewFlagSet(r.ID+" login", flag.ContinueOnError)
+	want := fs.String("profile", "", "the Chrome profile, by directory or name")
+	noSync := fs.Bool("no-sync", false, "connect without reading history yet")
+	pos, err := parseArgs(fs, args)
+	if err == nil && len(pos) != 1 {
+		err = usageErr("usage: fin %s login <name> [--profile P]", r.ID)
+	}
+	if err != nil {
+		return nil, acct, profile, false, err
+	}
+	name := strings.ToLower(pos[0])
+	if !accountName.MatchString(name) {
+		return nil, acct, profile, false, usageErr("a %s account name is lowercase letters, digits and dashes, such as home", r.Name)
+	}
+	available, err := profiles()
+	if err != nil {
+		return nil, acct, profile, false, err
+	}
+	profile, err = a.pickProfile(r, available, *want)
+	if err != nil {
+		return nil, acct, profile, false, err
+	}
+	st, err := a.loadState()
+	if err != nil {
+		return nil, acct, profile, false, err
+	}
+	acct, exists := st.FindRetailer(r.ID, string(a.Env), name)
+	if !exists {
+		acct = state.RetailerAccount{Retailer: r.ID, Name: name, Env: string(a.Env), ConnectedAt: a.Now().UTC()}
+	}
+	acct.Profile, acct.ProfileName = profile.Dir, profile.Name
+	return st, acct, profile, *noSync, nil
+}
+
+// runLogin presents a retailer's sign-in steps in the terminal or plain
+// output, translating cancellation in either form the same way.
+func (a *App) runLogin(ctx context.Context, r retailer, subtitle string, steps []string, work func(context.Context, ui.Reporter) (ui.FlowResult, error)) error {
+	var err error
+	if a.showSpinner() {
+		a.onScreen = true
+		_, err = ui.Flow(ctx, a.Stdin, a.Stderr, ui.FlowOptions{Title: "fin → " + r.Name, Subtitle: subtitle, Steps: steps}, work)
+		a.onScreen = false
+	} else {
+		var rep ui.Reporter = ui.PlainReporter{W: a.Stderr, Steps: steps}
+		if !a.human {
+			rep = linkOnlyReporter{a}
+		}
+		_, err = work(ctx, rep)
+	}
+	if errors.Is(err, ui.ErrCancelled) || errors.Is(err, context.Canceled) {
+		return newErr("CANCELLED", "cancelled")
+	}
+	return err
+}
+
+// retailerGate keeps the pace across login, syncs and named accounts in
+// this process, so a fresh client does not skip the next wait.
+func (a *App) retailerGate(r retailer, wait time.Duration) *pace.Gate {
+	if a.retailerGates == nil {
+		a.retailerGates = map[string]*pace.Gate{}
+	}
+	if g := a.retailerGates[r.ID]; g != nil {
+		return g
+	}
+	g := &pace.Gate{Wait: wait}
+	a.retailerGates[r.ID] = g
+	return g
+}
+
+// listRetailer reads a retailer's own summaries and presents the shared
+// account metadata. row supplies only the retailer-specific counts.
+func listRetailer[T any](a *App, ctx context.Context, r retailer, args []string,
+	read func(*store.Store, context.Context) (map[string]T, error),
+	headers []string, right []int, row func(state.RetailerAccount, T) (any, []string)) (*result, error) {
+	if len(args) > 0 {
+		return nil, usageErr("usage: fin %s", r.ID)
+	}
+	st, err := a.loadState()
+	if err != nil {
+		return nil, err
+	}
+	accts := st.RetailerAccounts(r.ID, string(a.Env))
+	sums := map[string]T{}
+	if len(accts) > 0 {
+		// Writing updates tables and views in databases from older fin builds.
+		s, err := a.openStore(ctx)
+		if err != nil {
+			return nil, err
+		}
+		sums, err = read(s, ctx)
+		s.Close()
+		if err != nil {
+			return nil, storeErr(err)
+		}
+	}
+	views := []any{}
+	t := &ui.Table{Title: fmt.Sprintf("%s · %d accounts · experimental", r.Name, len(accts)), Headers: headers, Right: right,
+		Footer: fmt.Sprintf("Connect another with fin %s login <name>.", r.ID)}
+	for _, acct := range accts {
+		view, cells := row(acct, sums[acct.Name])
+		views = append(views, view)
+		t.Rows = append(t.Rows, cells)
+	}
+	body := map[string]any{"env": a.Env, "accounts": views}
+	if len(accts) == 0 {
+		return &result{body: body, message: fmt.Sprintf("No %s account is connected. Connect one with fin %s login <name>.", r.Name, r.ID)}, nil
+	}
+	return &result{body: body, table: t}, nil
 }

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kilianc/fin/internal/amazon"
 	"github.com/kilianc/fin/internal/amazon/amazontest"
+	"github.com/kilianc/fin/internal/chrome"
 	"github.com/kilianc/fin/internal/plaid"
 )
 
@@ -48,7 +48,7 @@ func amazonApp(t *testing.T) (*testApp, *amazontest.Server) {
 		amazontest.Payment("-$9.99", "Aug 2, 2026", "D01-0000003-0000003", "Visa", "Kindle", "Charged"),
 	)
 	ta.AmazonBase = srv.URL
-	ta.Chrome = amazon.Chrome{
+	ta.Chrome = chrome.Chrome{
 		Dir:         amazontest.ChromeDir(t, "peanuts", map[string]string{"Default": "Pat", "Profile 1": "Sam"}, map[string]string{"Default": "good"}),
 		SafeStorage: func() (string, error) { return "peanuts", nil },
 	}

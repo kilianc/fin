@@ -52,7 +52,7 @@ type Client struct {
 	request pageProps
 	trace   string
 	// Gate spaces requests to Amazon; tests set its Wait to zero.
-	Gate pace.Gate
+	Gate *pace.Gate
 	// Log, if set, hears about every request: which kind ("page",
 	// "payments" or "order") and the HTTP status, 0 when none came back.
 	Log func(kind string, status int)
@@ -66,7 +66,7 @@ func NewClient(s *Session, base string) *Client {
 			return http.ErrUseLastResponse
 		}},
 		trace: newTraceID(),
-		Gate:  pace.Gate{Wait: 3 * time.Second},
+		Gate:  &pace.Gate{Wait: 3 * time.Second},
 	}
 	for _, ck := range s.Cookies {
 		c.cookies[ck.Name] = ck

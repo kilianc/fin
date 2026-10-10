@@ -54,8 +54,8 @@ single command or shell.`,
 		name: "epoch", usage: "fin epoch [YYYY-MM-DD|none]", group: groupStart,
 		summary: "Show or set the first day of the finances fin reports on",
 		detail: `The epoch is when your finances, as you want them reported, begin: when a
-household started sharing money, say. fin sheet writes transactions and Amazon
-items from that day on, fin amazon reads Amazon back to a week before it, and
+household started sharing money, say. fin sheet writes transactions and retailer
+items from that day on, retailers read back to a week before it, and
 fin sql can read it from the settings table. Nothing older is deleted; it
 stays in the database as history. With no argument, shows it; none clears it.`,
 		examples: []string{"fin epoch", "fin epoch 2025-05-01",
@@ -184,7 +184,7 @@ Tables:
   items         item_id, item, institution, cursor, status, last_sync
   settings      key, value: the epoch set with fin epoch, under 'epoch'
 
-With a retailer connected (fin amazon), also:
+With a retailer connected (fin amazon or fin costco), also:
   retailer_items      every item bought: retailer, account, item, product,
                       order_id, line, date, title, quantity, cost (with its
                       share of tax, shipping and discounts), transaction_id
@@ -193,7 +193,10 @@ With a retailer connected (fin amazon), also:
   item_categories     retailer, item, category, category_detailed, set_at
   product_categories  retailer, product, category, category_detailed, set_at
   retailer_accounts   retailer, account, last_sync, status, limited_until
-and the retailer's own tables (see fin help amazon).
+and the retailer's own tables (fin help amazon, fin help costco):
+  costco_receipts     warehouse receipt totals and raw JSON
+  costco_items        receipt lines, item numbers, amounts and costs
+  costco_matches      receipt totals matched to bank transactions
 
 Amounts use Plaid's sign: positive is money out, negative is money in.`,
 		examples: []string{
@@ -311,6 +314,62 @@ Keychain. Your Chrome stays signed in; fin never changes it.`,
 			"fin sql \"select date, title, cost, category from retailer_items where retailer = 'amazon' order by date desc\"",
 		},
 		run: func(a *App) command { return a.cmdAmazon },
+	},
+	{
+		name: "costco", usage: "fin costco [list|login|sync|categorize|logout]", group: groupMore,
+		summary: "Itemize Costco warehouse receipts (experimental)",
+		detail: `Experimental. Reads US Costco warehouse receipts and their items with the
+sign-in your Chrome profile holds. This uses Costco's undocumented website
+endpoints, may be against its terms, and can break or be blocked at any time.
+It is off until you connect an account. Gas, car wash and online orders are
+not included.
+
+  fin costco                     accounts, receipts, items, matches, status
+  fin costco login <name>         read the sign-in from Chrome, verify it,
+                                 then read receipts; --profile P picks a
+                                 Chrome profile; --no-sync connects only
+  fin costco sync [name]          read receipts; fin sync does this too
+  fin costco categorize          items without a category; --all lists all
+                                 --set reads a JSON list on stdin, or takes
+                                 <item> <category> [--detailed C] [--product]
+  fin costco logout <name>        forget the session and account's stored rows
+
+Reads back to a week before fin epoch, or the oldest bank transaction, else
+two years. Windows are saved newest first; an interrupted initial sync
+resumes at the next window. Later syncs read new days and reread the last
+60 days for returns, including any gap since the last successful sync.
+Requests are one at a time, a few seconds apart. COSTCO_RATE_LIMITED includes
+retry_at; do not retry before it. COSTCO_SIGNIN_EXPIRED needs a fresh login.
+
+Every money value is kept to the cent. Each item's cost is its amount plus
+its share of tax, so items sum to the receipt total. Discount lines remain
+separate negative items. fin stores what Costco shows; it guesses nothing.
+
+Tables (fin sql):
+  costco_receipts  account, barcode, date, warehouse_number, warehouse_name,
+                   transaction_type, subtotal, tax, total, instant_savings,
+                   card_last4, no_bank_charge, split_tender, raw (JSON)
+  costco_items     account, barcode, line, item_number, title, quantity,
+                   unit_price, amount, tax_flag, department, cost
+  costco_matches   each receipt's match and transaction_id: exact, ambiguous,
+                   unmatched, no_bank_charge. Same total, bank authorized_date
+                   (else date) within ±3 days, Costco merchant/name and card
+                   last four versus account mask when both are known.
+                   Split tenders stay unmatched; cash, shop cards and rewards
+                   alone have no bank charge. Multiple candidates on either
+                   side are ambiguous, never guessed.
+
+retailer_items includes Costco with retailer = 'costco', product = its item
+number, order_id = barcode and line = the receipt position. Its item handle
+is <account>/<barcode>#<line>. Categories survive resyncs and reparsing.
+fin sheet includes a Costco items tab. Avoid counting both items and their
+matched bank charge as spending.`,
+		examples: []string{
+			"fin costco login home --profile Default",
+			"fin costco categorize --set home/receipt-1#2 FOOD_AND_DRINK --product",
+			"fin sql \"select date, title, cost, category from retailer_items where retailer = 'costco' order by date desc\"",
+		},
+		run: func(a *App) command { return a.cmdCostco },
 	},
 	{name: "sandbox-link", hidden: true, run: func(a *App) command { return a.cmdSandboxLink }},
 	{name: "sandbox-reset-login", hidden: true, run: func(a *App) command { return a.cmdSandboxResetLogin }},

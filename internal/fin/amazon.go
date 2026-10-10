@@ -7,10 +7,10 @@ import (
 	"flag"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/kilianc/fin/internal/amazon"
+	"github.com/kilianc/fin/internal/chrome"
 	"github.com/kilianc/fin/internal/state"
 	"github.com/kilianc/fin/internal/store"
 	"github.com/kilianc/fin/internal/ui"
@@ -31,25 +31,7 @@ func init() {
 }
 
 func (a *App) cmdAmazon(ctx context.Context, args []string) (*result, error) {
-	sub, rest := "", args
-	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
-		sub, rest = args[0], args[1:]
-	}
-	switch sub {
-	case "", "list":
-		return a.cmdAmazonList(ctx, rest)
-	case "login":
-		return a.cmdAmazonLogin(ctx, rest)
-	case "logout":
-		return a.cmdLogout(ctx, amazonRetailer, rest)
-	case "sync":
-		return a.cmdAmazonSync(ctx, rest)
-	case "categorize":
-		return a.cmdCategorize(ctx, amazonRetailer, rest)
-	case "profiles":
-		return a.cmdAmazonProfiles(ctx, rest)
-	}
-	return nil, usageErr("unknown subcommand %q; run fin help amazon", sub)
+	return a.cmdRetailer(ctx, amazonRetailer, args, a.cmdAmazonList, a.cmdAmazonLogin, a.cmdAmazonSync, a.cmdAmazonProfiles)
 }
 
 func (a *App) amazonBase() string {
@@ -94,7 +76,7 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 		return nil, err
 	}
 	client := amazon.NewClient(&sess, a.amazonBase())
-	client.Gate.Wait = a.AmazonPause
+	client.Gate = a.retailerGate(amazonRetailer, a.AmazonPause)
 	log, closeLog := a.requestLog(acct)
 	defer closeLog()
 	client.Log = log
@@ -275,16 +257,13 @@ func (a *App) cmdAmazonSync(ctx context.Context, args []string) (*result, error)
 	if err != nil {
 		return nil, err
 	}
-	accts := st.RetailerAccounts(amazonRetailer.ID, string(a.Env))
+	name := ""
 	if len(pos) == 1 {
-		acct, ok := st.FindRetailer(amazonRetailer.ID, string(a.Env), pos[0])
-		if !ok {
-			return nil, a.noAccountErr(st, amazonRetailer, pos[0])
-		}
-		accts = []state.RetailerAccount{acct}
+		name = pos[0]
 	}
-	if len(accts) == 0 {
-		return nil, newErr("NO_AMAZON_ACCOUNT", "no Amazon account is connected; run fin amazon login <name>")
+	accts, err := a.connectedAccounts(st, amazonRetailer, name)
+	if err != nil {
+		return nil, err
 	}
 	s, err := a.openStore(ctx)
 	if err != nil {
@@ -335,7 +314,7 @@ func (a *App) cmdAmazonProfiles(ctx context.Context, args []string) (*result, er
 	if len(args) > 0 {
 		return nil, usageErr("usage: fin amazon profiles")
 	}
-	profiles, err := a.chromeProfiles()
+	profiles, err := a.amazonProfiles()
 	if err != nil {
 		return nil, err
 	}
@@ -350,20 +329,12 @@ func (a *App) cmdAmazonProfiles(ctx context.Context, args []string) (*result, er
 	return &result{body: map[string]any{"profiles": profiles}, table: t}, nil
 }
 
-// chromeProfiles lists Chrome's profiles and which are signed in to Amazon.
-func (a *App) chromeProfiles() ([]chromeProfile, error) {
-	profiles, err := a.Chrome.Profiles()
-	if errors.Is(err, amazon.ErrNoChrome) {
-		return nil, newErr("NO_CHROME", "fin amazon reads your Amazon sign-in from Google Chrome, which is not set up on this Mac")
-	}
-	if err != nil {
-		return nil, newErr("CHROME_ERROR", "%v", err)
-	}
-	out := make([]chromeProfile, len(profiles))
-	for i, p := range profiles {
-		out[i] = chromeProfile{Dir: p.Dir, Name: p.Name, SignedIn: p.Amazon}
-	}
-	return out, nil
+func (a *App) amazonProfiles() ([]chromeProfile, error) {
+	return a.chromeProfiles(amazonRetailer, func(c chrome.Chrome, profile string) (bool, error) {
+		// A profile without cookies is simply signed out.
+		ok, _ := c.HasCookies(profile, []string{".amazon.com", "www.amazon.com", "amazon.com"})
+		return ok, nil
+	})
 }
 
 var amazonLoginSteps = []string{
@@ -374,37 +345,11 @@ var amazonLoginSteps = []string{
 }
 
 func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error) {
-	fs := flag.NewFlagSet("amazon login", flag.ContinueOnError)
-	profileFlag := fs.String("profile", "", "the Chrome profile, by directory or name")
-	noSync := fs.Bool("no-sync", false, "connect without reading payments and orders yet")
-	pos, err := parseArgs(fs, args)
+	st, acct, profile, noSync, err := a.loginAccount(amazonRetailer, args, a.amazonProfiles)
 	if err != nil {
 		return nil, err
 	}
-	if len(pos) != 1 {
-		return nil, usageErr("usage: fin amazon login <name> [--profile P]")
-	}
-	name := strings.ToLower(pos[0])
-	if !accountName.MatchString(name) {
-		return nil, usageErr("an Amazon account name is lowercase letters, digits and dashes, such as kilian or home")
-	}
-	profiles, err := a.chromeProfiles()
-	if err != nil {
-		return nil, err
-	}
-	profile, err := a.pickProfile(amazonRetailer, profiles, *profileFlag)
-	if err != nil {
-		return nil, err
-	}
-	st, err := a.loadState()
-	if err != nil {
-		return nil, err
-	}
-	acct, exists := st.FindRetailer(amazonRetailer.ID, string(a.Env), name)
-	if !exists {
-		acct = state.RetailerAccount{Retailer: amazonRetailer.ID, Name: name, Env: string(a.Env), ConnectedAt: a.Now().UTC()}
-	}
-	acct.Profile, acct.ProfileName = profile.Dir, profile.Name
+	name := acct.Name
 
 	var view *amazonSyncView
 	work := func(ctx context.Context, r ui.Reporter) (ui.FlowResult, error) {
@@ -412,13 +357,14 @@ func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error
 		if !a.onScreen {
 			fmt.Fprintln(a.Stderr, "macOS will ask to allow access to \"Chrome Safe Storage\"; click Allow (not Always Allow).")
 		}
-		sess, err := a.Chrome.Session(profile.Dir)
+		sess, err := amazon.Chrome(a.Chrome).Session(profile.Dir)
 		if err != nil {
 			return ui.FlowResult{}, newErr("CHROME_ERROR", "%v", err)
 		}
 		r.Done(0, fmt.Sprintf("%d cookies from %s", len(sess.Cookies), profile.Name))
 		r.Start(1, "")
 		client := amazon.NewClient(sess, a.amazonBase())
+		client.Gate = a.retailerGate(amazonRetailer, a.AmazonPause)
 		if err := client.Check(ctx); err != nil {
 			if errors.Is(err, amazon.ErrSignIn) {
 				return ui.FlowResult{}, newErr("AMAZON_NOT_SIGNED_IN",
@@ -434,7 +380,7 @@ func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error
 			return ui.FlowResult{}, err
 		}
 		r.Done(1, "signed in")
-		if *noSync {
+		if noSync {
 			return ui.FlowResult{Message: "Connected. Run fin amazon sync to read your payments and orders."}, nil
 		}
 		s, err := a.openStore(ctx)
@@ -462,24 +408,7 @@ func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error
 		return ui.FlowResult{Message: fmt.Sprintf("Connected %s and read %d orders. Next: fin amazon categorize.", name, view.Orders)}, nil
 	}
 
-	if a.showSpinner() {
-		a.onScreen = true
-		_, err = ui.Flow(ctx, a.Stdin, a.Stderr, ui.FlowOptions{
-			Title:    "fin → Amazon",
-			Subtitle: "Experimental. fin copies your Amazon sign-in from Chrome, then reads your payments and order pages from amazon.com, the way your browser does. Amazon does not offer this officially; it can stop working at any time.",
-			Steps:    amazonLoginSteps,
-		}, work)
-		a.onScreen = false
-		if errors.Is(err, ui.ErrCancelled) || errors.Is(err, context.Canceled) {
-			return nil, newErr("CANCELLED", "cancelled")
-		}
-	} else {
-		var r ui.Reporter = ui.PlainReporter{W: a.Stderr, Steps: amazonLoginSteps}
-		if !a.human {
-			r = linkOnlyReporter{a}
-		}
-		_, err = work(ctx, r)
-	}
+	err = a.runLogin(ctx, amazonRetailer, "Experimental. fin copies your Amazon sign-in from Chrome, then reads your payments and order pages from amazon.com, the way your browser does. Amazon does not offer this officially; it can stop working at any time.", amazonLoginSteps, work)
 	if err != nil {
 		return nil, err
 	}
@@ -500,49 +429,16 @@ type amazonAccountView struct {
 }
 
 func (a *App) cmdAmazonList(ctx context.Context, args []string) (*result, error) {
-	if len(args) > 0 {
-		return nil, usageErr("usage: fin amazon")
-	}
-	st, err := a.loadState()
-	if err != nil {
-		return nil, err
-	}
-	accts := st.RetailerAccounts(amazonRetailer.ID, string(a.Env))
-	sums := map[string]store.AmazonSummary{}
-	if len(accts) > 0 {
-		// Opened for writing so a database from an older fin gets the tables
-		// and views this one reads.
-		s, err := a.openStore(ctx)
-		if err != nil {
-			return nil, err
-		}
-		sums, err = s.AmazonSummaries(ctx)
-		s.Close()
-		if err != nil {
-			return nil, storeErr(err)
-		}
-	}
-	views := []amazonAccountView{}
-	t := &ui.Table{
-		Title:   fmt.Sprintf("Amazon · %d accounts · experimental", len(accts)),
-		Headers: []string{"Account", "Chrome profile", "Payments", "Orders", "Items", "To categorize", "Matched", "Last sync"},
-		Right:   []int{2, 3, 4, 5, 6},
-		Footer:  "Connect another with fin amazon login <name>.",
-	}
-	for _, acct := range accts {
-		sum := sums[acct.Name]
-		sum.Account = acct.Name
-		if sum.LastSync == nil {
-			sum.LastSync = acct.LastSync
-		}
-		views = append(views, amazonAccountView{AmazonSummary: sum, Profile: acct.ProfileName, ConnectedAt: acct.ConnectedAt})
-		matched := fmt.Sprintf("%d of %d", sum.Matched, sum.Matched+sum.Unmatched+sum.Ambiguous)
-		t.Rows = append(t.Rows, []string{acct.Name, acct.ProfileName, strconv.Itoa(sum.Payments), strconv.Itoa(sum.Orders),
-			strconv.Itoa(sum.Items), strconv.Itoa(sum.Uncategorized), matched, fmtTime(sum.LastSync)})
-	}
-	body := map[string]any{"env": a.Env, "accounts": views}
-	if len(accts) == 0 {
-		return &result{body: body, message: "No Amazon account is connected. Connect one with fin amazon login <name>."}, nil
-	}
-	return &result{body: body, table: t}, nil
+	return listRetailer(a, ctx, amazonRetailer, args, (*store.Store).AmazonSummaries,
+		[]string{"Account", "Chrome profile", "Payments", "Orders", "Items", "To categorize", "Matched", "Last sync"}, []int{2, 3, 4, 5, 6},
+		func(acct state.RetailerAccount, sum store.AmazonSummary) (any, []string) {
+			sum.Account = acct.Name
+			if sum.LastSync == nil {
+				sum.LastSync = acct.LastSync
+			}
+			view := amazonAccountView{AmazonSummary: sum, Profile: acct.ProfileName, ConnectedAt: acct.ConnectedAt}
+			matched := fmt.Sprintf("%d of %d", sum.Matched, sum.Matched+sum.Unmatched+sum.Ambiguous)
+			return view, []string{acct.Name, acct.ProfileName, strconv.Itoa(sum.Payments), strconv.Itoa(sum.Orders),
+				strconv.Itoa(sum.Items), strconv.Itoa(sum.Uncategorized), matched, fmtTime(sum.LastSync)}
+		})
 }

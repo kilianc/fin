@@ -4,22 +4,14 @@
 package amazontest
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/pbkdf2"
-	"crypto/sha1"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
+
+	"github.com/kilianc/fin/internal/chrome/chrometest"
 )
 
 // Server is a fake amazon.com: the payments page, the payments API in pages
@@ -124,46 +116,12 @@ func (f *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ChromeDir makes a Chrome data directory with the given profiles; each
-// profile named in amazon holds an amazon.com session-token cookie with that
-// value, encrypted with password the way Chrome 130 and later do.
+// ChromeDir makes synthetic profiles, with an Amazon session where named.
 func ChromeDir(t *testing.T, password string, profiles map[string]string, amazon map[string]string) string {
 	t.Helper()
-	if _, err := os.Stat("/usr/bin/sqlite3"); err != nil {
-		t.Skip("needs /usr/bin/sqlite3")
+	cookies := map[string][]*http.Cookie{}
+	for profile, value := range amazon {
+		cookies[profile] = []*http.Cookie{{Domain: ".amazon.com", Name: "session-token", Value: value}}
 	}
-	dir := t.TempDir()
-	cache := map[string]any{}
-	for d, name := range profiles {
-		cache[d] = map[string]string{"name": name}
-	}
-	ls, _ := json.Marshal(map[string]any{"profile": map[string]any{"info_cache": cache}})
-	os.WriteFile(filepath.Join(dir, "Local State"), ls, 0o600)
-	os.WriteFile(filepath.Join(dir, "Last Version"), []byte("154.0.8037.98"), 0o600)
-	key, _ := pbkdf2.Key(sha1.New, password, []byte("saltysalt"), 1003, 16)
-	block, _ := aes.NewCipher(key)
-	for d := range profiles {
-		pdir := filepath.Join(dir, d)
-		os.MkdirAll(pdir, 0o700)
-		sql := `create table meta(key text, value text); insert into meta values ('version', '24');
-create table cookies(host_key text, name text, path text, value text, encrypted_value blob, is_secure int, is_httponly int, expires_utc int);
-insert into cookies values ('.example.com', 'other', '/', 'nope', x'', 0, 0, 0);`
-		if value, ok := amazon[d]; ok {
-			host := ".amazon.com"
-			sum := sha256.Sum256([]byte(host))
-			pt := append(sum[:], value...)
-			pad := aes.BlockSize - len(pt)%aes.BlockSize
-			for range pad {
-				pt = append(pt, byte(pad))
-			}
-			ct := make([]byte, len(pt))
-			cipher.NewCBCEncrypter(block, []byte(strings.Repeat(" ", 16))).CryptBlocks(ct, pt)
-			sql += fmt.Sprintf("\ninsert into cookies values ('%s', 'session-token', '/', '', x'%s', 1, 1, 13500000000000000);",
-				host, hex.EncodeToString(append([]byte("v10"), ct...)))
-		}
-		if out, err := exec.Command("/usr/bin/sqlite3", filepath.Join(pdir, "Cookies"), sql).CombinedOutput(); err != nil {
-			t.Fatalf("sqlite3: %v: %s", err, out)
-		}
-	}
-	return dir
+	return chrometest.Dir(t, password, profiles, cookies)
 }

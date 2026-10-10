@@ -107,7 +107,7 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.db.ExecContext(ctx, schema+retailerSchema+amazonSchema+retailerItemsView()); err != nil {
+	if _, err := s.db.ExecContext(ctx, schema+retailerSchema+amazonSchema+costcoSchema+retailerItemsView()); err != nil {
 		s.Close()
 		return nil, fmt.Errorf("store: create schema: %w", err)
 	}
