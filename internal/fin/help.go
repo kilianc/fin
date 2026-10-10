@@ -186,7 +186,8 @@ Tables:
 
 With a retailer connected (fin amazon or fin costco), also:
   retailer_items      every item bought: retailer, account, item, product,
-                      order_id, line, date, title, quantity, cost (with its
+                      order_id, line, date, title, quantity (can be
+                      fractional), cost (with its
                       share of tax, shipping and discounts), transaction_id
                       (a bank transaction that paid for the order), category,
                       category_detailed, category_source (item, product, none)
@@ -316,7 +317,7 @@ Keychain. Your Chrome stays signed in; fin never changes it.`,
 		run: func(a *App) command { return a.cmdAmazon },
 	},
 	{
-		name: "costco", usage: "fin costco [list|login|sync|categorize|logout]", group: groupMore,
+		name: "costco", usage: "fin costco [list|login|sync|categorize|profiles|logout]", group: groupMore,
 		summary: "Itemize Costco warehouse receipts (experimental)",
 		detail: `Experimental. Reads US Costco warehouse receipts and their items with the
 sign-in your Chrome profile holds. This uses Costco's undocumented website
@@ -332,6 +333,7 @@ not included.
   fin costco categorize          items without a category; --all lists all
                                  --set reads a JSON list on stdin, or takes
                                  <item> <category> [--detailed C] [--product]
+  fin costco profiles            Chrome profiles and which are signed in
   fin costco logout <name>        forget the session and account's stored rows
 
 Reads back to a week before fin epoch, or the oldest bank transaction, else
@@ -342,26 +344,38 @@ Requests are one at a time, a few seconds apart. COSTCO_RATE_LIMITED includes
 retry_at; do not retry before it. COSTCO_SIGNIN_EXPIRED needs a fresh login.
 
 Every money value is kept to the cent. Each item's cost is its amount plus
-its share of tax, so items sum to the receipt total. Discount lines remain
-separate negative items. fin stores what Costco shows; it guesses nothing.
+its share of the tax Costco charged: taxed lines (tax_flag Y) and their
+discounts share it by amount, untaxed lines cost what they say, and items
+sum to the receipt total. A discount ("/ 1234567") stays its own negative
+line; discount_for is the line it takes money off. A receipt fin cannot
+read is kept with its raw JSON and error, without items, and is read again
+when fin's parser changes; it never stops a sync. fin stores what Costco
+shows; it guesses nothing.
 
 Tables (fin sql):
   costco_receipts  account, barcode, date, warehouse_number, warehouse_name,
                    transaction_type, subtotal, tax, total, instant_savings,
-                   card_last4, no_bank_charge, split_tender, raw (JSON)
+                   error (why fin could not read it), raw (JSON)
   costco_items     account, barcode, line, item_number, title, quantity,
-                   unit_price, amount, tax_flag, department, cost
-  costco_matches   each receipt's match and transaction_id: exact, ambiguous,
-                   unmatched, no_bank_charge. Same total, bank authorized_date
+                   unit_price, amount, tax_flag, department, discount_for, cost
+  costco_tenders   account, barcode, tender, type, description, card_last4,
+                   amount, no_bank_charge: each payment on a receipt
+  costco_matches   each payment's match and transaction_id: exact, ambiguous,
+                   unmatched, no_bank_charge. Same amount, bank authorized_date
                    (else date) within ±3 days, Costco merchant/name and card
-                   last four versus account mask when both are known.
-                   Split tenders stay unmatched; cash, shop cards and rewards
-                   alone have no bank charge. Multiple candidates on either
-                   side are ambiguous, never guessed.
+                   last four versus account mask when both are known. A
+                   receipt paid two ways matches each card payment on its
+                   own; cash, shop cards and rewards have no bank charge; a
+                   receipt listing no payments is matched on its total
+                   (tender 0). Several candidates on either side are
+                   ambiguous, never guessed.
 
 retailer_items includes Costco with retailer = 'costco', product = its item
-number, order_id = barcode and line = the receipt position. Its item handle
-is <account>/<barcode>#<line>. Categories survive resyncs and reparsing.
+number (a discount's is the item it discounts, so a product category covers
+it), order_id = barcode, line = the receipt position, and transaction_id =
+the first matched card payment. Its item handle is <account>/<barcode>#<line>.
+Quantities can be fractional (sold by weight). Categories survive resyncs
+and reparsing.
 fin sheet includes a Costco items tab. Avoid counting both items and their
 matched bank charge as spending.`,
 		examples: []string{

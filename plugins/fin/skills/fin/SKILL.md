@@ -115,14 +115,19 @@ included.
 - `retailer_items` includes Costco with `retailer = 'costco'`, `product` =
   Costco's item number, `order_id` = receipt barcode and `line` = position.
   An item handle is `<account>/<barcode>#<line>`. `cost` is the line's amount
-  plus its share of tax; receipt items sum to the total. Keep negative
-  discount lines as their own items. Do not merge them with purchases.
-- `costco_receipts` holds totals and raw JSON; `costco_items` holds receipt
-  lines. `costco_matches` has `exact`, `ambiguous`, `unmatched` and
-  `no_bank_charge` outcomes using the receipt total, bank authorized date
-  (else date) within ±3 days, Costco merchant/name and last four when both
-  sides show them. Split tenders remain unmatched. Never turn an ambiguous
-  or unmatched receipt into a guessed bank match.
+  plus its share of the tax Costco charged on taxed lines (`tax_flag` Y) and
+  their discounts; untaxed lines get none, and receipt items sum to the
+  total. Keep negative discount lines (`discount_for` names the line) as
+  their own items; their `product` is the discounted item's number, so a
+  product category covers them.
+- `costco_receipts` holds totals and raw JSON; a receipt with `error` set
+  could not be read and has no items (report it, don't reconstruct it).
+  `costco_items` holds receipt lines, `costco_tenders` each payment.
+  `costco_matches` matches each payment, not the receipt: `exact`,
+  `ambiguous`, `unmatched` or `no_bank_charge` (cash, shop card, rewards),
+  on amount, bank authorized date (else date) within ±3 days, Costco
+  merchant/name and last four when both sides show them. Never turn an
+  ambiguous or unmatched payment into a guessed bank match.
 - Use `fin costco categorize --json`, then `fin costco categorize --set
   --json` with the same JSON list and Plaid categories described above.
   `product: true` sets a default by item number. Categories survive resyncs

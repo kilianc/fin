@@ -2,6 +2,8 @@ package costco
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,33 +21,39 @@ import (
 const ParserVersion = 1
 
 // Receipt is a warehouse receipt as Costco shows it. Discounts remain lines
-// of their own. Tenders are kept even when the whole receipt cannot match a
-// single bank charge.
+// of their own. Error is set, and Items and Tenders are empty, when fin
+// could not read the receipt; it is kept so one odd receipt never stops a
+// sync, and is read again when the parser changes.
 type Receipt struct {
 	Barcode, Date, DateTime                               string
 	Warehouse, WarehouseName, Register, Transaction, Type string
 	Subtotal, Tax, Total, Savings                         money.Cents
-	CardLast4                                             string
-	NoBankCharge, SplitTender                             bool
 	Items                                                 []Item
 	Tenders                                               []Tender
+	Error                                                 string
 	Raw                                                   json.RawMessage
 }
 
-// Item is one line, numbered from one in receipt order. Cost includes its
-// share of tax in proportion to signed amounts; all costs sum to the
-// receipt total, to the cent.
+// Item is one line, numbered from one in receipt order. Cost is its amount
+// plus its share of the tax: taxable lines (tax flag Y) and their discounts
+// share it in proportion to their amounts, so all costs sum to the receipt
+// total, to the cent. DiscountFor is the line a discount ("/ 1234567")
+// takes money off, when that item is on the receipt.
 type Item struct {
-	Line                               int
+	Line, DiscountFor                  int
 	Number, Title, TaxFlag, Department string
 	Quantity                           float64
 	UnitPrice, Amount, Cost            money.Cents
 }
 
-// Tender is a payment method on a receipt. Amount keeps Costco's sign.
+// Tender is one payment on a receipt, numbered from one. Amount keeps
+// Costco's sign. NoBankCharge marks cash, shop cards and rewards, which
+// leave no bank transaction behind.
 type Tender struct {
+	Tender                   int
 	Type, Description, Last4 string
 	Amount                   money.Cents
+	NoBankCharge             bool
 }
 
 // dollars converts API money at the JSON boundary. All stored arithmetic
@@ -88,10 +96,19 @@ func (s *scalar) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-var lastFour = regexp.MustCompile(`^(?:[Xx*• ]*)([0-9]{4})$`)
+var (
+	lastFour = regexp.MustCompile(`^(?:[Xx*• ]*)([0-9]{4})$`)
+	// A discount line's title is a slash and the item number it applies to.
+	discountOf = regexp.MustCompile(`^/\s*([0-9]+)$`)
+)
+
+// noBank are the tender types paid without a bank or card account.
+var noBank = map[string]bool{"cash": true, "shop card": true, "costco shop card": true, "cash card": true, "costco cash card": true,
+	"gift card": true, "costco gift card": true, "executive reward": true, "executive rewards": true,
+	"reward certificate": true, "rewards certificate": true, "citi reward certificate": true}
 
 // ParseReceipt reads one warehouse receipt. Missing totals or lines that
-// do not reconcile stop the window instead of inventing an adjustment.
+// do not reconcile are an error, never an invented adjustment.
 func ParseReceipt(raw []byte) (*Receipt, error) {
 	var r struct {
 		Barcode             scalar   `json:"transactionBarcode"`
@@ -129,11 +146,7 @@ func ParseReceipt(raw []byte) (*Receipt, error) {
 	if r.Barcode == "" || r.Subtotal == nil || r.Tax == nil || r.Total == nil || len(r.Items) == 0 {
 		return nil, errors.New("costco: receipt is missing its barcode, totals or items")
 	}
-	day := r.TransactionDate
-	if day == "" {
-		day = r.TransactionDateTime
-	}
-	date, err := receiptDate(day)
+	date, err := receiptDate(r.TransactionDate, r.TransactionDateTime)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +156,6 @@ func ParseReceipt(raw []byte) (*Receipt, error) {
 	if r.Savings != nil {
 		o.Savings = r.Savings.Cents
 	}
-	weights := make([]money.Cents, len(r.Items))
 	var sum money.Cents
 	for i, it := range r.Items {
 		q, err := strconv.ParseFloat(string(it.Quantity), 64)
@@ -157,60 +169,110 @@ func ParseReceipt(raw []byte) (*Receipt, error) {
 		o.Items = append(o.Items, Item{Line: i + 1, Number: string(it.Number), Title: title, Quantity: q,
 			UnitPrice: it.UnitPrice.Cents, Amount: it.Amount.Cents, TaxFlag: string(it.TaxFlag), Department: string(it.Department)})
 		sum += it.Amount.Cents
-		weights[i] = it.Amount.Cents
-		// A return has negative amounts and tax. Positive weights let Spread
-		// distribute that negative tax proportionally across the return.
-		if o.Subtotal < 0 {
-			weights[i] = -weights[i]
-		}
 	}
 	if sum != o.Subtotal || o.Subtotal+o.Tax != o.Total {
 		return nil, errors.New("costco: receipt items and tax do not add up to its total")
 	}
-	for i, tax := range money.Spread(o.Tax, weights) {
+	line := map[string]int{}
+	for _, it := range o.Items {
+		if _, ok := line[it.Number]; !ok && !discountOf.MatchString(it.Title) {
+			line[it.Number] = it.Line
+		}
+	}
+	for i, it := range o.Items {
+		if m := discountOf.FindStringSubmatch(it.Title); m != nil {
+			o.Items[i].DiscountFor = line[m[1]]
+		}
+	}
+	for i, tax := range money.Spread(o.Tax, taxWeights(o.Items)) {
 		o.Items[i].Cost = o.Items[i].Amount + tax
 	}
-	var tenderTotal money.Cents
-	nonzero, nonbank := 0, 0
-	for _, t := range r.Tenders {
+	for i, t := range r.Tenders {
 		if t.Amount == nil {
 			return nil, errors.New("costco: tender has no amount")
 		}
-		tender := Tender{Type: t.Type, Description: t.Description, Amount: t.Amount.Cents}
+		tender := Tender{Tender: i + 1, Type: t.Type, Description: t.Description, Amount: t.Amount.Cents}
 		if m := lastFour.FindStringSubmatch(strings.TrimSpace(t.Account)); m != nil {
 			tender.Last4 = m[1]
 		}
-		o.Tenders = append(o.Tenders, tender)
-		if tender.Amount == 0 {
-			continue
-		}
-		nonzero++
-		tenderTotal += tender.Amount
 		kind := strings.TrimSpace(strings.ToLower(t.Type))
 		if kind == "" {
 			kind = strings.TrimSpace(strings.ToLower(t.Description))
 		}
-		switch kind {
-		case "cash", "shop card", "costco shop card", "cash card", "costco cash card", "gift card", "costco gift card",
-			"executive reward", "executive rewards", "reward certificate", "rewards certificate", "citi reward certificate":
-			nonbank++
-		}
-
-		o.CardLast4 = tender.Last4
-	}
-	o.NoBankCharge = o.Total == 0 || (nonzero > 0 && nonzero == nonbank && tenderTotal == o.Total)
-	// Split or inconsistent tenders cannot identify a bank transaction for
-	// the whole receipt. Do not attach any one card's last four to it.
-	o.SplitTender = nonzero > 1 || (len(r.Tenders) > 0 && tenderTotal != o.Total)
-	if o.SplitTender || o.NoBankCharge {
-		o.CardLast4 = ""
+		tender.NoBankCharge = noBank[kind]
+		o.Tenders = append(o.Tenders, tender)
 	}
 	return o, nil
 }
 
-func receiptDate(s string) (string, error) {
-	for _, layout := range []string{time.RFC3339Nano, "2006-01-02T15:04:05", "2006-01-02 15:04:05", "2006-01-02", "1/2/2006"} {
-		if d, err := time.Parse(layout, s); err == nil {
+// taxWeights spreads tax over the lines Costco taxed: tax flag Y, and the
+// discounts on them. A receipt with no flagged line spreads it over all.
+// Weights are signed so a return's negative tax follows its negative lines.
+func taxWeights(items []Item) []money.Cents {
+	taxed := func(it Item) bool {
+		if it.DiscountFor > 0 {
+			it = items[it.DiscountFor-1]
+		}
+		return strings.EqualFold(it.TaxFlag, "Y")
+	}
+	weights := make([]money.Cents, len(items))
+	for _, all := range []bool{false, true} {
+		var base money.Cents
+		for i, it := range items {
+			weights[i] = 0
+			if all || taxed(it) {
+				weights[i] = it.Amount
+				base += it.Amount
+			}
+		}
+		if base < 0 {
+			for i := range weights {
+				weights[i] = -weights[i]
+			}
+		}
+		if base != 0 {
+			break
+		}
+	}
+	return weights
+}
+
+// Unreadable keeps a receipt fin could not read: its raw JSON, the reason,
+// and whatever identifies it. A receipt without a barcode is keyed by its
+// content, so reading it again finds the same row.
+func Unreadable(raw []byte, cause error) Receipt {
+	var r struct {
+		Barcode             scalar `json:"transactionBarcode"`
+		TransactionDate     scalar `json:"transactionDate"`
+		TransactionDateTime scalar `json:"transactionDateTime"`
+		Warehouse           scalar `json:"warehouseNumber"`
+		WarehouseName       scalar `json:"warehouseName"`
+	}
+	_ = json.Unmarshal(raw, &r)
+	o := Receipt{Barcode: string(r.Barcode), DateTime: string(r.TransactionDateTime), Warehouse: string(r.Warehouse),
+		WarehouseName: string(r.WarehouseName), Error: cause.Error(), Raw: append(json.RawMessage(nil), raw...)}
+	if o.Barcode == "" {
+		sum := sha256.Sum256(raw)
+		o.Barcode = "unreadable-" + hex.EncodeToString(sum[:8])
+	}
+	o.Date, _ = receiptDate(string(r.TransactionDate), string(r.TransactionDateTime))
+	if !json.Valid(o.Raw) {
+		b, _ := json.Marshal(string(raw))
+		o.Raw = b
+	}
+	return o
+}
+
+// receiptDate is the receipt's own calendar day, as printed: the date, or
+// the day part of its local date and time, never shifted by a time zone.
+func receiptDate(day, dateTime string) (string, error) {
+	for _, s := range []string{day, dateTime} {
+		if len(s) >= 10 {
+			if d, err := time.Parse("2006-01-02", s[:10]); err == nil {
+				return d.Format("2006-01-02"), nil
+			}
+		}
+		if d, err := time.Parse("1/2/2006", s); err == nil {
 			return d.Format("2006-01-02"), nil
 		}
 	}

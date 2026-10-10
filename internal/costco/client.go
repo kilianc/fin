@@ -231,17 +231,21 @@ func (c *Client) Receipts(ctx context.Context, window Window) ([]Receipt, error)
 		if len(r.Errors) > 0 {
 			return nil, errors.New("costco: receipts query returned errors")
 		}
+		// A receipt fin cannot read is kept as unreadable rather than
+		// stopping the window; a repeated barcode keeps the last copy.
 		out := make([]Receipt, 0, len(r.Data.Receipts.Rows))
-		seen := map[string]bool{}
+		at := map[string]int{}
 		for _, raw := range r.Data.Receipts.Rows {
 			receipt, err := ParseReceipt(raw)
 			if err != nil {
-				return nil, err
+				u := Unreadable(raw, err)
+				receipt = &u
 			}
-			if receipt.Date < window.Start || receipt.Date > window.End || seen[receipt.Barcode] {
-				return nil, errors.New("costco: receipts response repeats a receipt or falls outside the requested window")
+			if i, ok := at[receipt.Barcode]; ok {
+				out[i] = *receipt
+				continue
 			}
-			seen[receipt.Barcode] = true
+			at[receipt.Barcode] = len(out)
 			out = append(out, *receipt)
 		}
 		return out, nil

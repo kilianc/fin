@@ -78,8 +78,7 @@ create table if not exists amazon_items (
 ` + "create or replace view amazon_matches as " + retailerMatches(`
 	select p.payment_key, p.account, p.date, p.amount, p.payment_method, p.descriptor, p.status, p.order_ids,
 		(select first(o.card_last4) from amazon_orders o where list_contains(p.order_ids, o.order_id)) as card_last4,
-		lower(coalesce(p.payment_method, '')) like '%gift card%' or lower(coalesce(p.payment_method, '')) like '%points%' as no_bank,
-		true as matchable
+		lower(coalesce(p.payment_method, '')) like '%gift card%' or lower(coalesce(p.payment_method, '')) like '%points%' as no_bank
 	from amazon_payments p`, "payment_key", 4, "amazon|amzn|audible|kindle|prime video")
 
 // AmazonPaymentKeys returns the keys of the payments stored for account.

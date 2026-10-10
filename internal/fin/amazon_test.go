@@ -288,3 +288,24 @@ func TestAmazonSyncOrderReadsJustThatOrder(t *testing.T) {
 		t.Errorf("--full with --order exit %d, want usage", code)
 	}
 }
+
+func TestAmazonLoginRateLimitStartsTheCooldown(t *testing.T) {
+	ta, srv := amazonApp(t)
+	srv.Limited = 100
+	code, _ := ta.run(t, "amazon", "login", "pat", "--profile", "Pat", "--no-sync", "--json")
+	if e := ta.stderrJSON(t); code != exitError || e["code"] != "AMAZON_RATE_LIMITED" {
+		t.Fatalf("exit=%d error=%v", code, e)
+	}
+	before := 0
+	for _, n := range srv.Requests {
+		before += n
+	}
+	code, _ = ta.run(t, "amazon", "login", "pat", "--profile", "Pat", "--no-sync", "--json")
+	after := 0
+	for _, n := range srv.Requests {
+		after += n
+	}
+	if e := ta.stderrJSON(t); code != exitError || e["code"] != "AMAZON_RATE_LIMITED" || after != before {
+		t.Errorf("login again skipped the cooldown: exit=%d error=%v requests %d→%d", code, e, before, after)
+	}
+}

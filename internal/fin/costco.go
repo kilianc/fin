@@ -17,7 +17,7 @@ import (
 	"github.com/kilianc/fin/internal/ui"
 )
 
-var costcoRetailer = retailer{ID: "costco", Name: "Costco", SignIn: costco.ErrSignIn}
+var costcoRetailer = retailer{ID: "costco", Name: "Costco", Site: "costco.com", SignIn: costco.ErrSignIn}
 
 func init() {
 	costcoRetailer.Sync = func(a *App, ctx context.Context, s *store.Store, st *state.State, acct state.RetailerAccount, p syncProgress) (any, error) {
@@ -30,7 +30,7 @@ func init() {
 }
 
 func (a *App) cmdCostco(ctx context.Context, args []string) (*result, error) {
-	return a.cmdRetailer(ctx, costcoRetailer, args, a.cmdCostcoList, a.cmdCostcoLogin, a.cmdCostcoSync, nil)
+	return a.cmdRetailer(ctx, costcoRetailer, args, a.cmdCostcoList, a.cmdCostcoLogin, a.cmdCostcoSync, a.cmdCostcoProfiles)
 }
 
 func (a *App) costcoClient(acct state.RetailerAccount, sess *costco.Session) *costco.Client {
@@ -43,15 +43,20 @@ func (a *App) costcoClient(acct state.RetailerAccount, sess *costco.Session) *co
 // --- sync ---
 
 type costcoSyncView struct {
-	Account  string     `json:"account"`
-	Since    string     `json:"since"`
-	Receipts int        `json:"receipts_read"`
-	Items    int        `json:"items_read"`
-	LastSync *time.Time `json:"last_sync"`
+	Account    string     `json:"account"`
+	Since      string     `json:"since"`
+	Receipts   int        `json:"receipts_read"`
+	Unreadable int        `json:"receipts_unreadable"`
+	Items      int        `json:"items_read"`
+	LastSync   *time.Time `json:"last_sync"`
 }
 
 func (v *costcoSyncView) summary() (string, int, string) {
-	return v.Account, v.Receipts, fmt.Sprintf("%d receipts, %d items", v.Receipts, v.Items)
+	detail := fmt.Sprintf("%d receipts, %d items", v.Receipts, v.Items)
+	if v.Unreadable > 0 {
+		detail += fmt.Sprintf(", %d unreadable", v.Unreadable)
+	}
+	return v.Account, v.Receipts, detail
 }
 
 // syncCostco saves each date window before advancing coverage. An initial
@@ -124,6 +129,9 @@ func (a *App) syncCostco(ctx context.Context, s *store.Store, st *state.State, a
 		}
 		view.Receipts += len(receipts)
 		for _, r := range receipts {
+			if r.Error != "" {
+				view.Unreadable++
+			}
 			view.Items += len(r.Items)
 			for _, it := range r.Items {
 				progress.feed(feedLine(r.Date, it.Title, it.Cost.USD()))
@@ -132,7 +140,7 @@ func (a *App) syncCostco(ctx context.Context, s *store.Store, st *state.State, a
 		progress.step(0, countProgress(i+1, len(windows), time.Since(start)))
 	}
 	if _, err := s.ReparseCostcoReceipts(ctx, acct.Name); err != nil {
-		return nil, a.syncErr(ctx, s, acct, err)
+		return nil, storeErr(err)
 	}
 	if err := s.SetRetailerSynced(ctx, acct.Retailer, acct.Name, acct.Profile, now.UTC()); err != nil {
 		return nil, storeErr(err)
@@ -258,11 +266,11 @@ func (a *App) cmdCostcoSync(ctx context.Context, args []string) (*result, error)
 	if err != nil {
 		return nil, err
 	}
-	t := &ui.Table{Title: fmt.Sprintf("Costco · %d synced", len(views)), Headers: []string{"Account", "Receipts read", "Items read"}, Right: []int{1, 2},
+	t := &ui.Table{Title: fmt.Sprintf("Costco · %d synced", len(views)), Headers: []string{"Account", "Receipts read", "Items read", "Unreadable"}, Right: []int{1, 2, 3},
 		Footer: "Stored in " + a.storePath() + ". Categorize new items with fin costco categorize."}
 	for _, v := range views {
 		v := v.(*costcoSyncView)
-		t.Rows = append(t.Rows, []string{v.Account, strconv.Itoa(v.Receipts), strconv.Itoa(v.Items)})
+		t.Rows = append(t.Rows, []string{v.Account, strconv.Itoa(v.Receipts), strconv.Itoa(v.Items), strconv.Itoa(v.Unreadable)})
 	}
 	return &result{body: map[string]any{"env": a.Env, "store": a.storePath(), "costco": views, "errors": errs}, table: t, errors: errs}, nil
 }
@@ -270,7 +278,7 @@ func (a *App) cmdCostcoSync(ctx context.Context, args []string) (*result, error)
 // --- login ---
 
 func (a *App) cmdCostcoLogin(ctx context.Context, args []string) (*result, error) {
-	st, acct, profile, noSync, err := a.loginAccount(costcoRetailer, args, func() ([]chromeProfile, error) { return a.chromeProfiles(costcoRetailer, costco.SignedIn) })
+	st, acct, profile, noSync, err := a.loginAccount(costcoRetailer, args, a.costcoProfiles)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +306,7 @@ func (a *App) cmdCostcoLogin(ctx context.Context, args []string) (*result, error
 			r.Start(1, "")
 			client := a.costcoClient(acct, sess)
 			if err := client.Check(ctx); err != nil {
-				return ui.FlowResult{}, a.syncErr(ctx, s, acct, err)
+				return ui.FlowResult{}, a.loginErr(ctx, s, costcoRetailer, acct, profile.Name, err)
 			}
 			st.PutRetailer(acct)
 			if err := a.saveState(st); err != nil {
@@ -319,6 +327,16 @@ func (a *App) cmdCostcoLogin(ctx context.Context, args []string) (*result, error
 	}
 	return &result{body: map[string]any{"env": a.Env, "account": acct.Name, "profile": profile},
 		message: ui.Line(ui.Good, fmt.Sprintf("Connected Costco account %s from Chrome profile %s", acct.Name, profile.Name))}, nil
+}
+
+// --- profiles ---
+
+func (a *App) costcoProfiles() ([]chromeProfile, error) {
+	return a.chromeProfiles(costcoRetailer, costco.SignedIn)
+}
+
+func (a *App) cmdCostcoProfiles(ctx context.Context, args []string) (*result, error) {
+	return a.cmdProfiles(costcoRetailer, a.costcoProfiles, args)
 }
 
 // --- list ---

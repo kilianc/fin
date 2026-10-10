@@ -292,14 +292,14 @@ cand as (
 	select p.%s, b.transaction_id, count(*) over (partition by b.transaction_id) as per_transaction
 	from p join bank b on b.amount = p.amount and b.day between p.date - %d and p.date + %d
 		and (p.card_last4 is null or b.mask is null or b.mask = p.card_last4)
-	where not p.no_bank and p.matchable
+	where not p.no_bank
 ),
 agg as (
 	select %s, count(*) as candidates, any_value(transaction_id) as transaction_id,
 		max(per_transaction) as per_transaction
 	from cand group by %s
 )
-select p.* exclude (no_bank, matchable),
+select p.* exclude (no_bank),
 	case when p.no_bank then 'no_bank_charge'
 		when agg.candidates is null then 'unmatched'
 		when agg.candidates = 1 and agg.per_transaction = 1 then 'exact'

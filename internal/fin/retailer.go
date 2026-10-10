@@ -34,6 +34,7 @@ import (
 type retailer struct {
 	ID   string // "amazon": its name in state, tables, files, the Keychain and error codes
 	Name string // "Amazon"
+	Site string // "amazon.com", where people sign in
 	// SignIn is the error the retailer's client returns once the site no
 	// longer accepts the saved sign-in.
 	SignIn error
@@ -755,6 +756,50 @@ func (a *App) loginAccount(r retailer, args []string, profiles func() ([]chromeP
 	}
 	acct.Profile, acct.ProfileName = profile.Dir, profile.Name
 	return st, acct, profile, *noSync, nil
+}
+
+// loginErr explains why a retailer turned down a sign-in at login. A rate
+// limit starts the cooldown, as in a sync, so logging in again cannot skip
+// it; nothing else is recorded for an account that is not saved yet. s may
+// be nil.
+func (a *App) loginErr(ctx context.Context, s *store.Store, r retailer, acct state.RetailerAccount, profile string, err error) error {
+	switch {
+	case errors.Is(err, context.Canceled):
+		return err
+	case errors.Is(err, r.SignIn):
+		return newErr(r.code("NOT_SIGNED_IN"), "%s did not accept the sign-in from Chrome profile %q; sign in at %s in that profile and run this again", r.Name, profile, r.Site)
+	case errors.Is(err, pace.ErrRateLimited):
+		if s == nil {
+			opened, oerr := a.openStore(ctx)
+			if oerr != nil {
+				return oerr
+			}
+			defer opened.Close()
+			s = opened
+		}
+		return a.syncErr(ctx, s, acct, err)
+	}
+	return newErr(r.code("ERROR"), "%v", err)
+}
+
+// cmdProfiles lists Chrome's profiles and which are signed in to r.
+func (a *App) cmdProfiles(r retailer, profiles func() ([]chromeProfile, error), args []string) (*result, error) {
+	if len(args) > 0 {
+		return nil, usageErr("usage: fin %s profiles", r.ID)
+	}
+	list, err := profiles()
+	if err != nil {
+		return nil, err
+	}
+	t := &ui.Table{Title: "Chrome profiles", Headers: []string{"Profile", "Name", r.Name}}
+	for _, p := range list {
+		signed := ""
+		if p.SignedIn {
+			signed = "signed in"
+		}
+		t.Rows = append(t.Rows, []string{p.Dir, p.Name, signed})
+	}
+	return &result{body: map[string]any{"profiles": list}, table: t}, nil
 }
 
 // runLogin presents a retailer's sign-in steps in the terminal or plain

@@ -16,16 +16,18 @@ import (
 
 const ClientID = "a3a5186b-7c89-4b4c-93a8-dd604e930757"
 
-// Receipt makes a warehouse sale with a separate instant-savings line.
+// Receipt makes a warehouse sale shaped like a real one: a taxed item (Y),
+// an untaxed one (N), and an instant-savings line with no tax flag whose
+// title names the item it discounts.
 func Receipt(barcode, day string) map[string]any {
 	return map[string]any{
 		"transactionBarcode": barcode, "transactionDate": day, "transactionDateTime": day + "T12:34:56",
 		"warehouseNumber": "0123", "warehouseName": "Example Warehouse", "registerNumber": 7, "transactionNumber": "42", "transactionType": "Sale",
 		"subTotal": 13.0, "taxes": 1.04, "total": 14.04, "instantSavings": 2.0,
 		"itemArray": []any{
-			map[string]any{"itemNumber": "101", "itemDescription01": "SYNTHETIC SOAP", "itemDescription02": "", "unit": 2, "itemUnitPriceAmount": 5.0, "amount": 10.0, "taxFlag": "A", "itemDepartmentNumber": 12},
+			map[string]any{"itemNumber": "101", "itemDescription01": "SYNTHETIC SOAP", "itemDescription02": "", "unit": 2, "itemUnitPriceAmount": 5.0, "amount": 10.0, "taxFlag": "Y", "itemDepartmentNumber": 12},
 			map[string]any{"itemNumber": "202", "itemDescription01": "SYNTHETIC APPLES", "unit": 1.25, "itemUnitPriceAmount": 4.0, "amount": 5.0, "taxFlag": "N", "itemDepartmentNumber": 13},
-			map[string]any{"itemNumber": "101", "itemDescription01": "INSTANT SAVINGS", "unit": 1, "itemUnitPriceAmount": -2.0, "amount": -2.0, "taxFlag": "A", "itemDepartmentNumber": 12},
+			map[string]any{"itemNumber": "9001", "itemDescription01": "/  101", "unit": 1, "itemUnitPriceAmount": -2.0, "amount": -2.0, "taxFlag": nil, "itemDepartmentNumber": 12},
 		},
 		"tenderArray": []any{map[string]any{"tenderTypeName": "Visa", "tenderDescription": "Visa", "amountTender": 14.04, "displayAccountNumber": "********4242"}},
 	}

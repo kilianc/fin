@@ -18,7 +18,7 @@ import (
 
 // amazonRetailer is Amazon in what retailers share. Its Sync and Forget are
 // set in init: they lead back to retailers, which would be a cycle here.
-var amazonRetailer = retailer{ID: "amazon", Name: "Amazon", SignIn: amazon.ErrSignIn}
+var amazonRetailer = retailer{ID: "amazon", Name: "Amazon", Site: "amazon.com", SignIn: amazon.ErrSignIn}
 
 func init() {
 	amazonRetailer.Sync = func(a *App, ctx context.Context, s *store.Store, st *state.State, acct state.RetailerAccount, p syncProgress) (any, error) {
@@ -311,22 +311,7 @@ func (a *App) cmdAmazonSync(ctx context.Context, args []string) (*result, error)
 // --- login ---
 
 func (a *App) cmdAmazonProfiles(ctx context.Context, args []string) (*result, error) {
-	if len(args) > 0 {
-		return nil, usageErr("usage: fin amazon profiles")
-	}
-	profiles, err := a.amazonProfiles()
-	if err != nil {
-		return nil, err
-	}
-	t := &ui.Table{Title: "Chrome profiles", Headers: []string{"Profile", "Name", "Amazon"}}
-	for _, p := range profiles {
-		signed := ""
-		if p.SignedIn {
-			signed = "signed in"
-		}
-		t.Rows = append(t.Rows, []string{p.Dir, p.Name, signed})
-	}
-	return &result{body: map[string]any{"profiles": profiles}, table: t}, nil
+	return a.cmdProfiles(amazonRetailer, a.amazonProfiles, args)
 }
 
 func (a *App) amazonProfiles() ([]chromeProfile, error) {
@@ -350,6 +335,16 @@ func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error
 		return nil, err
 	}
 	name := acct.Name
+	// Logging in again must not skip a cooldown Amazon started.
+	s, err := a.openStore(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = a.beginSync(ctx, s, acct)
+	s.Close()
+	if err != nil {
+		return nil, err
+	}
 
 	var view *amazonSyncView
 	work := func(ctx context.Context, r ui.Reporter) (ui.FlowResult, error) {
@@ -366,11 +361,7 @@ func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error
 		client := amazon.NewClient(sess, a.amazonBase())
 		client.Gate = a.retailerGate(amazonRetailer, a.AmazonPause)
 		if err := client.Check(ctx); err != nil {
-			if errors.Is(err, amazon.ErrSignIn) {
-				return ui.FlowResult{}, newErr("AMAZON_NOT_SIGNED_IN",
-					"Amazon did not accept the sign-in from Chrome profile %q; sign in at amazon.com in that profile and run this again", profile.Name)
-			}
-			return ui.FlowResult{}, newErr("AMAZON_ERROR", "%v", err)
+			return ui.FlowResult{}, a.loginErr(ctx, nil, amazonRetailer, acct, profile.Name, err)
 		}
 		if err := a.saveSession(acct, client.Session(profile.Dir)); err != nil {
 			return ui.FlowResult{}, err

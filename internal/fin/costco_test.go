@@ -278,3 +278,53 @@ func TestCostcoEarlierEpochExtendsPendingHistory(t *testing.T) {
 		t.Fatalf("earlier epoch not read: %v", windows)
 	}
 }
+
+func TestCostcoUnreadableReceiptIsKeptAndSyncCarriesOn(t *testing.T) {
+	ta, srv := costcoApp(t)
+	odd := costcotest.Receipt("synthetic-odd", "2026-05-01")
+	odd["total"] = 99.0 // does not add up: fin keeps it unreadable, never adjusts it
+	srv.Rows = append(srv.Rows, costcotest.Raw(t, odd))
+	code, body := ta.run(t, "costco", "login", "home", "--json")
+	if code != exitOK || len(srv.Windows()) != 4 {
+		t.Fatalf("login exit=%d windows=%v stderr=%s", code, srv.Windows(), ta.stderr)
+	}
+	if v := body["costco"].([]any)[0].(map[string]any); v["receipts_read"] != 3.0 || v["receipts_unreadable"] != 1.0 {
+		t.Errorf("sync view=%v", v)
+	}
+	s, err := ta.openStore(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, _ := s.RetailerAccountState(context.Background(), "costco", "home")
+	s.Close()
+	if saved.CompleteSince != "2025-12-25" || saved.ResumeKey != "" {
+		t.Errorf("history stopped at the unreadable receipt: %+v", saved)
+	}
+	code, body = ta.run(t, "costco", "--json")
+	if acct := body["accounts"].([]any)[0].(map[string]any); code != exitOK || acct["unreadable_receipts"] != 1.0 || acct["receipts"] != 3.0 {
+		t.Errorf("list=%v", body)
+	}
+	_, body = ta.run(t, "sql", "--json", `select error from costco_receipts where barcode = 'synthetic-odd'`)
+	if rows := body["rows"].([]any); len(rows) != 1 || rows[0].(map[string]any)["error"] == nil {
+		t.Errorf("unreadable row=%v", body)
+	}
+}
+
+func TestCostcoLoginTurnedDownLeavesNoAccount(t *testing.T) {
+	ta, srv := costcoApp(t)
+	srv.RefreshStatus = 400
+	code, _ := ta.run(t, "costco", "login", "home", "--json")
+	if e := ta.stderrJSON(t); code != exitError || e["code"] != "COSTCO_NOT_SIGNED_IN" {
+		t.Fatalf("exit=%d error=%v", code, e)
+	}
+	_, body := ta.run(t, "sql", "--json", `select count(*) as n from retailer_accounts`)
+	if body["rows"].([]any)[0].(map[string]any)["n"] != 0.0 {
+		t.Errorf("login left a row for an account it did not save: %v", body)
+	}
+	if st, _ := state.Load(ta.StatePath); len(st.RetailerAccounts("costco", "sandbox")) != 0 {
+		t.Error("login saved the account")
+	}
+	if code, body := ta.run(t, "costco", "profiles", "--json"); code != exitOK || len(body["profiles"].([]any)) == 0 {
+		t.Errorf("profiles exit=%d body=%v", code, body)
+	}
+}
