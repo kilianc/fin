@@ -266,6 +266,14 @@ func (s *Store) AmazonOrdersToFetch(ctx context.Context, account string, fresh [
 	return out, rows.Err()
 }
 
+// AmazonOrderAccount is the Amazon account whose payments named the order,
+// or "" when none did.
+func (s *Store) AmazonOrderAccount(ctx context.Context, id string) (string, error) {
+	var account sql.NullString
+	err := s.db.QueryRowContext(ctx, `select first(account) from amazon_payments where list_contains(order_ids, ?)`, id).Scan(&account)
+	return account.String, err
+}
+
 // ApplyAmazonOrder stores an order page and what was read from it. A nil
 // order records a page fin could not read, with why.
 func (s *Store) ApplyAmazonOrder(ctx context.Context, account, id string, page []byte, o *amazon.Order, readErr error, at time.Time) error {

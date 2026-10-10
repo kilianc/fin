@@ -149,7 +149,7 @@ func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, it
 		}
 	}
 	if len(accts) > 0 {
-		_, amazonErrs, err := a.syncAmazonAll(ctx, s, st, accts, false)
+		_, amazonErrs, err := a.syncAmazonAll(ctx, s, st, accts, amazonSync{})
 		if err != nil {
 			return nil, err
 		}

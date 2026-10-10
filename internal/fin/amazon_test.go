@@ -245,3 +245,30 @@ func TestAmazonReadsBackOnlyToTheEpoch(t *testing.T) {
 		t.Errorf("default epoch = %v, want a week before the oldest bank transaction (2026-09-03)", since)
 	}
 }
+
+func TestAmazonSyncOrderReadsJustThatOrder(t *testing.T) {
+	ta, srv := amazonApp(t)
+	if code, _ := ta.run(t, "amazon", "login", "pat", "--json"); code != exitOK {
+		t.Fatalf("login exit %d: %s", code, ta.stderr)
+	}
+	payments, orders := srv.Count("/payments-portal/data/iris/live/v1/data/manage/get-transactions"), srv.Count("/gp/css/summary/print.html")
+
+	code, body := ta.run(t, "amazon", "sync", "--order", multiOrder, "--json")
+	if code != exitOK {
+		t.Fatalf("sync --order exit %d: %s", code, ta.stderr)
+	}
+	if v := body["amazon"].([]any)[0].(map[string]any); v["orders_read"] != 1.0 || v["new_payments"] != 0.0 {
+		t.Errorf("sync --order = %v", v)
+	}
+	if srv.Count("/payments-portal/data/iris/live/v1/data/manage/get-transactions") != payments || srv.Count("/gp/css/summary/print.html") != orders+1 {
+		t.Errorf("sync --order read payments %d→%d, orders %d→%d", payments, srv.Count("/payments-portal/data/iris/live/v1/data/manage/get-transactions"), orders, srv.Count("/gp/css/summary/print.html"))
+	}
+	for _, id := range []string{"D01-0000003-0000003", "nope"} {
+		if code, _ := ta.run(t, "amazon", "sync", "--order", id, "--json"); code != exitUsage {
+			t.Errorf("--order %s exit %d, want usage", id, code)
+		}
+	}
+	if code, _ := ta.run(t, "amazon", "sync", "--full", "--order", multiOrder, "--json"); code != exitUsage {
+		t.Errorf("--full with --order exit %d, want usage", code)
+	}
+}

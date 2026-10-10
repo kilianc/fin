@@ -261,6 +261,8 @@ and which can change or stop working at any time. US amazon.com only.
       --no-sync                  connect without reading anything yet
   fin amazon sync [name]         read new payments and orders; fin sync does
       --full                     this too. --full re-reads every payment
+      --order ID                 read just this order's page again, say after
+                                 a return; repeatable, reads no payments
   fin amazon categorize          items without a category
       --all                      every item
       --set ITEM CATEGORY [DETAILED] [--product]

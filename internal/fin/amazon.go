@@ -191,9 +191,17 @@ type amazonSyncView struct {
 	LastSync   *time.Time `json:"last_sync"`
 }
 
-// syncAmazon reads new payments and the order pages they point to. With
-// full, it re-reads every payment. progress, if set, hears what it is doing.
-func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, acct state.AmazonAccount, full bool, progress func(step int, detail string)) (*amazonSyncView, error) {
+// amazonSync says what a sync reads: by default new payments and the orders
+// they point to. Full re-reads every payment; Orders reads just those order
+// pages and no payments.
+type amazonSync struct {
+	Full   bool
+	Orders []string
+}
+
+// syncAmazon reads payments and the order pages they point to, as opts
+// says. progress, if set, hears what it is doing.
+func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, acct state.AmazonAccount, opts amazonSync, progress func(step int, detail string)) (*amazonSyncView, error) {
 	if progress == nil {
 		progress = func(int, string) {}
 	}
@@ -203,6 +211,11 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	}
 	client := amazon.NewClient(sess, a.amazonBase())
 	client.Wait = a.AmazonPause
+	now := a.Now().UTC()
+	if len(opts.Orders) > 0 {
+		return a.readAmazonOrders(ctx, s, st, acct, client, opts.Orders, &amazonSyncView{Account: acct.Name}, now, progress)
+	}
+	full := opts.Full
 	known, err := s.AmazonPaymentKeys(ctx, acct.Name)
 	if err != nil {
 		return nil, storeErr(err)
@@ -222,7 +235,6 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	// what it read; a full re-read prunes rows Amazon no longer lists only
 	// once it reaches the end.
 	progress(0, "")
-	now := a.Now().UTC()
 	seen := map[string]bool{}
 	fresh := []string{}
 	added := 0
@@ -268,7 +280,12 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	if err != nil {
 		return nil, storeErr(err)
 	}
-	view := &amazonSyncView{Account: acct.Name, Since: epoch, Payments: added}
+	return a.readAmazonOrders(ctx, s, st, acct, client, ids, &amazonSyncView{Account: acct.Name, Since: epoch, Payments: added}, now, progress)
+}
+
+// readAmazonOrders reads and stores the given order pages, a few at a time,
+// then saves the renewed session and the account's last sync.
+func (a *App) readAmazonOrders(ctx context.Context, s *store.Store, st *state.State, acct state.AmazonAccount, client *amazon.Client, ids []string, view *amazonSyncView, now time.Time, progress func(step int, detail string)) (*amazonSyncView, error) {
 	progress(1, fmt.Sprintf("0 of %d", len(ids)))
 	type fetched struct {
 		id   string
@@ -395,10 +412,10 @@ func (a *App) amazonErr(ctx context.Context, s *store.Store, acct state.AmazonAc
 
 // syncAmazonAll syncs every Amazon account in the environment, turning each
 // account's failure into an ItemError so the others still sync.
-func (a *App) syncAmazonAll(ctx context.Context, s *store.Store, st *state.State, accts []state.AmazonAccount, full bool) ([]amazonSyncView, []ItemError, error) {
+func (a *App) syncAmazonAll(ctx context.Context, s *store.Store, st *state.State, accts []state.AmazonAccount, opts amazonSync) ([]amazonSyncView, []ItemError, error) {
 	views, errs := []amazonSyncView{}, []ItemError{}
 	for _, acct := range accts {
-		v, err := a.syncAmazon(ctx, s, st, acct, full, nil)
+		v, err := a.syncAmazon(ctx, s, st, acct, opts, nil)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return nil, nil, err
@@ -421,12 +438,20 @@ func (a *App) syncAmazonAll(ctx context.Context, s *store.Store, st *state.State
 func (a *App) cmdAmazonSync(ctx context.Context, args []string) (*result, error) {
 	fs := flag.NewFlagSet("amazon sync", flag.ContinueOnError)
 	full := fs.Bool("full", false, "re-read every payment, not just new ones")
+	var orders []string
+	fs.Func("order", "read just this order's page again; repeatable", func(id string) error {
+		if !amazon.ValidOrderID(id) || !amazon.RetailOrderID(id) {
+			return fmt.Errorf("%q is not an amazon.com order ID like 111-1234567-1234567", id)
+		}
+		orders = append(orders, id)
+		return nil
+	})
 	pos, err := parseArgs(fs, args)
 	if err != nil {
 		return nil, err
 	}
-	if len(pos) > 1 {
-		return nil, usageErr("usage: fin amazon sync [name] [--full]")
+	if len(pos) > 1 || (*full && len(orders) > 0) {
+		return nil, usageErr("usage: fin amazon sync [name] [--full | --order ID ...]")
 	}
 	st, err := a.loadState()
 	if err != nil {
@@ -448,15 +473,31 @@ func (a *App) cmdAmazonSync(ctx context.Context, args []string) (*result, error)
 		return nil, err
 	}
 	defer s.Close()
+	if len(orders) > 0 && len(accts) > 1 {
+		// The orders belong to the account whose payments named them.
+		owner, err := s.AmazonOrderAccount(ctx, orders[0])
+		if err != nil {
+			return nil, storeErr(err)
+		}
+		acct, ok := st.FindAmazon(string(a.Env), owner)
+		if !ok {
+			return nil, usageErr("fin does not know which Amazon account placed %s; name it: fin amazon sync <name> --order %s", orders[0], orders[0])
+		}
+		accts = []state.AmazonAccount{acct}
+	}
 	var views []amazonSyncView
 	var errs []ItemError
 	run := func(ctx context.Context) error {
 		var err error
-		views, errs, err = a.syncAmazonAll(ctx, s, st, accts, *full)
+		views, errs, err = a.syncAmazonAll(ctx, s, st, accts, amazonSync{Full: *full, Orders: orders})
 		return err
 	}
 	if a.showSpinner() {
-		err = ui.Wait(ctx, a.Stdin, a.Stderr, "Reading your Amazon payments and orders…", run)
+		msg := "Reading your Amazon payments and orders…"
+		if len(orders) > 0 {
+			msg = "Reading the Amazon order pages again…"
+		}
+		err = ui.Wait(ctx, a.Stdin, a.Stderr, msg, run)
 	} else {
 		err = run(ctx)
 	}
@@ -584,7 +625,7 @@ func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error
 			return ui.FlowResult{}, err
 		}
 		defer s.Close()
-		view, err = a.syncAmazon(ctx, s, st, acct, true, func(i int, detail string) {
+		view, err = a.syncAmazon(ctx, s, st, acct, amazonSync{Full: true}, func(i int, detail string) {
 			if i == 1 {
 				r.Done(2, "")
 			}

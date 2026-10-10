@@ -180,7 +180,7 @@ func (a *App) cmdSync(ctx context.Context, args []string) (*result, error) {
 		}
 		if len(accts) > 0 {
 			var amazonErrs []ItemError
-			if amazonViews, amazonErrs, err = a.syncAmazonAll(ctx, s, st, accts, false); err != nil {
+			if amazonViews, amazonErrs, err = a.syncAmazonAll(ctx, s, st, accts, amazonSync{}); err != nil {
 				return nil, err
 			}
 			errs = append(errs, amazonErrs...)

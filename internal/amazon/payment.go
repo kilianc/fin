@@ -97,6 +97,12 @@ func ValidOrderID(id string) bool {
 	return orderIDPattern.MatchString(id) && len(id) == 19
 }
 
+// RetailOrderID reports whether id is an amazon.com retail order, the kind
+// with an order page fin reads, rather than a digital or pay.amazon.com one.
+func RetailOrderID(id string) bool {
+	return len(id) > 3 && id[0] >= '0' && id[0] <= '9'
+}
+
 // parsePayments turns one page of Amazon's transaction list into Payments.
 // seen counts identical rows across pages, so each gets a distinct key.
 func parsePayments(account string, rows []json.RawMessage, seen map[string]int) ([]Payment, error) {
