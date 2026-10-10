@@ -56,7 +56,8 @@ Steps:
 5. Ask me which banks, credit cards and brokerages I want to connect. For each, run `fin institutions &lt;name&gt;` to confirm Plaid supports it, and tell me which slot count that leaves.
 6. For each one I approve, run `fin link --yes --open` in the background. It opens Plaid Link in my browser, where I pick the institution and sign in; fin collects transactions and investments, whichever the institution supports. Only if `fin institutions` shows an institution as brokerage-only, use `fin link brokerage --yes --open` instead.
 7. Run `fin sync` to save my transactions on this Mac, then finish with `fin items` and `fin accounts` and summarize what is connected and healthy.
-8. Tell me I can now ask you about my money in plain words, or query it myself with `fin sql`. Ask whether I&#39;d also like my transactions in a Google Sheet; if so, run `fin sheet --open` in the background and let me sign in to Google in the browser.</template>
+8. Tell me I can now ask you about my money in plain words, or query it myself with `fin sql`. Ask whether I&#39;d also like my transactions in a Google Sheet; if so, run `fin sheet --open` in the background and let me sign in to Google in the browser.
+9. Ask whether I shop on Amazon and want each order broken into its items (experimental). If so, ask me for a name for the account and run `fin amazon login &lt;name&gt;`; macOS will ask me to allow Chrome Safe Storage.</template>
 </div>
 <img class="hero-logo" src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="fin mascot">
 </section>
@@ -67,9 +68,9 @@ Steps:
     <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
     <div class="shell-tabs" role="tablist" aria-label="Terminal examples">
       <button type="button" role="tab" id="tab-agent" aria-controls="pane-agent" aria-selected="true" data-tab="agent">agent session</button>
-      <button type="button" role="tab" id="tab-items" aria-controls="pane-items" aria-selected="false" data-tab="items">fin items</button>
       <button type="button" role="tab" id="tab-accounts" aria-controls="pane-accounts" aria-selected="false" data-tab="accounts">fin accounts</button>
       <button type="button" role="tab" id="tab-transactions" aria-controls="pane-transactions" aria-selected="false" data-tab="transactions">fin transactions</button>
+      <button type="button" role="tab" id="tab-amazon" aria-controls="pane-amazon" aria-selected="false" data-tab="amazon">fin amazon</button>
       <button type="button" role="tab" id="tab-holdings" aria-controls="pane-holdings" aria-selected="false" data-tab="holdings">fin holdings</button>
       <button type="button" role="tab" id="tab-sql" aria-controls="pane-sql" aria-selected="false" data-tab="sql">duckdb</button>
     </div>
@@ -89,43 +90,6 @@ Steps:
         mostly six weekend orders from Sushi Ota. Shopping fell $1,216
         because August included a $1,180 standing desk.
         You saved <span class="t-ok">$3,368</span>, 34% of what came in.</pre>
-  </div>
-  <div class="shell-pane" role="tabpanel" id="pane-items" aria-labelledby="tab-items" hidden>
-<pre data-show="table"><span class="t-mute">$</span> <span class="t-hi">fin items</span>
-<span class="t-head">Items · production</span>
-<span class="t-dim">╭───────────┬──────────────────┬──────────────┬────────┬─────────────────┬──────────────╮</span>
-<span class="t-dim">│</span> <span class="t-head">Name</span>      <span class="t-dim">│</span> <span class="t-head">Institution</span>      <span class="t-dim">│</span> <span class="t-head">Products</span>     <span class="t-dim">│</span> <span class="t-head">Health</span> <span class="t-dim">│</span> <span class="t-head">Consent expires</span> <span class="t-dim">│</span> <span class="t-head">Last sync</span>    <span class="t-dim">│</span>
-<span class="t-dim">├───────────┼──────────────────┼──────────────┼────────┼─────────────────┼──────────────┤</span>
-<span class="t-dim">│</span> chase     <span class="t-dim">│</span> Chase            <span class="t-dim">│</span> transactions <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span> Oct 2, 2027     <span class="t-dim">│</span> Oct 9, 12:02 <span class="t-dim">│</span>
-<span class="t-dim">│</span> amex      <span class="t-dim">│</span> American Express <span class="t-dim">│</span> transactions <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span>                 <span class="t-dim">│</span> Oct 9, 12:02 <span class="t-dim">│</span>
-<span class="t-dim">│</span> citi      <span class="t-dim">│</span> Citi             <span class="t-dim">│</span> transactions <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span> Aug 14, 2027    <span class="t-dim">│</span> Oct 9, 12:01 <span class="t-dim">│</span>
-<span class="t-dim">│</span> fidelity  <span class="t-dim">│</span> Fidelity         <span class="t-dim">│</span> investments  <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span>                 <span class="t-dim">│</span> Oct 9, 12:03 <span class="t-dim">│</span>
-<span class="t-dim">│</span> schwab    <span class="t-dim">│</span> Charles Schwab   <span class="t-dim">│</span> investments  <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span>                 <span class="t-dim">│</span> Oct 9, 12:03 <span class="t-dim">│</span>
-<span class="t-dim">│</span> robinhood <span class="t-dim">│</span> Robinhood        <span class="t-dim">│</span> investments  <span class="t-dim">│</span> <span class="t-ok">ok</span>     <span class="t-dim">│</span>                 <span class="t-dim">│</span> Oct 9, 12:03 <span class="t-dim">│</span>
-<span class="t-dim">╰───────────┴──────────────────┴──────────────┴────────┴─────────────────┴──────────────╯</span>
-<span class="t-mute">6 of 10 slots used</span></pre>
-<pre data-show="json" hidden><span class="t-mute">$</span> <span class="t-hi">fin items --json</span>
-{
-  <span class="t-key">&quot;env&quot;</span>: <span class="t-str">&quot;production&quot;</span>,
-  <span class="t-key">&quot;slots_used&quot;</span>: <span class="t-ok">6</span>,
-  <span class="t-key">&quot;slots_total&quot;</span>: <span class="t-ok">10</span>,
-  <span class="t-key">&quot;items&quot;</span>: [
-    {
-      <span class="t-key">&quot;name&quot;</span>: <span class="t-str">&quot;chase&quot;</span>,
-      <span class="t-key">&quot;institution&quot;</span>: <span class="t-str">&quot;Chase&quot;</span>,
-      <span class="t-key">&quot;kind&quot;</span>: <span class="t-str">&quot;bank&quot;</span>,
-      <span class="t-key">&quot;products&quot;</span>: [
-        <span class="t-str">&quot;transactions&quot;</span>
-      ],
-      <span class="t-key">&quot;health&quot;</span>: <span class="t-str">&quot;ok&quot;</span>,
-      <span class="t-key">&quot;error&quot;</span>: <span class="t-ok">null</span>,
-      <span class="t-key">&quot;consent_expires_at&quot;</span>: <span class="t-str">&quot;2027-10-02T18:02:00Z&quot;</span>,
-      <span class="t-key">&quot;last_sync&quot;</span>: <span class="t-str">&quot;2026-10-09T12:02:11Z&quot;</span>
-    },
-    <span class="t-mute">…</span>
-  ],
-  <span class="t-key">&quot;errors&quot;</span>: []
-}</pre>
   </div>
   <div class="shell-pane" role="tabpanel" id="pane-accounts" aria-labelledby="tab-accounts" hidden>
 <pre data-show="table"><span class="t-mute">$</span> <span class="t-hi">fin accounts</span>
@@ -206,6 +170,43 @@ Steps:
     <span class="t-mute">…</span>
   ],
   <span class="t-key">&quot;until&quot;</span>: <span class="t-str">&quot;2026-10-09&quot;</span>
+}</pre>
+  </div>
+  <div class="shell-pane" role="tabpanel" id="pane-amazon" aria-labelledby="tab-amazon" hidden>
+<pre data-show="table"><span class="t-mute">$</span> <span class="t-hi">fin amazon categorize --all</span>
+<span class="t-head">Amazon items · 5</span>
+<span class="t-dim">╭───────────────────────┬────────────┬───────────────────────┬─────┬────────┬─────────────────────╮</span>
+<span class="t-dim">│</span> <span class="t-head">Item</span>                  <span class="t-dim">│</span> <span class="t-head">Date</span>       <span class="t-dim">│</span> <span class="t-head">Title</span>                 <span class="t-dim">│</span> <span class="t-head">Qty</span> <span class="t-dim">│</span>   <span class="t-head">Cost</span> <span class="t-dim">│</span> <span class="t-head">Category</span>            <span class="t-dim">│</span>
+<span class="t-dim">├───────────────────────┼────────────┼───────────────────────┼─────┼────────┼─────────────────────┤</span>
+<span class="t-dim">│</span> 114-2290017-6612408#1 <span class="t-dim">│</span> 2026-10-06 <span class="t-dim">│</span> Cordless drill kit    <span class="t-dim">│</span>   1 <span class="t-dim">│</span> 129.84 <span class="t-dim">│</span> HOME_IMPROVEMENT    <span class="t-dim">│</span>
+<span class="t-dim">│</span> 114-2290017-6612408#2 <span class="t-dim">│</span> 2026-10-06 <span class="t-dim">│</span> Ground coffee, 2 lb   <span class="t-dim">│</span>   2 <span class="t-dim">│</span>  38.90 <span class="t-dim">│</span> FOOD_AND_DRINK      <span class="t-dim">│</span>
+<span class="t-dim">│</span> 114-2290017-6612408#3 <span class="t-dim">│</span> 2026-10-06 <span class="t-dim">│</span> Vitamin D3, 240 count <span class="t-dim">│</span>   1 <span class="t-dim">│</span>  18.62 <span class="t-dim">│</span> MEDICAL             <span class="t-dim">│</span>
+<span class="t-dim">│</span> 113-8805213-0147729#1 <span class="t-dim">│</span> 2026-10-02 <span class="t-dim">│</span> Kids&#x27; rain boots      <span class="t-dim">│</span>   1 <span class="t-dim">│</span>  34.17 <span class="t-dim">│</span> GENERAL_MERCHANDISE <span class="t-dim">│</span>
+<span class="t-dim">│</span> 113-8805213-0147729#2 <span class="t-dim">│</span> 2026-10-02 <span class="t-dim">│</span> Catan board game      <span class="t-dim">│</span>   1 <span class="t-dim">│</span>  46.03 <span class="t-dim">│</span>                     <span class="t-dim">│</span>
+<span class="t-dim">╰───────────────────────┴────────────┴───────────────────────┴─────┴────────┴─────────────────────╯</span>
+<span class="t-mute">Set one with fin amazon categorize --set ITEM CATEGORY [--product].</span></pre>
+<pre data-show="json" hidden><span class="t-mute">$</span> <span class="t-hi">fin amazon categorize --all --json</span>
+{
+  <span class="t-key">&quot;categories&quot;</span>: [
+    <span class="t-str">&quot;INCOME&quot;</span>,
+    <span class="t-mute">…</span>
+  ],
+  <span class="t-key">&quot;items&quot;</span>: [
+    {
+      <span class="t-key">&quot;item&quot;</span>: <span class="t-str">&quot;114-2290017-6612408#1&quot;</span>,
+      <span class="t-key">&quot;order_id&quot;</span>: <span class="t-str">&quot;114-2290017-6612408&quot;</span>,
+      <span class="t-key">&quot;line&quot;</span>: <span class="t-ok">1</span>,
+      <span class="t-key">&quot;date&quot;</span>: <span class="t-str">&quot;2026-10-06&quot;</span>,
+      <span class="t-key">&quot;asin&quot;</span>: <span class="t-str">&quot;B0C7KQ3X1M&quot;</span>,
+      <span class="t-key">&quot;title&quot;</span>: <span class="t-str">&quot;Cordless drill kit&quot;</span>,
+      <span class="t-key">&quot;quantity&quot;</span>: <span class="t-ok">1</span>,
+      <span class="t-key">&quot;cost&quot;</span>: <span class="t-ok">129.84</span>,
+      <span class="t-key">&quot;category&quot;</span>: <span class="t-str">&quot;HOME_IMPROVEMENT&quot;</span>,
+      <span class="t-key">&quot;category_detailed&quot;</span>: <span class="t-str">&quot;HOME_IMPROVEMENT_HARDWARE&quot;</span>,
+      <span class="t-key">&quot;category_source&quot;</span>: <span class="t-str">&quot;item&quot;</span>
+    },
+    <span class="t-mute">…</span>
+  ]
 }</pre>
   </div>
   <div class="shell-pane" role="tabpanel" id="pane-holdings" aria-labelledby="tab-holdings" hidden>
@@ -360,6 +361,10 @@ Steps:
 <figcaption><p class="ask">“Show how my net worth changed this year.” <span>Chart it month by month and explain what moved it.</span></p><a class="try" href="try/net-worth/">Try this prompt<span class="arr">→</span></a></figcaption>
 <a href="try/net-worth/"><img class="report" src="examples/4.png" alt="AI-generated net-worth report with illustrative data: January to September growth, market gains, savings, and card balances" width="2400" height="1600" loading="lazy"></a>
 </figure>
+<figure>
+<figcaption><p class="ask">“Where does our Amazon money actually go?” <span>Break each order into its items by category, and flag returns still waiting on a refund.</span></p><a class="try" href="try/amazon/">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/amazon/"><img class="report" src="examples/5.png" alt="AI-generated Amazon report with illustrative data: $1,284 across 23 orders split into categories item by item, one charge opened into its items, and two returns awaiting refunds" width="2400" height="1600" loading="lazy"></a>
+</figure>
 </div>
 </section>
 
@@ -371,6 +376,7 @@ Steps:
 <dt>never requests</dt><dd>Plaid Auth or Identity: no account numbers, no personal details. Cannot move money.</dd>
 <dt>secrets</dt><dd>macOS Keychain, service <code>fin</code>. State in <code>~/.config/fin/state.json</code>, mode 0600.</dd>
 <dt>data</dt><dd>Transactions and balances in a DuckDB file in <code>~/.local/share/fin</code>; query it with <code>fin sql</code>. <code>fin sheet</code> copies them to a spreadsheet in your Google Drive, the only file there <span class="fin">fin</span> can see.</dd>
+<dt>amazon</dt><dd>Experimental and off until you run <code>fin amazon login</code>: it reads your Amazon payments and order pages with your Chrome sign-in, so each charge opens into its items.</dd>
 <dt>servers</dt><dd>None. <span class="fin">fin</span> calls Plaid's API from your laptop and prints the answer.</dd>
 <dt>cost</dt><dd>Free on Plaid's Trial plan, up to 10 institutions. MIT licensed.</dd>
 </dl>

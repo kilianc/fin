@@ -50,6 +50,13 @@ the prompt in Claude Code or Codex.
 <a href="https://kilianc.github.io/fin/try/net-worth/"><img src="docs/examples/4.png" alt="AI-generated net-worth report with illustrative data: January to September growth, market gains, savings, and card balances"></a>
 </td>
 </tr>
+<tr>
+<td width="50%" valign="bottom">
+<p><b>“Where does our Amazon money actually go?”</b><br>Break each order into its items by category, and flag returns still waiting on a refund.<br><a href="https://kilianc.github.io/fin/try/amazon/">Try it in Claude Code or Codex →</a></p>
+<a href="https://kilianc.github.io/fin/try/amazon/"><img src="docs/examples/5.png" alt="AI-generated Amazon report with illustrative data: $1,284 across 23 orders split into categories item by item, one charge opened into its items, and two returns awaiting refunds"></a>
+</td>
+<td width="50%"></td>
+</tr>
 </table>
 
 ## No agent? Use SQL or a spreadsheet

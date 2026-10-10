@@ -42,7 +42,8 @@ Steps:
 5. Ask me which banks, credit cards and brokerages I want to connect. For each, run `fin institutions &lt;name&gt;` to confirm Plaid supports it, and tell me which slot count that leaves.
 6. For each one I approve, run `fin link --yes --open` in the background. It opens Plaid Link in my browser, where I pick the institution and sign in; fin collects transactions and investments, whichever the institution supports. Only if `fin institutions` shows an institution as brokerage-only, use `fin link brokerage --yes --open` instead.
 7. Run `fin sync` to save my transactions on this Mac, then finish with `fin items` and `fin accounts` and summarize what is connected and healthy.
-8. Tell me I can now ask you about my money in plain words, or query it myself with `fin sql`. Ask whether I&#39;d also like my transactions in a Google Sheet; if so, run `fin sheet --open` in the background and let me sign in to Google in the browser.</pre>
+8. Tell me I can now ask you about my money in plain words, or query it myself with `fin sql`. Ask whether I&#39;d also like my transactions in a Google Sheet; if so, run `fin sheet --open` in the background and let me sign in to Google in the browser.
+9. Ask whether I shop on Amazon and want each order broken into its items (experimental). If so, ask me for a name for the account and run `fin amazon login &lt;name&gt;`; macOS will ask me to allow Chrome Safe Storage.</pre>
 </div>
 </section>
 </main>

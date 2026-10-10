@@ -850,7 +850,7 @@ func (a *App) cmdAmazonCategorize(ctx context.Context, args []string) (*result, 
 			Title:   fmt.Sprintf("Amazon items · %d", len(items)),
 			Headers: []string{"Item", "Date", "Title", "Qty", "Cost", "Category"},
 			Right:   []int{3, 4},
-			Footer:  "Set one with fin amazon categorize --set ITEM CATEGORY. Categories: " + strings.Join(pfcPrimary, ", "),
+			Footer:  "Set one with fin amazon categorize --set ITEM CATEGORY [--product].",
 		}
 		for _, it := range items {
 			t.Rows = append(t.Rows, []string{it.Item, it.Date, truncate(it.Title, 48), strconv.Itoa(it.Quantity),
