@@ -52,6 +52,9 @@ type Client struct {
 	expires time.Time
 	request pageProps
 	trace   string
+	// classic is the older payments page, for an account Amazon still
+	// serves it to; its rows are in the HTML, not behind the API token.
+	classic []byte
 	// Gate spaces requests to Amazon; tests set its Wait to zero.
 	Gate *pace.Gate
 	// Log, if set, hears about every request: which kind ("page",
@@ -91,10 +94,14 @@ func (c *Client) Session(profile string) *Session {
 var ErrRateLimited = pace.ErrRateLimited
 
 func (c *Client) do(ctx context.Context, method, path string, body []byte, accept string) ([]byte, error) {
+	return c.send(ctx, method, path, body, accept, "application/json")
+}
+
+func (c *Client) send(ctx context.Context, method, path string, body []byte, accept, contentType string) ([]byte, error) {
 	var b []byte
 	err := pace.Retry(ctx, func() error {
 		var err error
-		b, err = c.once(ctx, method, path, body, accept)
+		b, err = c.once(ctx, method, path, body, accept, contentType)
 		return err
 	})
 	return b, err
@@ -114,7 +121,7 @@ func (c *Client) log(path string, status int) {
 	c.Log(kind, status)
 }
 
-func (c *Client) once(ctx context.Context, method, path string, body []byte, accept string) ([]byte, error) {
+func (c *Client) once(ctx context.Context, method, path string, body []byte, accept, contentType string) ([]byte, error) {
 	if err := c.Gate.Pass(ctx); err != nil {
 		return nil, err
 	}
@@ -132,10 +139,12 @@ func (c *Client) once(ctx context.Context, method, path string, body []byte, acc
 		}
 	}
 	if method == http.MethodPost {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", contentType)
 		req.Header.Set("Origin", Origin)
 		req.Header.Set("Referer", Origin+paymentsPage)
-		req.Header.Set("X-Amzn-Upx-Token", c.token)
+		if c.token != "" {
+			req.Header.Set("X-Amzn-Upx-Token", c.token)
+		}
 	}
 	c.mu.Unlock()
 
@@ -202,6 +211,15 @@ type pageProps struct {
 
 var nextData = regexp.MustCompile(`(?is)<script\b[^>]*\bid\s*=\s*["']__NEXT_DATA__["'][^>]*>(.*?)</script\s*>`)
 
+// PageError is a page fin could not read. Page is kept so FIN_DEBUG can
+// save it for a look at what changed.
+type PageError struct {
+	Msg  string
+	Page []byte
+}
+
+func (e *PageError) Error() string { return e.Msg }
+
 var titleTag = regexp.MustCompile(`(?is)<title\b[^>]*>(.*?)</title\s*>`)
 
 // pageTitle is a page's <title>, which names an unexpected page, such as a
@@ -232,10 +250,18 @@ func (c *Client) bootstrap(ctx context.Context) error {
 		if signInPage(page) {
 			return ErrSignIn
 		}
-		if t := pageTitle(page); t != "" {
-			return fmt.Errorf("amazon: the payments page changed; fin cannot read it (Amazon showed %q)", t)
+		if classicPage(page) {
+			c.mu.Lock()
+			c.classic, c.token = page, ""
+			c.expires = time.Now().Add(20 * time.Minute)
+			c.mu.Unlock()
+			return nil
 		}
-		return errors.New("amazon: the payments page changed; fin cannot read it")
+		msg := "amazon: the payments page changed; fin cannot read it"
+		if t := pageTitle(page); t != "" {
+			msg += fmt.Sprintf(" (Amazon showed %q)", t)
+		}
+		return &PageError{Msg: msg, Page: page}
 	}
 	var data struct {
 		Props struct {
@@ -272,6 +298,17 @@ func (c *Client) bootstrap(ctx context.Context) error {
 func (c *Client) Payments(ctx context.Context, account, start string, stop func(page []Payment, next string) bool) ([]Payment, error) {
 	if err := c.bootstrap(ctx); err != nil {
 		return nil, err
+	}
+	c.mu.Lock()
+	classic := c.classic != nil
+	c.mu.Unlock()
+	// A place saved from the other kind of page means nothing here; start
+	// from the top, and stop decides how far to read again.
+	if strings.HasPrefix(start, classicCursor) != classic {
+		start = ""
+	}
+	if classic {
+		return c.classicPayments(ctx, account, start, stop)
 	}
 	out := []Payment{}
 	seen := map[string]int{}

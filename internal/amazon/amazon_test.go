@@ -205,3 +205,47 @@ func TestPageTitleNamesAnUnexpectedPage(t *testing.T) {
 		t.Errorf("title = %q", got)
 	}
 }
+
+func TestClientReadsTheOlderPaymentsPage(t *testing.T) {
+	srv := amazontest.New(t)
+	srv.Classic = true
+	srv.Rows = []json.RawMessage{
+		amazontest.Payment("-$24.99", "Oct 2, 2026", "112-0000002-0000002", "American Express ****1002", "AMZN Mktp US", ""),
+		amazontest.Payment("+$15.50", "Sep 9, 2026", "111-0000001-0000001", "American Express ****1002", "Amazon.com", ""),
+		amazontest.Payment("-$9.99", "Sep 2, 2026", "D01-0000003-0000003", "American Express ****1002", "D01-0000003-0000003", ""),
+		amazontest.Payment("-$9.99", "Sep 2, 2026", "D01-0000003-0000003", "American Express ****1002", "D01-0000003-0000003", ""),
+		amazontest.Payment("-$5.00", "Aug 2, 2026", "113-0000004-0000004", "Amazon Gift Card", "Amazon.com", ""),
+	}
+	c := NewClient(&Session{UserAgent: "test", Cookies: []*http.Cookie{{Name: "session-token", Value: "good"}}}, srv.URL)
+	c.Gate.Wait = 0
+	ctx := context.Background()
+	if err := c.Check(ctx); err != nil {
+		t.Fatalf("check: %v", err)
+	}
+	var cursors []string
+	all, err := c.Payments(ctx, "pen", "", func(_ []Payment, next string) bool { cursors = append(cursors, next); return false })
+	if err != nil || len(all) != 5 || len(cursors) != 3 || cursors[2] != "" {
+		t.Fatalf("all: %d rows, cursors %d, err %v", len(all), len(cursors), err)
+	}
+	first, refund, digital := all[0], all[1], all[2]
+	if first.Date != "2026-10-02" || first.Amount != 2499 || first.Method != "American Express ****1002" || first.Descriptor != "AMZN Mktp US" ||
+		first.Status != "Completed" || len(first.OrderIDs) != 1 || first.OrderIDs[0] != "112-0000002-0000002" {
+		t.Errorf("charge = %+v", first)
+	}
+	if refund.Amount != -1550 || refund.Descriptor != "Amazon.com" {
+		t.Errorf("refund = %+v", refund)
+	}
+	if digital.OrderIDs[0] != "D01-0000003-0000003" || digital.Key == all[3].Key {
+		t.Errorf("identical digital rows: %+v %+v", digital, all[3])
+	}
+	if !all[4].GiftCard() {
+		t.Errorf("gift card row = %+v", all[4])
+	}
+	rest, err := c.Payments(ctx, "pen", cursors[1], func([]Payment, string) bool { return false })
+	if err != nil || len(rest) != 1 || rest[0].Amount != 500 {
+		t.Fatalf("resumed: %+v, err %v", rest, err)
+	}
+	if again, err := c.Payments(ctx, "pen", "page-2", func([]Payment, string) bool { return false }); err != nil || len(again) != 5 {
+		t.Errorf("a place saved from the newer page reads from the top: %d rows, err %v", len(again), err)
+	}
+}

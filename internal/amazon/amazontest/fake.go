@@ -6,10 +6,13 @@ package amazontest
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/kilianc/fin/internal/chrome/chrometest"
 )
@@ -31,6 +34,9 @@ type Server struct {
 	// PagesBeforeLimit, when set, answers 429 to every payments API call
 	// after this many.
 	PagesBeforeLimit int
+	// Classic serves Rows on the older payments page, two to a page, paged
+	// by posting the page's form, as Amazon does for some accounts.
+	Classic bool
 }
 
 // New starts a signed-in fake that accepts session-token "good".
@@ -80,6 +86,19 @@ func (f *Server) serve(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/cpe/yourpayments/transactions":
 		http.SetCookie(w, &http.Cookie{Name: "session-token", Value: f.Token, Path: "/", MaxAge: 3600})
+		if f.Classic {
+			start := 0
+			if r.Method == http.MethodPost {
+				r.ParseForm()
+				fmt.Sscanf(r.PostForm.Get("ppw-widgetState"), "state-%d", &start)
+				if _, ok := r.PostForm[fmt.Sprintf(`ppw-widgetEvent:NextPage:{"nextPageKey":"key-%d"}`, start)]; !ok {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+			}
+			w.Write(f.classicPage(start))
+			return
+		}
 		fmt.Fprint(w, `<html><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"token":"tok","manageWalletRequest":{"requestContext":{"surfaceInfo":{"a":1},"localeInfo":{"locale":"en_US"}}}}}}</script></html>`)
 	case "/payments-portal/data/iris/live/v1/data/manage/get-transactions":
 		if f.PagesBeforeLimit > 0 && f.Requests[r.URL.Path] > f.PagesBeforeLimit {
@@ -114,6 +133,45 @@ func (f *Server) serve(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+// classicPage renders the older payments page from Rows[start:start+2].
+func (f *Server) classicPage(start int) []byte {
+	end := min(start+2, len(f.Rows))
+	var b strings.Builder
+	b.WriteString(`<html><head><title>Your Payments</title></head><body><form method="post" action="/cpe/yourpayments/transactions">`)
+	fmt.Fprintf(&b, `<input type="hidden" name="ppw-widgetState" value="state-%d"><input type="hidden" name="ie" value="UTF-8">`, end)
+	b.WriteString(`<div class="a-box apx-transactions-sleeve-header-container"><div class="a-box-inner"><span class="a-size-base a-text-bold">Completed</span></div></div>`)
+	for _, raw := range f.Rows[start:end] {
+		var row struct {
+			Amount     string `json:"formattedAmount"`
+			Date       string `json:"formattedDate"`
+			Descriptor string `json:"statementDescriptor"`
+			Orders     []struct {
+				Display string `json:"orderDisplayString"`
+				URL     string `json:"orderDetailsUrl"`
+			} `json:"orderData"`
+			Method struct {
+				Name string `json:"paymentMethodName"`
+			} `json:"paymentMethodDisplayStringData"`
+		}
+		json.Unmarshal(raw, &row)
+		day, _ := time.Parse("Jan 2, 2006", row.Date)
+		fmt.Fprintf(&b, `<div class="a-section apx-transaction-date-container"><span>%s</span></div>`, day.Format("January 2, 2006"))
+		fmt.Fprintf(&b, `<div class="a-section a-spacing-base apx-transactions-line-item-component-container"><div class="a-row"><div class="a-column a-span9"><span class="a-size-base a-text-bold">%s</span></div><div class="a-column a-span3"><span class="a-size-base-plus a-text-bold">%s</span></div></div>`,
+			html.EscapeString(row.Method.Name), row.Amount)
+		for _, o := range row.Orders {
+			fmt.Fprintf(&b, `<div class="a-row"><a class="a-link-normal" href="%s">%s</a></div>`, o.URL, html.EscapeString(o.Display))
+		}
+		fmt.Fprintf(&b, `<div class="a-row"><span class="a-size-base">%s</span></div></div>`, html.EscapeString(row.Descriptor))
+	}
+	b.WriteString(`<span class="a-button a-button-disabled"><input disabled="disabled" class="a-button-input" type="submit"><span>Previous Page</span></span>`)
+	if end < len(f.Rows) {
+		fmt.Fprintf(&b, `<span class="a-button"><input name="%s" class="a-button-input" type="submit"><span>Next Page</span></span>`,
+			html.EscapeString(fmt.Sprintf(`ppw-widgetEvent:NextPage:{"nextPageKey":"key-%d"}`, end)))
+	}
+	b.WriteString(`</form></body></html>`)
+	return []byte(b.String())
 }
 
 // ChromeDir makes synthetic profiles, with an Amazon session where named.

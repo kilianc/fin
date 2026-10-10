@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kilianc/fin/internal/amazon"
 	"github.com/kilianc/fin/internal/chrome"
 	"github.com/kilianc/fin/internal/keychain"
 	"github.com/kilianc/fin/internal/pace"
@@ -783,7 +784,22 @@ func (a *App) loginErr(ctx context.Context, s *store.Store, r retailer, acct sta
 		}
 		return a.syncErr(ctx, s, acct, err)
 	}
+	a.savePage(r, err)
 	return newErr(r.code("ERROR"), "%v", err)
+}
+
+// savePage writes a page fin could not read to the data directory, with
+// FIN_DEBUG set, so someone can see what the retailer changed. It holds
+// whatever the page showed, so it is readable only by you.
+func (a *App) savePage(r retailer, err error) {
+	var pe *amazon.PageError
+	if !a.Debug || !errors.As(err, &pe) {
+		return
+	}
+	path := filepath.Join(a.DataDir, r.ID+"-unreadable-page.html")
+	if os.MkdirAll(a.DataDir, 0o700) == nil && os.WriteFile(path, pe.Page, 0o600) == nil {
+		fmt.Fprintf(a.Stderr, "FIN_DEBUG: saved the page to %s\n", path)
+	}
 }
 
 // cmdProfiles lists Chrome's profiles and which are signed in to r.
