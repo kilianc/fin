@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/kilianc/fin/internal/amazon"
+	"github.com/kilianc/fin/internal/money"
 )
 
 const amazonSchema = `
@@ -630,7 +631,7 @@ func (s *Store) AmazonItemRows(ctx context.Context, since string) ([]AmazonItemR
 	return out, rows.Err()
 }
 
-func centsMap(m map[string]amazon.Cents) map[string]float64 {
+func centsMap(m map[string]money.Cents) map[string]float64 {
 	out := make(map[string]float64, len(m))
 	for k, v := range m {
 		out[strings.TrimSuffix(k, ":")] = v.Dollars()

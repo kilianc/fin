@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kilianc/fin/internal/amazon"
+	"github.com/kilianc/fin/internal/money"
 	"github.com/kilianc/fin/internal/plaid"
 )
 
@@ -17,7 +18,7 @@ func amazonTx(id, date string, amount float64) plaid.Transaction {
 		PersonalFinanceCategory: &plaid.PersonalFinanceCategory{Primary: "GENERAL_MERCHANDISE", Detailed: "GENERAL_MERCHANDISE_ONLINE_MARKETPLACES"}}
 }
 
-func payment(key, date string, amount amazon.Cents, method string, orders ...string) amazon.Payment {
+func payment(key, date string, amount money.Cents, method string, orders ...string) amazon.Payment {
 	return amazon.Payment{Key: key, Date: date, Amount: amount, Currency: "USD", Method: method, Descriptor: "AMZN Mktp US",
 		Status: "Charged", OrderIDs: orders, Raw: json.RawMessage(`{}`)}
 }

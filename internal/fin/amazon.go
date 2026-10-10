@@ -288,7 +288,7 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 			}
 		}
 		for _, p := range page {
-			progress.feed(fmt.Sprintf("%s  %-40s %9s", shortDate(p.Date), truncate(cmp.Or(p.Descriptor, p.Method), 40), dollars(p.Amount)))
+			progress.feed(fmt.Sprintf("%s  %-40s %9s", shortDate(p.Date), truncate(cmp.Or(p.Descriptor, p.Method), 40), p.Amount.USD()))
 		}
 		if len(page) > 0 {
 			progress.step(0, fmt.Sprintf("%d so far, back to %s", len(seen), longDate(page[len(page)-1].Date)))
@@ -355,7 +355,7 @@ func (a *App) readAmazonOrders(ctx context.Context, s *store.Store, st *state.St
 				if it.Quantity > 1 {
 					title += fmt.Sprintf(" ×%d", it.Quantity)
 				}
-				progress.feed(fmt.Sprintf("%s  %-40s %9s", shortDate(o.Date), truncate(title, 40), dollars(it.Cost)))
+				progress.feed(fmt.Sprintf("%s  %-40s %9s", shortDate(o.Date), truncate(title, 40), it.Cost.USD()))
 			}
 		}
 		if err := s.ApplyAmazonOrder(ctx, acct.Name, id, page, o, perr, now); err != nil {
@@ -432,13 +432,6 @@ func orderProgress(done, total int, took time.Duration) string {
 	default:
 		return s + fmt.Sprintf("  ~%d min", int(left.Round(time.Minute)/time.Minute))
 	}
-}
-
-func dollars(c amazon.Cents) string {
-	if c < 0 {
-		return "−$" + (-c).String()
-	}
-	return "$" + c.String()
 }
 
 func shortDate(day string) string {

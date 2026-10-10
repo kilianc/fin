@@ -2,15 +2,14 @@ package amazon
 
 import (
 	"bytes"
-	"cmp"
 	"errors"
 	"fmt"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/kilianc/fin/internal/money"
 	"golang.org/x/net/html"
 )
 
@@ -21,21 +20,21 @@ const ParserVersion = 1
 // Order is one Amazon order as its order page shows it.
 type Order struct {
 	ID        string
-	Date      string // YYYY-MM-DD
-	Subtotal  Cents  // Item(s) Subtotal
-	Shipping  Cents  // Shipping & Handling
-	Discounts Cents  // coupons, promotions and free shipping, as a negative amount
-	Tax       Cents
+	Date      string      // YYYY-MM-DD
+	Subtotal  money.Cents // Item(s) Subtotal
+	Shipping  money.Cents // Shipping & Handling
+	Discounts money.Cents // coupons, promotions and free shipping, as a negative amount
+	Tax       money.Cents
 	// Paid is what the order cost before gift cards and points, and what its
 	// items' costs add up to.
-	Paid Cents
+	Paid money.Cents
 	// GiftCard is the part paid with a gift card balance or points, positive.
-	GiftCard    Cents
-	Total       Cents // Grand Total, what the cards were charged
-	RefundTotal Cents
+	GiftCard    money.Cents
+	Total       money.Cents // Grand Total, what the cards were charged
+	RefundTotal money.Cents
 	CardLast4   string
 	// Summary keeps every line of the order summary, by label.
-	Summary map[string]Cents
+	Summary map[string]money.Cents
 	Items   []Item
 }
 
@@ -45,14 +44,14 @@ type Item struct {
 	ASIN      string
 	Title     string
 	Quantity  int
-	UnitPrice Cents
+	UnitPrice money.Cents
 	Seller    string
 	Condition string
 	Return    string // the return or refund status Amazon shows, if any
 	// Cost is what the item cost: its price plus its share of shipping,
 	// discounts and tax, in proportion to its price. An order's items add up
 	// to Paid exactly.
-	Cost Cents
+	Cost money.Cents
 }
 
 // ErrNotOrderPage means the page is not a physical order's details page:
@@ -101,7 +100,7 @@ func ParseOrder(page []byte) (*Order, error) {
 		}
 		return ""
 	}
-	o := &Order{ID: strings.TrimSpace(first("orderId")), Summary: map[string]Cents{}, Items: []Item{}}
+	o := &Order{ID: strings.TrimSpace(first("orderId")), Summary: map[string]money.Cents{}, Items: []Item{}}
 	if !ValidOrderID(o.ID) || len(comps["itemTitle"]) == 0 || len(comps["chargeSummary"]) == 0 {
 		return nil, ErrNotOrderPage
 	}
@@ -119,7 +118,7 @@ func ParseOrder(page []byte) (*Order, error) {
 		if m == nil {
 			continue
 		}
-		v, err := parseMoney(m[2])
+		v, err := money.Parse(m[2])
 		if err != nil {
 			continue
 		}
@@ -144,7 +143,7 @@ func ParseOrder(page []byte) (*Order, error) {
 		}
 	}
 	if m := regexp.MustCompile(`Refund Total\s*([+-]?\$[0-9][0-9,]*(?:\.[0-9]{1,2})?)`).FindStringSubmatch(text(doc)); m != nil {
-		o.RefundTotal, _ = parseMoney(m[1])
+		o.RefundTotal, _ = money.Parse(m[1])
 	}
 
 	// purchasedItems wraps a shipment, which can hold several items. Each
@@ -186,12 +185,12 @@ func ParseOrder(page []byte) (*Order, error) {
 		if p := inside("unitPrice"); p != nil {
 			for _, s := range findAll(p, "span") {
 				if strings.Contains(attr(s, "class"), "a-offscreen") {
-					it.UnitPrice, _ = parseMoney(text(s))
+					it.UnitPrice, _ = money.Parse(text(s))
 					break
 				}
 			}
 			if it.UnitPrice == 0 {
-				it.UnitPrice, _ = parseMoney(strings.Fields(text(p) + " ")[0])
+				it.UnitPrice, _ = money.Parse(strings.Fields(text(p) + " ")[0])
 			}
 		}
 		// The quantity is a badge on the item's image, shown only above one.
@@ -223,45 +222,15 @@ func ParseOrder(page []byte) (*Order, error) {
 	return o, nil
 }
 
-// cost splits Paid across the items in proportion to their prices, with
-// the cents left over from rounding going to the largest lines first, so the
-// items add up to Paid exactly.
+// cost spreads Paid across the items in proportion to their prices, so the
+// items' costs add up to Paid exactly.
 func cost(o *Order) {
-	var base Cents
-	for _, it := range o.Items {
-		base += it.UnitPrice * Cents(it.Quantity)
-	}
-	if len(o.Items) == 0 {
-		return
-	}
-	if base <= 0 {
-		// Free items: give everything to the first so the total still adds up.
-		o.Items[0].Cost = o.Paid
-		return
-	}
-	type rem struct {
-		i    int
-		frac int64
-	}
-	var given Cents
-	rems := make([]rem, len(o.Items))
+	lines := make([]money.Cents, len(o.Items))
 	for i, it := range o.Items {
-		line := int64(it.UnitPrice) * int64(it.Quantity)
-		num := int64(o.Paid) * line
-		share := num / int64(base)
-		frac := num % int64(base)
-		if frac < 0 {
-			share--
-			frac += int64(base)
-		}
-		o.Items[i].Cost = Cents(share)
-		given += Cents(share)
-		rems[i] = rem{i, frac}
+		lines[i] = it.UnitPrice * money.Cents(it.Quantity)
 	}
-	// Rounding down leaves fewer cents than there are items.
-	slices.SortStableFunc(rems, func(a, b rem) int { return cmp.Compare(b.frac, a.frac) })
-	for j := 0; j < int(o.Paid-given); j++ {
-		o.Items[rems[j].i].Cost++
+	for i, c := range money.Spread(o.Paid, lines) {
+		o.Items[i].Cost = c
 	}
 }
 

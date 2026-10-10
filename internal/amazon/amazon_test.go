@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/kilianc/fin/internal/amazon/amazontest"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/kilianc/fin/internal/amazon/amazontest"
+	"github.com/kilianc/fin/internal/money"
 )
 
 func TestParseOrderReadsItemsAndCostsExactly(t *testing.T) {
@@ -25,8 +27,8 @@ func TestParseOrderReadsItemsAndCostsExactly(t *testing.T) {
 	if o.ID != "111-0000001-0000001" || o.Date != "2026-09-01" || o.CardLast4 != "1002" {
 		t.Errorf("order = %s %s card %s", o.ID, o.Date, o.CardLast4)
 	}
-	want := struct{ sub, ship, disc, tax, gift, total, paid, refund Cents }{6000, 599, -899, 499, 1000, 5199, 6199, 1550}
-	got := struct{ sub, ship, disc, tax, gift, total, paid, refund Cents }{o.Subtotal, o.Shipping, o.Discounts, o.Tax, o.GiftCard, o.Total, o.Paid, o.RefundTotal}
+	want := struct{ sub, ship, disc, tax, gift, total, paid, refund money.Cents }{6000, 599, -899, 499, 1000, 5199, 6199, 1550}
+	got := struct{ sub, ship, disc, tax, gift, total, paid, refund money.Cents }{o.Subtotal, o.Shipping, o.Discounts, o.Tax, o.GiftCard, o.Total, o.Paid, o.RefundTotal}
 	if got != want {
 		t.Errorf("summary = %+v, want %+v", got, want)
 	}
@@ -55,20 +57,6 @@ func TestParseOrderRejectsOtherPages(t *testing.T) {
 	}
 	if _, err := ParseOrder([]byte(`<html><body>Digital Order Summary</body></html>`)); !errors.Is(err, ErrNotOrderPage) {
 		t.Errorf("other page: err = %v", err)
-	}
-}
-
-func TestCostNeverLosesACent(t *testing.T) {
-	for paid := Cents(0); paid < 500; paid += 7 {
-		o := &Order{Paid: paid, Items: []Item{{UnitPrice: 333, Quantity: 1}, {UnitPrice: 333, Quantity: 1}, {UnitPrice: 334, Quantity: 3}}}
-		cost(o)
-		var sum Cents
-		for _, it := range o.Items {
-			sum += it.Cost
-		}
-		if sum != paid {
-			t.Fatalf("paid %d: items add up to %d", paid, sum)
-		}
 	}
 }
 
