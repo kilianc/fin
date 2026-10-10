@@ -36,8 +36,8 @@ the prompt in Claude Code or Codex.
 <a href="https://kilianc.github.io/fin/try/spending/"><img src="docs/examples/1.png" alt="AI-generated spending report with illustrative data: $6,482 spent, down 9%, with a category breakdown"></a>
 </td>
 <td width="50%" valign="bottom">
-<p><b>“What do we actually buy at Costco?”</b><br>Itemize warehouse runs, gas, and online orders by category, and match each to its card charge.<br><a href="https://kilianc.github.io/fin/try/costco/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/costco/"><img src="docs/examples/6.png" alt="AI-generated Costco report with illustrative data: $1,906.42 across 9 warehouse runs, 3 fill-ups, and 2 online orders by category, with one $287.16 receipt opened into its items"></a>
+<p><b>“How many Costco chickens and hot dogs did we buy?”</b><br>Count rotisserie chickens and hot dog combos from our receipts over the last six months.<br><a href="https://kilianc.github.io/fin/try/costco/">Try it in Claude Code or Codex →</a></p>
+<a href="https://kilianc.github.io/fin/try/costco/"><img src="docs/examples/6.png" alt="AI-generated Costco report with illustrative data: 24 rotisserie chickens and 36 hot dog combos over six months, totaling $173.76 before tax"></a>
 </td>
 </tr>
 <tr>

@@ -8,7 +8,7 @@
 </head>
 <body>
 <main class="page">
-<h1>Five questions. Five reports.</h1>
+<h1>Questions worth a report.</h1>
 <p>AI-generated financial reports. All numbers are illustrative.</p>
 <div class="scroll">
 <article class="card spending" id="card-1">
@@ -515,7 +515,52 @@
 </div>
 </article>
 </div>
+<div class="scroll">
+<article class="card costco" id="card-6">
+<div class="co-canvas">
+<header class="co-header">
+<!-- Official Costco wordmark, sourced from costco.com. -->
+<img class="co-logo" src="costco-logo.png" alt="Costco Wholesale" width="170" height="50">
+<div><span>HOUSEHOLD RECEIPT REVIEW</span><b>APRIL–SEPTEMBER 2026</b></div>
+</header>
+<div class="co-intro"><h2>We have a type.</h2><p>Six months. Two very important line items.</p></div>
+<section class="co-signs" aria-label="Six-month purchases: 24 rotisserie chickens and 36 hot dog combos">
+<div class="co-sign co-chicken">
+<div class="co-sign-head"><span>SERVICE DELI</span></div>
+<h3>ROTISSERIE CHICKENS</h3>
+<strong class="co-quantity">24</strong>
+<p class="co-quips">Dinner, handled.</p>
+<div class="co-food co-food-chicken" role="img" aria-label="Golden rotisserie chicken in a deli tray"></div>
+<div class="co-sign-bottom"><span><b>$4.99</b> each</span><span>ITEM TOTAL <strong>$119.76</strong></span></div>
+</div>
+<div class="co-sign co-hotdog">
+<div class="co-sign-head"><span>FOOD COURT</span></div>
+<h3>HOT DOG + DRINK COMBOS</h3>
+<strong class="co-quantity">36</strong>
+<p class="co-quips">A very stable investment.</p>
+<div class="co-food co-food-hotdog" role="img" aria-label="Hot dog with mustard and a fountain drink"></div>
+<div class="co-sign-bottom"><span><b>$1.50</b> per combo</span><span>ITEM TOTAL <strong>$54.00</strong></span></div>
+</div>
+</section>
+<section class="co-history" aria-label="Monthly quantities">
+<div class="co-chart-heading"><h3>A remarkably consistent shopping list.</h3><div class="co-legend"><span>Chickens</span><span>Hot dog combos</span></div></div>
+<div class="co-months">
+<div class="co-month" aria-label="April: 3 chickens, 4 hot dog combos"><div><span class="co-bar co-bar-chicken" style="--qty:3"><b>3</b></span><span class="co-bar co-bar-hotdog" style="--qty:4"><b>4</b></span></div><span>APR</span></div>
+<div class="co-month" aria-label="May: 4 chickens, 6 hot dog combos"><div><span class="co-bar co-bar-chicken" style="--qty:4"><b>4</b></span><span class="co-bar co-bar-hotdog" style="--qty:6"><b>6</b></span></div><span>MAY</span></div>
+<div class="co-month" aria-label="June: 4 chickens, 5 hot dog combos"><div><span class="co-bar co-bar-chicken" style="--qty:4"><b>4</b></span><span class="co-bar co-bar-hotdog" style="--qty:5"><b>5</b></span></div><span>JUN</span></div>
+<div class="co-month" aria-label="July: 5 chickens, 7 hot dog combos"><div><span class="co-bar co-bar-chicken" style="--qty:5"><b>5</b></span><span class="co-bar co-bar-hotdog" style="--qty:7"><b>7</b></span></div><span>JUL</span></div>
+<div class="co-month" aria-label="August: 3 chickens, 6 hot dog combos"><div><span class="co-bar co-bar-chicken" style="--qty:3"><b>3</b></span><span class="co-bar co-bar-hotdog" style="--qty:6"><b>6</b></span></div><span>AUG</span></div>
+<div class="co-month" aria-label="September: 5 chickens, 8 hot dog combos"><div><span class="co-bar co-bar-chicken" style="--qty:5"><b>5</b></span><span class="co-bar co-bar-hotdog" style="--qty:8"><b>8</b></span></div><span>SEP</span></div>
+</div>
+</section>
+<aside class="co-receipt" aria-label="Total for both items, before tax: $173.76">
+<span>THESE TWO ITEMS · 6 MONTHS</span><strong>$173.76</strong><p>Total before tax</p><div>Paper towels sold separately.</div>
+</aside>
+<footer class="co-footer"><span>ILLUSTRATIVE DATA · SAMPLE RECEIPT COUNTS &amp; UNIT PRICES</span><span>AI-GENERATED REPORT</span></footer>
+</div>
+</article>
+</div>
 </main>
-<script>const id=new URLSearchParams(location.search).get('card');if(['1','2','3','4','5'].includes(id)){document.body.classList.add('single');document.querySelectorAll('.scroll').forEach(el=>{if(!el.querySelector('#card-'+id))el.remove()})}</script>
+<script>const id=new URLSearchParams(location.search).get('card');if(['1','2','3','4','5','6'].includes(id)){document.body.classList.add('single');document.querySelectorAll('.scroll').forEach(el=>{if(!el.querySelector('#card-'+id))el.remove()})}</script>
 </body>
 </html>

@@ -211,3 +211,51 @@ footer { margin-top: auto; padding-top: 14px; border-top: 1px solid #16191d25; d
 .single .page { max-width: none; margin: 0; padding: 0; }
 .single .page > h1, .single .page > p { display: none; }
 .single .scroll { margin: 0; overflow: visible; }
+
+/* Costco: warehouse placards, food-court photography, and a little receipt humor. */
+.costco { color: #122b43; background: #00599e; }
+.co-canvas { position: absolute; inset: 0; padding: 31px 48px 25px; background: linear-gradient(115deg, #0064aa, #005395); }
+.co-header { display: flex; align-items: center; justify-content: space-between; height: 51px; }
+.co-logo { width: 170px; height: auto; }
+.co-header > div { text-align: right; font-size: 9px; letter-spacing: 1.5px; color: #bbd6ea; }
+.co-header b { display: block; margin-top: 7px; color: #fff; font-size: 12px; font-weight: 500; letter-spacing: 1px; }
+.co-intro { display: flex; align-items: baseline; justify-content: space-between; margin-top: 27px; color: white; }
+.co-intro h2 { font-size: 58px; font-weight: 700; letter-spacing: -2.6px; }
+.co-intro p { margin: 0; font-size: 14px; color: #d3e5f2; }
+.co-signs { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 33px; }
+.co-sign { position: relative; height: 335px; padding: 22px 28px; border-top: 7px solid #e31837; border-radius: 3px; background: #fffefb; box-shadow: 0 18px 22px -13px #00254585; }
+.co-chicken { transform: rotate(-1.2deg); }
+.co-hotdog { transform: rotate(1.2deg); }
+.co-sign-head { display: flex; justify-content: space-between; color: #64717a; font: 8px ui-monospace, "SF Mono", monospace; letter-spacing: 1px; }
+.co-sign h3 { position: relative; z-index: 2; margin: 16px 0 0; color: #101820; font-size: 20px; font-weight: 750; letter-spacing: -.6px; }
+.co-quantity { position: relative; z-index: 2; display: block; font-size: 121px; line-height: 1; font-weight: 750; letter-spacing: -8px; margin: 8px 0 0 -5px; color: #101820; }
+.co-quips { position: relative; z-index: 2; font-family: Georgia, serif; font-size: 17px; font-style: italic; margin: 9px 0 0; color: #536470; }
+.co-food { position: absolute; right: 8px; top: 39px; width: 260px; height: 270px; background-image: url("costco-food.png"); background-size: 520px 346.6667px; background-repeat: no-repeat; }
+.co-food-chicken { top: 3px; right: 17px; width: 236px; height: 265px; background-size: 460px 306.6667px; background-position: 0 0; }
+.co-food-hotdog { top: -4px; right: 17px; width: 210px; height: 265px; background-size: 420px 280px; background-position: -210px 0; clip-path: inset(0 0 0 4%); }
+.co-sign-bottom { position: absolute; left: 28px; right: 28px; bottom: 19px; border-top: 1px solid #d4d9dc; padding-top: 14px; display: flex; justify-content: space-between; align-items: baseline; z-index: 3; }
+.co-sign-bottom > span:first-child { color: #64717a; font-size: 11px; }
+.co-sign-bottom b { color: #17252e; font-weight: 700; font-size: 23px; letter-spacing: -.8px; margin-right: 4px; }
+.co-sign-bottom > span:last-child { color: #64717a; font-size: 8px; letter-spacing: .7px; }
+.co-sign-bottom strong { color: #17252e; font-size: 22px; font-weight: 600; letter-spacing: -.5px; margin-left: 8px; }
+.co-history { position: absolute; left: 48px; right: 354px; top: 581px; color: #fff; }
+.co-chart-heading { display: flex; align-items: center; justify-content: space-between; }
+.co-chart-heading h3 { font-size: 14px; letter-spacing: -.2px; font-weight: 500; margin: 0; }
+.co-legend { display: flex; gap: 15px; font-size: 9px; color: #d3e5f2; }
+.co-legend span::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 5px; background: #ff5269; }
+.co-legend span:last-child::before { background: #a9daf5; }
+.co-months { display: grid; grid-template-columns: repeat(6, 1fr); gap: 22px; margin-top: 21px; }
+.co-month { text-align: center; }
+.co-month > div { height: 87px; display: flex; align-items: flex-end; justify-content: center; gap: 6px; border-bottom: 1px solid #ffffff38; padding: 0 14px; }
+.co-bar { display: block; width: 27px; height: calc(var(--qty) * 8px); position: relative; }
+.co-bar-chicken { background: #ff5269; }
+.co-bar-hotdog { background: #a9daf5; }
+.co-bar b { position: absolute; width: 100%; left: 0; top: -18px; font-size: 11px; font-weight: 500; }
+.co-month > span { display: block; margin-top: 10px; color: #d3e5f2; font: 9px ui-monospace, "SF Mono", monospace; letter-spacing: 1px; }
+.co-receipt { position: absolute; right: 53px; top: 576px; width: 250px; padding: 20px 18px 18px; text-align: center; color: #17252e; background: #fffefb; transform: rotate(3deg); box-shadow: 0 9px 13px -7px #00254580; }
+.co-receipt::after { content: ""; position: absolute; left: 0; right: 0; height: 8px; bottom: -7px; background: linear-gradient(135deg, #fffefb 25%, transparent 25%) -8px 0, linear-gradient(225deg, #fffefb 25%, transparent 25%) -8px 0; background-size: 16px 16px; }
+.co-receipt > span { font: 8px ui-monospace, "SF Mono", monospace; letter-spacing: .2px; }
+.co-receipt > strong { display: block; font-size: 45px; line-height: 1; letter-spacing: -2px; margin-top: 12px; font-weight: 650; }
+.co-receipt p { font-size: 10px; color: #667580; margin: 8px 0 15px; }
+.co-receipt > div { padding-top: 12px; border-top: 1px dashed #9aa8b1; font: 9px ui-monospace, "SF Mono", monospace; }
+.co-footer { position: absolute; left: 48px; right: 48px; bottom: 24px; margin: 0; border: 0; padding: 0; color: #bbd6ea; font-size: 8px; }
