@@ -31,7 +31,8 @@ Steps:
 6. For each one I approve, run ` + "`fin link --yes --open`" + ` in the background. It opens Plaid Link in my browser, where I pick the institution and sign in; fin collects transactions and investments, whichever the institution supports. Only if ` + "`fin institutions`" + ` shows an institution as brokerage-only, use ` + "`fin link brokerage --yes --open`" + ` instead.
 7. Run ` + "`fin sync`" + ` to save my transactions on this Mac, then finish with ` + "`fin items`" + ` and ` + "`fin accounts`" + ` and summarize what is connected and healthy.
 8. Tell me I can now ask you about my money in plain words, or query it myself with ` + "`fin sql`" + `. Ask whether I'd also like my transactions in a Google Sheet; if so, run ` + "`fin sheet --open`" + ` in the background and let me sign in to Google in the browser.
-9. Ask whether I shop on Amazon and want each order broken into its items (experimental). If so, ask me for a name for the account and run ` + "`fin amazon login <name>`" + `; macOS will ask me to allow Chrome Safe Storage.`
+9. Ask whether I shop on Amazon and want each order broken into its items (experimental). If so, ask me for a name for the account and run ` + "`fin amazon login <name>`" + `; macOS will ask me to allow Chrome Safe Storage.
+10. Ask whether I shop at Costco and want my receipts and costco.com orders broken into their items (experimental). If so, ask me for a name for the account and run ` + "`fin costco login <name>`" + `; macOS may ask me to allow Chrome Safe Storage.`
 
 type initStatus struct {
 	Env         string          `json:"env"`

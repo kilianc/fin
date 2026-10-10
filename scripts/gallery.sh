@@ -12,7 +12,7 @@ trap 'rm -rf "$profile"' EXIT
 
 # Headless Chrome sometimes writes the screenshot and then never exits, so
 # each render gets 20 seconds and is stopped once its file appears.
-for n in 1 2 3 4 5; do
+for n in 1 2 3 4 5 6; do
   out="docs/examples/$n.png"
   rm -f "$out"
   "$chrome" --headless=new --disable-gpu --hide-scrollbars --no-first-run \

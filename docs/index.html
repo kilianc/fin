@@ -57,7 +57,8 @@ Steps:
 6. For each one I approve, run `fin link --yes --open` in the background. It opens Plaid Link in my browser, where I pick the institution and sign in; fin collects transactions and investments, whichever the institution supports. Only if `fin institutions` shows an institution as brokerage-only, use `fin link brokerage --yes --open` instead.
 7. Run `fin sync` to save my transactions on this Mac, then finish with `fin items` and `fin accounts` and summarize what is connected and healthy.
 8. Tell me I can now ask you about my money in plain words, or query it myself with `fin sql`. Ask whether I&#39;d also like my transactions in a Google Sheet; if so, run `fin sheet --open` in the background and let me sign in to Google in the browser.
-9. Ask whether I shop on Amazon and want each order broken into its items (experimental). If so, ask me for a name for the account and run `fin amazon login &lt;name&gt;`; macOS will ask me to allow Chrome Safe Storage.</template>
+9. Ask whether I shop on Amazon and want each order broken into its items (experimental). If so, ask me for a name for the account and run `fin amazon login &lt;name&gt;`; macOS will ask me to allow Chrome Safe Storage.
+10. Ask whether I shop at Costco and want my receipts and costco.com orders broken into their items (experimental). If so, ask me for a name for the account and run `fin costco login &lt;name&gt;`; macOS may ask me to allow Chrome Safe Storage.</template>
 </div>
 <img class="hero-logo" src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="fin mascot">
 </section>
@@ -351,6 +352,14 @@ Steps:
 <a href="try/spending/"><img class="report" src="examples/1.png" alt="AI-generated spending report with illustrative data: $6,482 spent, down 9%, with a category breakdown" width="2400" height="1600" loading="lazy"></a>
 </figure>
 <figure>
+<figcaption><p class="ask">“What do we actually buy at Costco?” <span>Itemize warehouse runs, gas, and online orders by category, and match each to its card charge.</span></p><a class="try" href="try/costco/">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/costco/"><img class="report" src="examples/6.png" alt="AI-generated Costco report with illustrative data: $1,906.42 across 9 warehouse runs, 3 fill-ups, and 2 online orders by category, with one $287.16 receipt opened into its items" width="2400" height="1600" loading="lazy"></a>
+</figure>
+<figure>
+<figcaption><p class="ask">“Break down my Amazon spending item by item.” <span>Use my order history to categorize purchases, unpack card charges, and track refunds.</span></p><a class="try" href="try/amazon/">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/amazon/"><img class="report" src="examples/5.png" alt="AI-generated Amazon report with illustrative data: $1,284.37 across 23 orders, six items in a $412.07 Amex charge, and $86.20 in pending refunds" width="2400" height="1600" loading="lazy"></a>
+</figure>
+<figure>
 <figcaption><p class="ask">“Find the subscriptions worth reviewing.” <span>Find subscriptions, price increases, and anything I’m paying for twice.</span></p><a class="try" href="try/subscriptions/">Try this prompt<span class="arr">→</span></a></figcaption>
 <a href="try/subscriptions/"><img class="report" src="examples/2.png" alt="AI-generated subscription audit with illustrative data: recurring charges, price increases, and overlapping storage plans" width="2400" height="1600" loading="lazy"></a>
 </figure>
@@ -361,10 +370,6 @@ Steps:
 <figure>
 <figcaption><p class="ask">“Show how my net worth changed this year.” <span>Chart it month by month and explain what moved it.</span></p><a class="try" href="try/net-worth/">Try this prompt<span class="arr">→</span></a></figcaption>
 <a href="try/net-worth/"><img class="report" src="examples/4.png" alt="AI-generated net-worth report with illustrative data: January to September growth, market gains, savings, and card balances" width="2400" height="1600" loading="lazy"></a>
-</figure>
-<figure>
-<figcaption><p class="ask">“Break down my Amazon spending item by item.” <span>Use my order history to categorize purchases, unpack card charges, and track refunds.</span></p><a class="try" href="try/amazon/">Try this prompt<span class="arr">→</span></a></figcaption>
-<a href="try/amazon/"><img class="report" src="examples/5.png" alt="AI-generated Amazon report with illustrative data: $1,284.37 across 23 orders, six items in a $412.07 Amex charge, and $86.20 in pending refunds" width="2400" height="1600" loading="lazy"></a>
 </figure>
 </div>
 </section>
@@ -378,6 +383,7 @@ Steps:
 <dt>secrets</dt><dd>macOS Keychain, service <code>fin</code>. State in <code>~/.config/fin/state.json</code>, mode 0600.</dd>
 <dt>data</dt><dd>Transactions and balances in a DuckDB file in <code>~/.local/share/fin</code>; query it with <code>fin sql</code>. <code>fin sheet</code> copies them to a spreadsheet in your Google Drive, the only file there <span class="fin">fin</span> can see.</dd>
 <dt>amazon</dt><dd>Experimental and off until you run <code>fin amazon login</code>: it reads your Amazon payments and order pages with your Chrome sign-in, so each charge opens into its items.</dd>
+<dt>costco</dt><dd>Experimental and off until you run <code>fin costco login</code>: it reads your warehouse and gas receipts and costco.com orders with your Chrome sign-in, so each trip opens into its items.</dd>
 <dt>servers</dt><dd>None. <span class="fin">fin</span> calls Plaid's API from your laptop and prints the answer.</dd>
 <dt>cost</dt><dd>Free on Plaid's Trial plan, up to 10 institutions. MIT licensed.</dd>
 </dl>
