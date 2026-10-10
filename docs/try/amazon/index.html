@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../site.css?v=2a9c21148b">
+<title>fin · try it: Amazon, itemized</title>
+<meta name="description" content="Break down my Amazon spending item by item. Use my order history to categorize purchases, unpack card charges, and track refunds.">
+<meta property="og:title" content="fin · Amazon, itemized">
+<meta property="og:description" content="Break down my Amazon spending item by item. Use my order history to categorize purchases, unpack card charges, and track refunds.">
+<meta property="og:image" content="https://kilianc.github.io/fin/examples/5.png">
+<meta property="og:image:alt" content="AI-generated Amazon report with illustrative data: $1,284.37 across 23 orders, six items in a $412.07 Amex charge, and $86.20 in pending refunds">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1600">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<header class="site-header wrap">
+<a class="brand" href="../../"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt=""><b>fin</b></a><span class="where">~ local</span>
+<span class="sp"></span>
+<nav><a href="../../#examples">examples</a><a href="../../#security">security</a><a href="https://github.com/kilianc/fin">github ↗</a></nav>
+</header>
+<main>
+<section class="section first wrap">
+<ul class="ex-nav" aria-label="Examples">
+<li><a href="../../try/spending/">Monthly spending review</a></li>
+<li><a href="../../try/subscriptions/">Subscription audit</a></li>
+<li><a href="../../try/portfolio/">Investment overview</a></li>
+<li><a href="../../try/net-worth/">Net worth over time</a></li>
+<li><a href="../../try/amazon/" aria-current="page">Amazon, itemized</a></li>
+</ul>
+<h1 class="display">“Break down my Amazon spending item by item.”</h1>
+<p class="lede">Use my order history to categorize purchases, unpack card charges, and track refunds.</p>
+<div class="buttons">
+<a href="claude-cli://open?q=Use%20fin%2C%20my%20local%20command-line%20tool%20for%20my%20bank%20and%20brokerage%20data%20%28run%20%60fin%20help%60%20to%20see%20its%20commands%29%2C%20to%20create%20a%20polished%20visual%20report%20with%20charts%20and%20a%20concise%20summary%3A%20Break%20down%20my%20Amazon%20spending%20item%20by%20item.%20Use%20my%20order%20history%20to%20categorize%20purchases%2C%20unpack%20card%20charges%2C%20and%20track%20refunds."><img src="../../try-in-claude.svg?v=flat2" alt="Try in Claude Code"></a>
+<a href="codex://new?prompt=Use%20fin%2C%20my%20local%20command-line%20tool%20for%20my%20bank%20and%20brokerage%20data%20%28run%20%60fin%20help%60%20to%20see%20its%20commands%29%2C%20to%20create%20a%20polished%20visual%20report%20with%20charts%20and%20a%20concise%20summary%3A%20Break%20down%20my%20Amazon%20spending%20item%20by%20item.%20Use%20my%20order%20history%20to%20categorize%20purchases%2C%20unpack%20card%20charges%2C%20and%20track%20refunds."><img src="../../try-in-codex.svg?v=flat2" alt="Try in Codex"></a>
+</div>
+</section>
+<section class="section tight wrap">
+<div class="shell">
+<div class="shell-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="label">what your agent receives</span><button class="copy" id="copy" type="button">copy</button></div>
+<pre class="prose" id="prompt"><span class="you">you ›</span> Use fin, my local command-line tool for my bank and brokerage data (run `fin help` to see its commands), to create a polished visual report with charts and a concise summary: <span class="hi">Break down my Amazon spending item by item. Use my order history to categorize purchases, unpack card charges, and track refunds.</span></pre>
+</div>
+<p class="note">The app opens with this prompt filled in; read it, then press Enter. It needs <span class="fin">fin</span> installed and connected to your accounts, so <a href="../../">set it up first</a> if you haven't.</p>
+</section>
+<section class="section wrap">
+<p class="kicker">// AI-generated report · illustrative data</p>
+<p class="note">fin supplies the data. Your agent creates the layout, charts, and analysis.</p>
+<img class="report" src="../../examples/5.png" alt="AI-generated Amazon report with illustrative data: $1,284.37 across 23 orders, six items in a $412.07 Amex charge, and $86.20 in pending refunds" width="2400" height="1600" loading="lazy">
+<nav class="pager" aria-label="More examples">
+<a class="prev" href="../../try/net-worth/"><small>← previous</small><span>“Show how my net worth changed this year.”</span></a>
+</nav>
+</section>
+</main>
+<footer class="site-footer wrap"><span>fin · MIT</span><span class="sp"></span><a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a></footer>
+<script>
+document.getElementById("copy").onclick = function () {
+  navigator.clipboard.writeText(document.getElementById("prompt").textContent.replace(/^you › /, ""));
+  this.textContent = "copied";
+};
+</script>
+</body>
+</html>

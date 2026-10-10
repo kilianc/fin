@@ -94,6 +94,7 @@ br.lg { display: block; }
 /* gallery */
 .gal { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px 28px; }
 .gal figure { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.gal figure:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .gal figcaption { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; gap: 10px; }
 .gal .ask { font-size: 18px; line-height: 1.4; font-weight: 500; }
 .gal .ask span { font-weight: 400; color: var(--body); }
@@ -108,8 +109,6 @@ br.lg { display: block; }
 .ex-nav a { display: block; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); color: var(--ink2); text-decoration: none; }
 .ex-nav a:hover { border-color: var(--blue); color: var(--ink); }
 .ex-nav a[aria-current="page"] { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
-.ex-nav b { font-weight: 400; color: var(--muted); margin-right: 6px; }
-.ex-nav a[aria-current="page"] b { color: var(--blue); }
 .pager { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 40px; }
 .pager a { display: block; padding: 18px 20px; border: 1px solid var(--rule); border-radius: 10px; background: var(--paper); color: var(--ink); text-decoration: none; }
 .pager a:hover { border-color: var(--blue); }
