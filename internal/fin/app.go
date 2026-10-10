@@ -3,6 +3,7 @@
 package fin
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"flag"
@@ -48,13 +49,19 @@ type Secrets interface {
 // App holds everything a command needs. main wires the real implementations;
 // tests swap in fakes.
 type App struct {
+	// Version is the release this binary was built from, or "dev".
+	Version string
 	// Env is resolved by Run from EnvVar (PLAID_ENV), then the environment
 	// saved with `fin env`, then sandbox. Tests may set it directly.
 	Env       plaid.Env
 	EnvVar    string
 	StatePath string
-	Secrets   Secrets
-	NewPlaid  func(env plaid.Env, clientID, secret string) Plaid
+	// DataDir holds the DuckDB files, one per environment.
+	DataDir string
+	// PlaidCLIConfig is Plaid's own CLI config.json, read by fin setup --from-plaid.
+	PlaidCLIConfig string
+	Secrets        Secrets
+	NewPlaid       func(env plaid.Env, clientID, secret string) Plaid
 
 	Stdin  io.Reader
 	Stdout io.Writer
@@ -100,6 +107,10 @@ func (a *App) Run(ctx context.Context, args []string) int {
 	if len(args) == 0 {
 		a.printUsage()
 		return exitUsage
+	}
+	if args[0] == "--version" || args[0] == "version" {
+		fmt.Fprintf(a.Stdout, "fin %s\n", cmp.Or(a.Version, "dev"))
+		return exitOK
 	}
 	if args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		if len(args) > 1 {

@@ -1,9 +1,16 @@
 .DEFAULT_GOAL := build
 
+VERSION ?= dev
+
+# Universal macOS binary at bin/fin (Apple Silicon and Intel, macOS 12+).
 .PHONY: build
 build:
-	@mkdir -p bin
-	go build -o bin/fin ./cmd/fin
+	./scripts/build.sh $(VERSION)
+
+# Test, build, tag and upload to GitHub Releases: make release VERSION=0.2.0
+.PHONY: release
+release:
+	./scripts/release.sh $(VERSION)
 
 .PHONY: install
 install:

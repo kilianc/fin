@@ -22,7 +22,7 @@ type Agent struct {
 // shortPrompt bootstraps the full agent prompt from fin itself. Claude Code
 // types a deep link's prompt into the terminal as a command line, and a long
 // one stalls there, so its link carries this instead.
-const shortPrompt = "Help me set up fin (https://github.com/kilianc/fin), a local, read-only command-line tool for my own bank and brokerage data. If `fin` isn't installed, install it with `go install github.com/kilianc/fin/cmd/fin@latest`. Then run `fin init --json` and follow the setup steps in its \"prompt\" field, using my web browser for the clicking."
+const shortPrompt = "Help me set up fin (https://github.com/kilianc/fin), a local, read-only command-line tool for my own bank and brokerage data. If `fin` isn't installed, install it with `mkdir -p ~/.local/bin && curl -fsSL https://github.com/kilianc/fin/releases/latest/download/fin-darwin-universal.tar.gz | tar -xz -C ~/.local/bin` and make sure ~/.local/bin is on my PATH. Then run `fin init --json` and follow the setup steps in its \"prompt\" field, using my web browser for the clicking."
 
 func queryEscape(s string) string {
 	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")

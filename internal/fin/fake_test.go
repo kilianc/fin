@@ -214,6 +214,7 @@ func newTestApp(t *testing.T, items ...state.Item) *testApp {
 	ta.App = &App{
 		Env:          plaid.Sandbox,
 		StatePath:    filepath.Join(t.TempDir(), "state.json"),
+		DataDir:      t.TempDir(),
 		Secrets:      ta.secrets,
 		NewPlaid:     func(plaid.Env, string, string) Plaid { return ta.fake },
 		Stdin:        &bytes.Buffer{},

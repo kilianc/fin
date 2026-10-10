@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/kilianc/fin/internal/plaid"
 	"github.com/kilianc/fin/internal/state"
+	"github.com/kilianc/fin/internal/store"
 	"github.com/kilianc/fin/internal/ui"
 )
 
@@ -101,30 +101,8 @@ func (a *App) cmdAccounts(ctx context.Context, args []string) (*result, error) {
 
 // --- transactions ---
 
-type transactionView struct {
-	TransactionID    string  `json:"transaction_id"`
-	Item             string  `json:"item"`
-	Institution      string  `json:"institution"`
-	AccountID        string  `json:"account_id"`
-	AccountName      string  `json:"account_name"`
-	AccountMask      *string `json:"account_mask"`
-	Date             string  `json:"date"`
-	AuthorizedDate   *string `json:"authorized_date"`
-	Name             string  `json:"name"`
-	MerchantName     *string `json:"merchant_name"`
-	Amount           float64 `json:"amount"`
-	IsoCurrencyCode  *string `json:"iso_currency_code"`
-	Pending          bool    `json:"pending"`
-	Category         *string `json:"category"`
-	CategoryDetailed *string `json:"category_detailed"`
-	PaymentChannel   string  `json:"payment_channel"`
-}
-
-type syncView struct {
-	Item                     string     `json:"item"`
-	TransactionsUpdateStatus string     `json:"transactions_update_status"`
-	LastSync                 *time.Time `json:"last_sync"`
-}
+// transactionView is a stored transaction with its account and Item names.
+type transactionView = store.Transaction
 
 func (a *App) cmdTransactions(ctx context.Context, args []string) (*result, error) {
 	fs := flag.NewFlagSet("transactions", flag.ContinueOnError)
@@ -139,71 +117,24 @@ func (a *App) cmdTransactions(ctx context.Context, args []string) (*result, erro
 	if err != nil {
 		return nil, err
 	}
-	parts := make([][]transactionView, len(items))
-	syncs := make([]*syncView, len(items))
-	cursors := make([]string, len(items))
-	errs := a.forEachItem(ctx, items, func(ctx context.Context, i int, token string) error {
-		it := items[i]
-		res, err := syncTransactions(ctx, api, token, "")
+	txs, syncList, errs := []transactionView{}, []syncView{}, []ItemError{}
+	if len(items) > 0 {
+		s, err := a.openStore(ctx)
 		if err != nil {
-			return err
-		}
-		if res.status == "NOT_READY" {
-			return &itemIssue{"TRANSACTIONS_NOT_READY", "Plaid is still pulling this Item's transactions; try again in a few minutes"}
-		}
-		now := a.Now().UTC()
-		syncs[i] = &syncView{Item: it.Name, TransactionsUpdateStatus: res.status, LastSync: &now}
-		cursors[i] = res.cursor
-		for _, t := range res.transactions {
-			acc := res.accounts[t.AccountID]
-			if t.Date < from || t.Date > to || (*account != "" && !matchAccount(*account, t.AccountID, acc)) {
-				continue
-			}
-			v := transactionView{
-				TransactionID:   t.TransactionID,
-				Item:            it.Name,
-				Institution:     it.InstitutionName,
-				AccountID:       t.AccountID,
-				AccountName:     acc.Name,
-				AccountMask:     acc.Mask,
-				Date:            t.Date,
-				AuthorizedDate:  t.AuthorizedDate,
-				Name:            t.Name,
-				MerchantName:    t.MerchantName,
-				Amount:          t.Amount,
-				IsoCurrencyCode: t.IsoCurrencyCode,
-				Pending:         t.Pending,
-				PaymentChannel:  t.PaymentChannel,
-			}
-			if c := t.PersonalFinanceCategory; c != nil {
-				v.Category, v.CategoryDetailed = &c.Primary, &c.Detailed
-			}
-			parts[i] = append(parts[i], v)
-		}
-		return nil
-	})
-
-	syncList := []syncView{}
-	for i, s := range syncs {
-		if s == nil {
-			continue
-		}
-		syncList = append(syncList, *s)
-		it := items[i]
-		it.TransactionsCursor = cursors[i]
-		it.LastSync = s.LastSync
-		st.Put(it)
-	}
-	if len(syncList) > 0 {
-		if err := a.saveState(st); err != nil {
 			return nil, err
 		}
+		defer s.Close()
+		if syncList, errs, err = a.syncStore(ctx, s, st, items, api); err != nil {
+			return nil, err
+		}
+		ids := make([]string, len(items))
+		for i, it := range items {
+			ids[i] = it.ItemID
+		}
+		if txs, err = s.Transactions(ctx, store.Filter{ItemIDs: ids, From: from, To: to, Account: *account}); err != nil {
+			return nil, storeErr(err)
+		}
 	}
-
-	txs := flatten(parts)
-	slices.SortStableFunc(txs, func(x, y transactionView) int {
-		return cmp.Or(strings.Compare(y.Date, x.Date), strings.Compare(x.Item, y.Item), strings.Compare(x.TransactionID, y.TransactionID))
-	})
 	var out, in float64
 	t := &ui.Table{
 		Title:   fmt.Sprintf("Transactions · %s → %s · %d", from, to, len(txs)),

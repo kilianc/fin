@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -18,8 +19,12 @@ import (
 	"github.com/kilianc/fin/internal/keychain"
 	"github.com/kilianc/fin/internal/plaid"
 	"github.com/kilianc/fin/internal/state"
+	"github.com/kilianc/fin/internal/store"
 	"github.com/kilianc/fin/internal/ui"
 )
+
+// version is set by scripts/build.sh with -ldflags "-X main.version=X.Y.Z".
+var version = "dev"
 
 func main() {
 	os.Exit(run())
@@ -31,6 +36,11 @@ func run() int {
 		fmt.Fprintf(os.Stderr, "{\"error\": {\"code\": \"STATE_ERROR\", \"message\": %q}}\n", err.Error())
 		return 1
 	}
+	dataDir, err := store.DefaultDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "{\"error\": {\"code\": \"STORE_ERROR\", \"message\": %q}}\n", err.Error())
+		return 1
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -40,10 +50,16 @@ func run() int {
 	if isTTY(os.Stdin)() && isTTY(os.Stdout)() {
 		ui.SetDarkBackground(lipgloss.HasDarkBackground(os.Stdin, os.Stdout))
 	}
+	// Plaid's CLI keeps its config in the OS config dir: ~/Library/Application
+	// Support on macOS, ~/.config on Linux.
+	configDir, _ := os.UserConfigDir()
 	app := &fin.App{
-		EnvVar:    os.Getenv("PLAID_ENV"),
-		StatePath: statePath,
-		Secrets:   keychain.Keychain{Service: "fin"},
+		Version:        version,
+		EnvVar:         os.Getenv("PLAID_ENV"),
+		StatePath:      statePath,
+		DataDir:        dataDir,
+		PlaidCLIConfig: filepath.Join(configDir, "plaid-cli", "config.json"),
+		Secrets:        keychain.Keychain{Service: "fin"},
 		NewPlaid: func(env plaid.Env, clientID, secret string) fin.Plaid {
 			return plaid.NewClient(env, clientID, secret)
 		},

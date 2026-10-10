@@ -50,13 +50,20 @@ single command or shell.`,
 		run:      func(a *App) command { return a.cmdEnv },
 	},
 	{
-		name: "setup", usage: "fin setup", group: groupStart,
+		name: "setup", usage: "fin setup [--from-plaid]", group: groupStart,
 		summary: "Save your Plaid keys in the macOS Keychain",
 		detail: `Asks for your Plaid client ID and the secret for the current environment
 (the secret is hidden as you paste it), checks them with Plaid, and saves both
 in the macOS Keychain. Needs a terminal; an agent should ask you to run it.
-Find the keys at https://dashboard.plaid.com/developers/keys.`,
-		examples: []string{"fin env production && fin setup"},
+Find the keys at https://dashboard.plaid.com/developers/keys.
+
+With --from-plaid, nothing is pasted: sign in with Plaid's own CLI
+(plaid login, and plaid keys fetch once production is approved), and fin
+copies the keys it fetched into the Keychain. No terminal needed.
+
+Flags:
+  --from-plaid   import the keys from Plaid's CLI config instead of asking`,
+		examples: []string{"fin env production && fin setup", "plaid login && fin setup --from-plaid"},
 		run:      func(a *App) command { return a.cmdSetup },
 	},
 	{
@@ -125,7 +132,8 @@ Flags:
 	{
 		name: "transactions", usage: "fin transactions --since DATE [--until DATE] [--account X]", group: groupRead,
 		summary: "Transactions across bank and card accounts, newest first",
-		detail: `Reads up to 24 months of history. In JSON, amounts use Plaid's sign:
+		detail: `Syncs new and changed transactions into the local database (see fin sync),
+then reads the range from it. In JSON, amounts use Plaid's sign:
 positive is money out, negative is money in. The table flips that to read
 naturally (negative = spent).
 
@@ -135,6 +143,48 @@ Flags:
   --account X     an account ID, last four digits, or account name`,
 		examples: []string{"fin transactions --since 2026-09-01", "fin transactions --since 2026-01-01 --account 4242 --json"},
 		run:      func(a *App) command { return a.cmdTransactions },
+	},
+	{
+		name: "sync", usage: "fin sync", group: groupRead,
+		summary: "Pull new and changed transactions into the local database",
+		detail: `Asks Plaid only for what changed since the last sync, and writes it to a
+DuckDB file in ~/.local/share/fin (one per environment, readable only by you).
+The first sync of a connection pulls its full history, up to 24 months.
+fin transactions syncs too, so run this before fin sql.`,
+		examples: []string{"fin sync", "fin sync && fin sql \"select count(*) from transactions\""},
+		run:      func(a *App) command { return a.cmdSync },
+	},
+	{
+		name: "sql", usage: "fin sql \"<query>\"", group: groupRead,
+		summary: "Query the local database with DuckDB SQL",
+		detail: `Runs one read-only query against the data saved by fin sync. It cannot
+change the database or read or write any other file. JSON output has
+"columns", "rows" (one object per row) and "synced" (when each connection
+was last synced).
+
+Tables:
+  transactions  transaction_id, item_id, account_id, date, authorized_date,
+                name, merchant_name, amount, iso_currency_code, pending,
+                category, category_detailed, payment_channel
+  accounts      account_id, item_id, name, official_name, mask, type, subtype,
+                current, available, limit, iso_currency_code, updated_at
+  items         item_id, item, institution, cursor, status, last_sync
+
+Amounts use Plaid's sign: positive is money out, negative is money in.`,
+		examples: []string{
+			"fin sql \"select category, sum(amount) from transactions where amount > 0 group by all order by 2 desc\"",
+			"fin sql \"select a.name, t.date, t.merchant_name, t.amount from transactions t join accounts a using (account_id) limit 20\"",
+		},
+		run: func(a *App) command { return a.cmdSQL },
+	},
+	{
+		name: "paths", usage: "fin paths [database]", group: groupRead,
+		summary: "Show where fin keeps its state and local database",
+		detail: `Lists the state file, the DuckDB file for the current environment, and the
+Keychain service. With database, prints only the database path, for scripts.
+FIN_CONFIG_DIR and FIN_DATA_DIR move them.`,
+		examples: []string{"fin paths", "duckdb \"$(fin paths database)\""},
+		run:      func(a *App) command { return a.cmdPaths },
 	},
 	{
 		name: "holdings", usage: "fin holdings [--account X]", group: groupRead,
@@ -180,6 +230,8 @@ const outputHelp = `  In a terminal, fin prints tables for people. When piped, o
 
 const envHelp = `  PLAID_ENV        sandbox or production; overrides fin env for one command
   FIN_CONFIG_DIR   state directory (default ~/.config/fin)
+  FIN_DATA_DIR     local database directory (default $XDG_DATA_HOME/fin,
+                   or ~/.local/share/fin)
   FIN_DEBUG        print what Plaid Link reports while waiting`
 
 func (a *App) heading(s string) string {

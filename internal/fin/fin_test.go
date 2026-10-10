@@ -81,6 +81,9 @@ func TestSyncAppliesModifiedAndRemoved(t *testing.T) {
 	if amt := res.transactions["t2"].Amount; amt != 25 {
 		t.Errorf("t2 amount = %v, want the modified 25", amt)
 	}
+	if !res.removed["t3"] || len(res.removed) != 1 {
+		t.Errorf("removed = %v, want t3 so the store drops it", res.removed)
+	}
 }
 
 func TestSyncRestartsFromOriginalCursorAfterMutation(t *testing.T) {
@@ -220,7 +223,7 @@ func TestTransactionsFiltersAndRecordsSync(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, _ := st.Find("sandbox", "chase")
-	if got.TransactionsCursor != "chase-c1" || got.LastSync == nil || !got.LastSync.Equal(testNow) {
+	if got.LastSync == nil || !got.LastSync.Equal(testNow) {
 		t.Errorf("chase state = %+v", got)
 	}
 	if c, _ := st.Find("sandbox", "citi"); c.LastSync != nil {
@@ -233,6 +236,64 @@ func TestTransactionsFiltersAndRecordsSync(t *testing.T) {
 	}
 	if txs := body["transactions"].([]any); len(txs) != 1 || txs[0].(map[string]any)["transaction_id"] != "in2" {
 		t.Errorf("--account by mask: %v", txs)
+	}
+	if !slices.Contains(ta.fake.calls, `sync tok-item-chase cursor="chase-c1"`) {
+		t.Errorf("second read did not resume from the stored cursor: %v", ta.fake.calls)
+	}
+}
+
+func TestSyncStoresDeltasForSQL(t *testing.T) {
+	ta := newTestApp(t, chase)
+	ta.fake.syncPages["tok-item-chase"] = func(cursor string, _ int) (*plaid.TransactionsSyncResponse, error) {
+		page := &plaid.TransactionsSyncResponse{
+			Accounts:                 []plaid.Account{{AccountID: "chk", Name: "Checking", Mask: ptr("0001")}},
+			TransactionsUpdateStatus: "HISTORICAL_UPDATE_COMPLETE",
+		}
+		switch cursor {
+		case "":
+			page.Added = []plaid.Transaction{tx("a", "chk", "2026-01-02", 4.5), tx("b", "chk", "2026-01-03", 10)}
+			page.NextCursor = "c1"
+		case "c1":
+			page.Modified = []plaid.Transaction{tx("a", "chk", "2026-01-02", 6)}
+			page.Removed = []plaid.RemovedTransaction{{TransactionID: "b"}}
+			page.NextCursor = "c2"
+		default:
+			page.NextCursor = cursor
+		}
+		return page, nil
+	}
+
+	code, body := ta.run(t, "sql", "select 1")
+	if code != exitError || ta.stderrJSON(t)["code"] != "NO_LOCAL_DATA" {
+		t.Fatalf("sql before sync: exit %d, stderr %s", code, ta.stderr)
+	}
+	for _, want := range []float64{2, 1} {
+		code, body = ta.run(t, "sync")
+		if code != exitOK {
+			t.Fatalf("sync exit = %d; stderr %s", code, ta.stderr)
+		}
+		if s := body["sync"].([]any)[0].(map[string]any); s["changed"] != want {
+			t.Errorf("sync = %v, want %v changed", s, want)
+		}
+	}
+	code, body = ta.run(t, "sql", "select transaction_id, amount, a.name as account from transactions join accounts a using (account_id)")
+	if code != exitOK {
+		t.Fatalf("sql exit = %d; stderr %s", code, ta.stderr)
+	}
+	rows := body["rows"].([]any)
+	if len(rows) != 1 {
+		t.Fatalf("rows = %v, want only a (b was removed)", rows)
+	}
+	if r := rows[0].(map[string]any); r["transaction_id"] != "a" || r["amount"] != 6.0 || r["account"] != "Checking" {
+		t.Errorf("row = %v", r)
+	}
+	if synced := body["synced"].([]any); len(synced) != 1 || synced[0].(map[string]any)["item"] != "chase" {
+		t.Errorf("synced = %v", synced)
+	}
+
+	code, _ = ta.run(t, "sql", "delete from transactions")
+	if code != exitError || ta.stderrJSON(t)["code"] != "SQL_ERROR" {
+		t.Errorf("a write must fail: exit %d, stderr %s", code, ta.stderr)
 	}
 }
 
@@ -795,4 +856,59 @@ func TestSkillShipsAsAPlugin(t *testing.T) {
 
 func TestPrivacyPage(t *testing.T) {
 	checkGenerated(t, "../../docs/privacy/index.html", PrivacyPage())
+}
+
+func TestPaths(t *testing.T) {
+	ta := newTestApp(t)
+	want := filepath.Join(ta.DataDir, "sandbox.duckdb")
+	code, body := ta.run(t, "paths")
+	if code != exitOK || body["database"] != want || body["database_exists"] != false || body["state"] != ta.StatePath {
+		t.Errorf("exit %d, body %v", code, body)
+	}
+	ta.stdout.Reset()
+	for _, mode := range []string{"--json", "--table"} {
+		ta.stdout.Reset()
+		if code := ta.Run(context.Background(), []string{"paths", "database", mode}); code != exitOK || ta.stdout.String() != want+"\n" {
+			t.Errorf("%s: exit %d, stdout %q, want the bare path for $(...)", mode, code, ta.stdout)
+		}
+	}
+}
+
+func TestVersion(t *testing.T) {
+	ta := newTestApp(t)
+	ta.Version = "1.2.3"
+	if code := ta.Run(context.Background(), []string{"--version"}); code != exitOK || ta.stdout.String() != "fin 1.2.3\n" {
+		t.Errorf("exit %d, stdout %q", code, ta.stdout)
+	}
+}
+
+func TestSetupImportsKeysFromPlaidCLI(t *testing.T) {
+	ta := newTestApp(t)
+	ta.secrets.m = map[string]string{}
+	ta.PlaidCLIConfig = filepath.Join(t.TempDir(), "config.json")
+
+	code, _ := ta.run(t, "setup", "--from-plaid")
+	if code != exitError || ta.stderrJSON(t)["code"] != "PLAID_CLI_NOT_FOUND" {
+		t.Fatalf("missing config: exit %d, stderr %s", code, ta.stderr)
+	}
+	cfg := `{"client_id": "cid", "env": "sandbox", "environments": {"sandbox": {"secret": "sbx", "linked_items": []}}}`
+	if err := os.WriteFile(ta.PlaidCLIConfig, []byte(cfg), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	code, body := ta.run(t, "setup", "--from-plaid")
+	if code != exitOK {
+		t.Fatalf("exit = %d; stderr %s", code, ta.stderr)
+	}
+	if ta.secrets.m[accountClientID] != "cid" || ta.secrets.m[secretAccount(plaid.Sandbox)] != "sbx" {
+		t.Errorf("keychain = %v", ta.secrets.m)
+	}
+	if body["imported_from"] != ta.PlaidCLIConfig {
+		t.Errorf("body = %v", body)
+	}
+
+	ta.Env = plaid.Production
+	code, _ = ta.run(t, "setup", "--from-plaid")
+	if e := ta.stderrJSON(t); code != exitError || e["code"] != "PLAID_CLI_NO_SECRET" || !strings.Contains(e["message"].(string), "plaid keys fetch") {
+		t.Errorf("no production secret: exit %d, stderr %s", code, ta.stderr)
+	}
 }

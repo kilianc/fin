@@ -3,6 +3,7 @@ package fin
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/kilianc/fin/internal/plaid"
 )
@@ -16,9 +17,12 @@ const (
 
 type syncResult struct {
 	transactions map[string]plaid.Transaction
-	accounts     map[string]plaid.Account
-	cursor       string
-	status       string
+	// removed holds IDs Plaid removed during this sync that may already be in
+	// the local store from an earlier one.
+	removed  map[string]bool
+	accounts map[string]plaid.Account
+	cursor   string
+	status   string
 }
 
 // syncTransactions pages /transactions/sync from cursor, applying added,
@@ -38,6 +42,7 @@ func syncTransactions(ctx context.Context, api Plaid, token, cursor string) (*sy
 func syncFrom(ctx context.Context, api Plaid, token, cursor string) (*syncResult, error) {
 	res := &syncResult{
 		transactions: map[string]plaid.Transaction{},
+		removed:      map[string]bool{},
 		accounts:     map[string]plaid.Account{},
 		cursor:       cursor,
 	}
@@ -46,14 +51,13 @@ func syncFrom(ctx context.Context, api Plaid, token, cursor string) (*syncResult
 		if err != nil {
 			return nil, err
 		}
-		for _, t := range page.Added {
+		for _, t := range slices.Concat(page.Added, page.Modified) {
 			res.transactions[t.TransactionID] = t
-		}
-		for _, t := range page.Modified {
-			res.transactions[t.TransactionID] = t
+			delete(res.removed, t.TransactionID)
 		}
 		for _, r := range page.Removed {
 			delete(res.transactions, r.TransactionID)
+			res.removed[r.TransactionID] = true
 		}
 		for _, acc := range page.Accounts {
 			res.accounts[acc.AccountID] = acc

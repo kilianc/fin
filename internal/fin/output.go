@@ -75,10 +75,14 @@ type result struct {
 	table   *ui.Table
 	message string
 	errors  []ItemError
+	// raw is printed as-is in every mode, for output meant for $(...).
+	raw string
 }
 
 func (a *App) emit(res *result) int {
 	switch {
+	case res.raw != "":
+		fmt.Fprintln(a.Stdout, res.raw)
 	case a.human && res.table != nil:
 		ui.Print(a.Stdout, res.table.Render())
 	case a.human && res.message != "":

@@ -11,6 +11,7 @@ cd "$(dirname "$0")/.."
 export PLAID_ENV=sandbox
 FIN_CONFIG_DIR="$(mktemp -d)"
 export FIN_CONFIG_DIR
+export FIN_DATA_DIR="$FIN_CONFIG_DIR/data"
 BIN="$FIN_CONFIG_DIR/fin"
 
 cleanup() {
@@ -58,8 +59,16 @@ done
 jq -e '(.transactions | length) > 0 and (.errors | length) == 0' "$FIN_CONFIG_DIR/tx.json" >/dev/null ||
   fail "expected transactions"
 echo "$(jq '.transactions | length' "$FIN_CONFIG_DIR/tx.json") transactions"
-jq -e --arg b "$bank" '.items[] | select(.name == $b) | .transactions_cursor != null' "$FIN_CONFIG_DIR/state.json" >/dev/null ||
-  fail "sync cursor was not recorded in state"
+
+step "sync is incremental and fin sql reads the local DuckDB file"
+fin sync | tee "$FIN_CONFIG_DIR/sync.json" | jq -c '.sync[] | {item, changed, removed}'
+jq -e '(.errors | length) == 0' "$FIN_CONFIG_DIR/sync.json" >/dev/null || fail "sync failed"
+[[ -f "$FIN_DATA_DIR/sandbox.duckdb" ]] || fail "no sandbox.duckdb"
+fin sql "select count(*) as n, round(sum(amount), 2) as total from transactions
+         where date between '$since' and current_date" | tee "$FIN_CONFIG_DIR/sql.json" | jq -c '.rows[0]'
+jq -e --argjson n "$(jq '.transactions | length' "$FIN_CONFIG_DIR/tx.json")" '.rows[0].n == $n' "$FIN_CONFIG_DIR/sql.json" >/dev/null ||
+  fail "fin sql and fin transactions disagree on the count"
+if fin sql "delete from transactions" >/dev/null 2>&1; then fail "fin sql accepted a write"; fi
 
 step "holdings"
 fin holdings | tee "$FIN_CONFIG_DIR/holdings.json" | jq -c '.holdings[:5][] | {ticker, quantity, value, cost_basis, lots: (.tax_lots | length)}'

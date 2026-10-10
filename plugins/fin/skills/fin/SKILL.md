@@ -14,9 +14,10 @@ for account numbers or personal details.
 
 ## First, check it's ready
 
-1. Run `fin init --json`. If `fin` isn't installed, install it with
-   `go install github.com/kilianc/fin/cmd/fin@latest` (needs Go) and run it
-   again.
+1. Run `fin init --json`. If `fin` isn't installed, install the latest
+   release with
+   `mkdir -p ~/.local/bin && curl -fsSL https://github.com/kilianc/fin/releases/latest/download/fin-darwin-universal.tar.gz | tar -xz -C ~/.local/bin`,
+   make sure `~/.local/bin` is on the `PATH`, and run it again.
 2. Read `status`; its `next` field says what's left. If setup isn't
    finished, follow the steps in the `prompt` field with the user, using their browser for the clicking and
    leaving them only what needs them: passwords, verification codes, the Plaid
@@ -31,6 +32,8 @@ for account numbers or personal details.
 | `fin items` | Connections, slots used, consent expiry, health |
 | `fin accounts [--live]` | Balances (`--live` asks each bank now and is billed per call; avoid it unless asked) |
 | `fin transactions --since DATE [--until DATE] [--account X]` | Transactions, newest first |
+| `fin sync` | Pulls new and changed transactions into a local DuckDB file |
+| `fin sql "<query>"` | Read-only DuckDB SQL over that file (`fin help sql` lists the tables) |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Buys, sells, dividends, fees |
 | `fin institutions <name>` | Whether Plaid supports a bank, before using a slot |
@@ -50,8 +53,9 @@ are `YYYY-MM-DD`.
   payment), negative is money in (a refund, deposit or paycheck).
 - Prefer `authorized_date` over `date` when it's set. Pending transactions can
   still change.
-- `fin transactions` re-reads up to 24 months per connection on every call, so
-  fetch the widest range you need once and filter it yourself.
+- For anything beyond listing a date range (totals, groupings, merchants,
+  months), run `fin sync` once, then answer with `fin sql`. Rows come back as
+  objects under `rows`; `synced` says how fresh the data is.
 - Transfers between the user's own accounts and credit card payments show up
   on both sides. Leave them out of spending totals.
 
@@ -64,6 +68,8 @@ are `YYYY-MM-DD`.
 - `fin link` and `fin reconnect` wait until the user finishes in the browser.
   Run them in the background and read the Hosted Link URL from stderr.
 - Never ask for, print or store the Plaid secret. Only `fin setup`, run by
-  the user in their own terminal, takes it.
+  the user in their own terminal, takes it. If they use Plaid's own CLI,
+  `plaid login` followed by `fin setup --from-plaid` imports the keys with
+  nothing pasted.
 - Use fin's numbers. Don't estimate a figure fin can give you, and say which
   accounts and dates a report covers.

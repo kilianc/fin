@@ -55,17 +55,27 @@ the prompt in Claude Code or Codex.
 ## What you need
 
 - A Mac. fin keeps your keys in the macOS Keychain.
-- [Go](https://go.dev/dl/) 1.26 or newer (`brew install go`).
 - A free Plaid account on the Trial plan. `fin init` walks you through it.
 - About 15 minutes, most of it signing in to your banks.
 
 ## Install
 
 ```bash
-go install github.com/kilianc/fin/cmd/fin@latest
+mkdir -p ~/.local/bin && curl -fsSL https://github.com/kilianc/fin/releases/latest/download/fin-darwin-universal.tar.gz | tar -xz -C ~/.local/bin
 ```
 
-That puts `fin` in `~/go/bin`; make sure that directory is on your `PATH`.
+That downloads the latest [release](https://github.com/kilianc/fin/releases),
+one binary for Apple Silicon and Intel Macs on macOS 12 or later, into
+`~/.local/bin`; make sure that directory is on your `PATH`. Check it with
+`fin --version`. Each release lists the tarball's SHA-256 in `SHA256SUMS`.
+
+To build from source instead, you need [Go](https://go.dev/dl/) 1.26 or newer
+and the Xcode Command Line Tools (`xcode-select --install`), because fin
+embeds DuckDB through cgo:
+
+```bash
+go install github.com/kilianc/fin/cmd/fin@latest
+```
 
 ## Get started
 
@@ -120,6 +130,11 @@ If you'd rather do it yourself, here's the whole flow:
 
    Paste the Client ID, then the Production secret (it stays hidden as you
    paste). fin checks them with Plaid and saves them in your Keychain.
+
+   Or skip the pasting: if you use [Plaid's CLI](https://plaid.com/docs/resources/cli/),
+   sign in with `plaid login` (and `plaid keys fetch` once the Trial plan is
+   approved), then run `fin setup --from-plaid` to copy the keys it fetched
+   into your Keychain.
 4. **Give Plaid Link fin's look.** When you connect a bank, Plaid shows a
    consent screen; this puts fin's mascot and colors on it. It changes nothing
    about what data is shared.
@@ -199,8 +214,12 @@ and slot.
   `security -i` on stdin, so they never appear in a process listing.
 - **No middleman.** Your data goes from Plaid's API to your machine and
   nowhere else. fin has no server and no telemetry.
-- **Local state is small and private.** `~/.config/fin/state.json` (mode 0600)
-  holds only names, institution IDs and sync times.
+- **Local data is private.** `~/.config/fin/state.json` holds only names,
+  institution IDs and sync times. Synced transactions and account balances
+  live in a DuckDB file in `~/.local/share/fin`, one per environment
+  (`production.duckdb`, `sandbox.duckdb`), kept out of `~/.config` so it
+  never ends up in a dotfiles repo. Both are mode 0600; delete the
+  `.duckdb` file to forget the history, and `fin sync` rebuilds it.
 - **You stay in control of agents.** An agent can read your data through fin,
   but connecting a new institution needs you to sign in, and `fin link` will
   not use a slot without confirmation.
@@ -211,19 +230,23 @@ and slot.
 | --- | --- |
 | `fin init [--copy]` | Status, next step, and a prompt for your AI agent |
 | `fin env [sandbox\|production]` | Show or switch the Plaid environment (default sandbox) |
-| `fin setup` | Save your Plaid keys in the Keychain |
+| `fin setup [--from-plaid]` | Save your Plaid keys in the Keychain, typed or imported from Plaid's CLI |
 | `fin institutions <name>` | Check Plaid support before using a slot |
 | `fin link [--open]` | Connect a new institution (`fin link brokerage` for investment-only ones) |
 | `fin reconnect <item> [--add product]` | Sign in again, or add transactions or investments |
 | `fin items` | Connections, slots used, consent expiry, health |
 | `fin accounts [--live]` | Balances (`--live` asks each bank now, billed per call) |
 | `fin transactions --since DATE [--until DATE] [--account X]` | Transactions |
+| `fin sync` | Pull new and changed transactions into the local DuckDB file |
+| `fin sql "<query>"` | Query the local file with DuckDB SQL, read-only |
+| `fin paths [database]` | Where the state file and the DuckDB file are |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Investment transactions |
 
 `--account` matches an account ID, the last four digits, or the account name.
 `PLAID_ENV` overrides the environment set with `fin env` for one command or
-shell, and `FIN_CONFIG_DIR` moves the state file.
+shell. `FIN_CONFIG_DIR` moves the state file, and `FIN_DATA_DIR` moves the
+DuckDB files (default `$XDG_DATA_HOME/fin`, or `~/.local/share/fin`).
 
 ## For AI agents
 
@@ -242,8 +265,9 @@ shell, and `FIN_CONFIG_DIR` moves the state file.
   (a purchase or payment), negative means money came in (a refund or deposit).
 - Prefer `authorized_date` over `date` when it is set. Pending transactions
   can still change.
-- `fin transactions` re-syncs each Item's full history (up to 24 months) on
-  every call, then filters by date. There is no local cache.
+- `fin transactions` and `fin sync` ask Plaid only for what changed since the
+  last sync and keep the result in a local DuckDB file. For anything beyond a
+  date range, run `fin sync` once, then as many `fin sql` queries as you need.
 
 ### `fin items`
 
@@ -347,7 +371,7 @@ four digits (`mask`), or the account name. Results are newest first.
   "errors": [],
   "since": "2026-09-01",
   "sync": [
-    {"item": "chase", "transactions_update_status": "HISTORICAL_UPDATE_COMPLETE", "last_sync": "2026-10-09T12:00:03Z"}
+    {"item": "chase", "transactions_update_status": "HISTORICAL_UPDATE_COMPLETE", "changed": 3, "removed": 1, "last_sync": "2026-10-09T12:00:03Z"}
   ],
   "transactions": [
     {
@@ -375,6 +399,36 @@ four digits (`mask`), or the account name. Results are newest first.
 
 `TRANSACTIONS_NOT_READY` in `errors` means Plaid is still pulling a newly
 linked Item's history. Try again in a few minutes.
+
+### `fin sql "<query>"`
+
+Runs one query against the data `fin sync` saved. The database is opened
+read-only with DuckDB's external access turned off, so a query can't change
+it or read or write other files. Tables: `transactions`, `accounts` (latest
+balances) and `items` (sync time per connection); `fin help sql` lists the
+columns.
+
+```bash
+fin sql "select category, sum(amount) as spent from transactions
+         where amount > 0 and date >= '2026-09-01' group by all order by spent desc"
+```
+
+```json
+{
+  "env": "production",
+  "columns": ["category", "spent"],
+  "rows": [
+    {"category": "FOOD_AND_DRINK", "spent": 612.4},
+    {"category": "TRANSPORTATION", "spent": 188.15}
+  ],
+  "synced": [
+    {"item": "chase", "item_id": "eVBnVMp7zdTJLkRNr33Rs6zr7KNJqBFL9DrE6", "transactions_update_status": "HISTORICAL_UPDATE_COMPLETE", "last_sync": "2026-10-09T12:00:03Z"}
+  ]
+}
+```
+
+The file also opens in the `duckdb` CLI (`duckdb "$(fin paths database)"`)
+when no fin command is writing to it.
 
 ### `fin holdings [--account X]`
 
@@ -467,6 +521,9 @@ Common codes:
 | --- | --- |
 | `USAGE` | Bad arguments (exit 2) |
 | `NOT_CONFIGURED` | The user needs to run `fin setup` in a terminal |
+| `NO_LOCAL_DATA` | Nothing synced yet; run `fin sync` before `fin sql` |
+| `SQL_ERROR` | DuckDB rejected the query; the message says why |
+| `STORE_BUSY` | Another fin command is writing the local file; try again |
 | `ITEM_NOT_FOUND` | No Item by that name; `details.items` lists the names |
 | `CONFIRMATION_REQUIRED` | A production link needs the user's go-ahead, then `--yes` |
 | `NO_SLOTS` | All 10 production slots are used |
@@ -477,6 +534,8 @@ Common codes:
 ## Development
 
 ```bash
+make build       # universal macOS binary at bin/fin (VERSION=0.2.0 to stamp it)
+make release VERSION=0.2.0   # test, build, tag v0.2.0 and upload to GitHub Releases
 make test        # unit tests against a fake Plaid client
 make e2e         # end-to-end run against the real Plaid sandbox
 make docs        # regenerate setup, try, and privacy pages from their source
@@ -530,7 +589,5 @@ connections.
 
 - `fin export sheet --id SHEET_ID`, to push everything to a Google Sheet,
   returns `NOT_IMPLEMENTED` for now.
-- There is no local cache: each read asks Plaid, and `fin transactions`
-  re-reads up to 24 months per connection. A SQLite cache would come only if
-  that gets too slow, or to keep history beyond Plaid's 24 months; the sync
-  cursor saved in `state.json` is where it would resume.
+- The local DuckDB file holds transactions and account balances only.
+  Holdings and investment transactions are still read live from Plaid.

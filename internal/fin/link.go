@@ -3,9 +3,12 @@ package fin
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -38,39 +41,22 @@ const transactionsHistoryDays = 730
 const sandboxInstitution = "ins_109508" // First Platypus Bank
 
 func (a *App) cmdSetup(ctx context.Context, args []string) (*result, error) {
-	if len(args) > 0 {
-		return nil, usageErr("usage: fin setup")
+	fs := flag.NewFlagSet("setup", flag.ContinueOnError)
+	fromPlaid := fs.Bool("from-plaid", false, "import the keys Plaid's own CLI fetched with plaid login")
+	if pos, err := parseArgs(fs, args); err != nil {
+		return nil, err
+	} else if len(pos) > 0 {
+		return nil, usageErr("usage: fin setup [--from-plaid]")
 	}
-	if !a.IsTerminal() {
-		return nil, newErr("NOT_A_TERMINAL", "fin setup reads secrets interactively; run it in a terminal")
+	var clientID, secret string
+	var err error
+	if *fromPlaid {
+		clientID, secret, err = a.plaidCLIKeys()
+	} else {
+		clientID, secret, err = a.promptKeys()
 	}
-	if a.human {
-		ui.Print(a.Stdout, ui.Mascot(a.width(), a.Stdout)+"\n\n")
-	}
-	clientID, err := a.Secrets.Get(accountClientID)
-	if err != nil && !errors.Is(err, keychain.ErrNotFound) {
-		return nil, newErr("KEYCHAIN_ERROR", "%v", err)
-	}
-	prompt := "Plaid client ID: "
-	if clientID != "" {
-		prompt = "Plaid client ID [Enter keeps the stored one]: "
-	}
-	line, err := a.ReadLine(prompt)
 	if err != nil {
 		return nil, err
-	}
-	if line = strings.TrimSpace(line); line != "" {
-		clientID = line
-	}
-	if clientID == "" {
-		return nil, usageErr("a client ID is required")
-	}
-	secret, err := a.ReadSecret(fmt.Sprintf("Plaid %s secret (input hidden): ", a.Env))
-	if err != nil {
-		return nil, err
-	}
-	if secret = strings.TrimSpace(secret); secret == "" {
-		return nil, usageErr("a secret is required")
 	}
 	if err := a.NewPlaid(a.Env, clientID, secret).VerifyCredentials(ctx); err != nil {
 		return nil, err
@@ -83,7 +69,89 @@ func (a *App) cmdSetup(ctx context.Context, args []string) (*result, error) {
 	}
 	body := map[string]any{"env": a.Env, "stored": []string{accountClientID, secretAccount(a.Env)}, "verified": true}
 	msg := ui.Line(ui.Good, fmt.Sprintf("Plaid accepted your %s keys. They are saved in your macOS Keychain, nowhere else.", a.Env))
+	if *fromPlaid {
+		body["imported_from"] = a.PlaidCLIConfig
+		note := fmt.Sprintf("Plaid's CLI keeps its own copy in %s; run plaid logout if you no longer need it.", a.PlaidCLIConfig)
+		body["note"] = note
+		msg = ui.Line(ui.Good, fmt.Sprintf("Imported your %s keys from Plaid's CLI. Plaid accepted them, and they are saved in your macOS Keychain.", a.Env)) +
+			"\n" + ui.Muted.Render(note)
+	}
 	return &result{body: body, message: msg}, nil
+}
+
+// promptKeys asks for the client ID and secret in the terminal.
+func (a *App) promptKeys() (string, string, error) {
+	if !a.IsTerminal() {
+		return "", "", newErr("NOT_A_TERMINAL", "fin setup reads secrets interactively; run it in a terminal, or use fin setup --from-plaid after plaid login")
+	}
+	if a.human {
+		ui.Print(a.Stdout, ui.Mascot(a.width(), a.Stdout)+"\n\n")
+	}
+	clientID, err := a.Secrets.Get(accountClientID)
+	if err != nil && !errors.Is(err, keychain.ErrNotFound) {
+		return "", "", newErr("KEYCHAIN_ERROR", "%v", err)
+	}
+	prompt := "Plaid client ID: "
+	if clientID != "" {
+		prompt = "Plaid client ID [Enter keeps the stored one]: "
+	}
+	line, err := a.ReadLine(prompt)
+	if err != nil {
+		return "", "", err
+	}
+	if line = strings.TrimSpace(line); line != "" {
+		clientID = line
+	}
+	if clientID == "" {
+		return "", "", usageErr("a client ID is required")
+	}
+	secret, err := a.ReadSecret(fmt.Sprintf("Plaid %s secret (input hidden): ", a.Env))
+	if err != nil {
+		return "", "", err
+	}
+	if secret = strings.TrimSpace(secret); secret == "" {
+		return "", "", usageErr("a secret is required")
+	}
+	return clientID, secret, nil
+}
+
+// plaidCLIConfig is the part of Plaid's CLI config.json that fin reads. The
+// CLI writes it after plaid login (Sandbox) and plaid keys fetch (Production).
+type plaidCLIConfig struct {
+	ClientID     string `json:"client_id"`
+	Environments map[string]struct {
+		Secret string `json:"secret"`
+	} `json:"environments"`
+}
+
+// plaidCLIKeys reads the client ID and the current environment's secret from
+// Plaid's CLI, so signing in through the Plaid Dashboard replaces pasting keys.
+func (a *App) plaidCLIKeys() (string, string, error) {
+	path := a.PlaidCLIConfig
+	data, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return "", "", newErr("PLAID_CLI_NOT_FOUND",
+			"no Plaid CLI config at %s; install it with brew install plaid/plaid-cli/plaid, then run plaid login", path)
+	}
+	if err != nil {
+		return "", "", newErr("PLAID_CLI_ERROR", "read %s: %v", path, err)
+	}
+	var cfg plaidCLIConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return "", "", newErr("PLAID_CLI_ERROR", "%s is not the config fin expects: %v", path, err)
+	}
+	if cfg.ClientID == "" {
+		return "", "", newErr("PLAID_CLI_NOT_LOGGED_IN", "Plaid's CLI has no client ID yet; run plaid login first")
+	}
+	secret := cfg.Environments[string(a.Env)].Secret
+	if secret == "" {
+		hint := "run plaid login first"
+		if a.Env == plaid.Production {
+			hint = "production keys arrive once your Trial plan is approved; then run plaid keys fetch"
+		}
+		return "", "", newErr("PLAID_CLI_NO_SECRET", "Plaid's CLI has no %s secret; %s", a.Env, hint)
+	}
+	return cfg.ClientID, secret, nil
 }
 
 type linkBody struct {

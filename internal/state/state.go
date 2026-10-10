@@ -27,11 +27,9 @@ type Item struct {
 	InstitutionID   string    `json:"institution_id"`
 	InstitutionName string    `json:"institution_name"`
 	LinkedAt        time.Time `json:"linked_at"`
-	// TransactionsCursor is the /transactions/sync cursor from the last full
-	// sync. Reads re-sync from the start because there is no local store to
-	// apply deltas to; the cursor is kept for when one exists.
-	TransactionsCursor string     `json:"transactions_cursor,omitempty"`
-	LastSync           *time.Time `json:"last_sync,omitempty"`
+	// LastSync is when transactions were last synced into the local store,
+	// which also keeps the /transactions/sync cursor.
+	LastSync *time.Time `json:"last_sync,omitempty"`
 }
 
 // HasProduct reports whether the Item was linked with product.
