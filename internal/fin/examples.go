@@ -23,8 +23,8 @@ var Examples = []Example{
 	{"spending", "Monthly spending review", "Build me a monthly spending review.", "Compare it to the month before.", "examples/1.png", "AI-generated spending report with illustrative data: $6,482 spent, down 9%, with a category breakdown"},
 	{"subscriptions", "Subscription audit", "Find the subscriptions worth reviewing.", "Find subscriptions, price increases, and anything I’m paying for twice.", "examples/2.png", "AI-generated subscription audit with illustrative data: recurring charges, price increases, and overlapping storage plans"},
 	{"portfolio", "Investment overview", "Put all my investments in one report.", "Show my allocation and unrealized gains across brokerages.", "examples/3.png", "AI-generated investment report with illustrative data: $284,316 across three brokerages, asset allocation, and unrealized gains"},
-	{"amazon", "Amazon, itemized", "Where does our Amazon money actually go?", "Break each order into its items by category, and flag returns still waiting on a refund.", "examples/5.png", "AI-generated Amazon report with illustrative data: $1,284 across 23 orders split into categories item by item, one charge opened into its items, and two returns awaiting refunds"},
 	{"net-worth", "Net worth over time", "Show how my net worth changed this year.", "Chart it month by month and explain what moved it.", "examples/4.png", "AI-generated net-worth report with illustrative data: January to September growth, market gains, savings, and card balances"},
+	{"amazon", "Amazon, itemized", "Break down my Amazon spending item by item.", "Use my order history to categorize purchases, unpack card charges, and track refunds.", "examples/5.png", "AI-generated Amazon report with illustrative data: $1,284.37 across 23 orders, six items in a $412.07 Amex charge, and $86.20 in pending refunds"},
 }
 
 // Prompt is what the person asks: the gallery caption and the line under it.
@@ -58,8 +58,8 @@ var tryPage = pageTemplate("try", `<!doctype html>
 <main>
 <section class="section first wrap">
 <ul class="ex-nav" aria-label="Examples">
-{{- range $i, $e := .All}}
-<li><a href="{{$.Root}}try/{{$e.Slug}}/"{{if eq $e.Slug $.Ex.Slug}} aria-current="page"{{end}}><b>0{{inc $i}}</b>{{$e.Title}}</a></li>
+{{- range $e := .All}}
+<li><a href="{{$.Root}}try/{{$e.Slug}}/"{{if eq $e.Slug $.Ex.Slug}} aria-current="page"{{end}}>{{$e.Title}}</a></li>
 {{- end}}
 </ul>
 <h1 class="display">“{{.Ex.Ask}}”</h1>

@@ -30,7 +30,6 @@ const siteParts = `{{define "head"}}<meta charset="utf-8">
 var SiteCSSVersion string
 
 var siteTemplates = template.Must(template.New("site").Funcs(template.FuncMap{
-	"inc":        func(i int) int { return i + 1 },
 	"cssVersion": func() string { return SiteCSSVersion },
 }).Parse(siteParts))
 

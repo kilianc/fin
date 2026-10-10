@@ -51,11 +51,10 @@ the prompt in Claude Code or Codex.
 </td>
 </tr>
 <tr>
-<td width="50%" valign="bottom">
-<p><b>“Where does our Amazon money actually go?”</b><br>Break each order into its items by category, and flag returns still waiting on a refund.<br><a href="https://kilianc.github.io/fin/try/amazon/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/amazon/"><img src="docs/examples/5.png" alt="AI-generated Amazon report with illustrative data: $1,284 across 23 orders split into categories item by item, one charge opened into its items, and two returns awaiting refunds"></a>
+<td colspan="2" valign="bottom">
+<p><b>“Break down my Amazon spending item by item.”</b><br>Use my order history to categorize purchases, unpack card charges, and track refunds.<br><a href="https://kilianc.github.io/fin/try/amazon/">Try it in Claude Code or Codex →</a></p>
+<a href="https://kilianc.github.io/fin/try/amazon/"><img src="docs/examples/5.png" alt="AI-generated Amazon report with illustrative data: $1,284.37 across 23 orders, six items in a $412.07 Amex charge, and $86.20 in pending refunds"></a>
 </td>
-<td width="50%"></td>
 </tr>
 </table>
 
@@ -631,13 +630,13 @@ make release VERSION=0.2.0   # test, build, tag v0.2.0, upload and verify; rerun
 make test        # unit tests against a fake Plaid client
 make e2e         # end-to-end run against the real Plaid sandbox
 make docs        # regenerate setup, try, and privacy pages from their source
-make gallery     # re-render the four approved AI-generated report previews
+make gallery     # re-render the five AI-generated report previews
 ```
 
 The report artwork lives in `docs/examples/index.html` and
 `docs/examples/reports.css`. Run `make gallery` after editing it; the landing
-page, all four try pages, social previews, and this README share the resulting
-`docs/examples/1.png` through `4.png` files. Try-page prompts and descriptions
+page, all five try pages, social previews, and this README share the resulting
+`docs/examples/1.png` through `5.png` files. Try-page prompts and descriptions
 live in `internal/fin/examples.go`; run `make docs` after changing them.
 
 The end-to-end script needs sandbox keys (`PLAID_ENV=sandbox fin setup`). It
