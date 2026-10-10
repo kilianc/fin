@@ -98,9 +98,8 @@ br.lg { display: block; }
 .gal .ask { font-size: 18px; line-height: 1.4; font-weight: 500; }
 .gal .ask span { font-weight: 400; color: var(--body); }
 .report { width: 100%; height: auto; display: block; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); }
-.try { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 5px 6px; border-radius: 999px; background: #EAF2F7; border: 1px solid #D3E3EE; color: var(--accent); font-size: 14px; font-weight: 500; text-decoration: none; transition: background .15s, border-color .15s, transform .15s; }
+.try { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px; border-radius: 999px; background: #EAF2F7; border: 1px solid #D3E3EE; color: var(--accent); font-size: 14px; font-weight: 500; text-decoration: none; transition: background .15s, border-color .15s, transform .15s; }
 .try:hover { background: #DDEBF3; border-color: #B9D3E3; color: #24526E; transform: translateY(-1px); }
-.try img { width: 20px; height: 20px; display: block; }
 .try .arr { transition: transform .15s; }
 .try:hover .arr { transform: translateX(3px); }
 

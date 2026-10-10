@@ -11,21 +11,22 @@ import (
 type Example struct {
 	Slug   string
 	Title  string
-	Ask    string // the headline on the card
-	Detail string // the line under it
-	Image  string // the gallery card, relative to docs/
+	Ask    string // the question beside the report preview
+	Detail string // the line under the question
+	Image  string // the AI-generated report preview, relative to docs/
+	Alt    string // the same report description on the site and in the README
 }
 
-// Examples are the gallery's prompts, in order. docs/examples/index.html
-// shows each Ask and Detail verbatim on its card.
+// Examples are the gallery's prompts, in order. Prompts appear in the README,
+// landing page captions and try pages; the report artwork contains only the report.
 var Examples = []Example{
-	{"spending", "Spending report", "Build me a monthly spending review.", "Compare it to the month before.", "examples/1.png"},
-	{"subscriptions", "Subscription audit", "Find the subscriptions worth reviewing.", "Find subscriptions, price increases, and anything I’m paying for twice.", "examples/2.png"},
-	{"portfolio", "Portfolio review", "Put all my investments in one report.", "Show my allocation and unrealized gains across brokerages.", "examples/3.png"},
-	{"net-worth", "Net worth", "Show how my net worth changed this year.", "Chart it month by month and explain what moved it.", "examples/4.png"},
+	{"spending", "Monthly spending review", "Build me a monthly spending review.", "Compare it to the month before.", "examples/1.png", "AI-generated spending report with illustrative data: $6,482 spent, down 9%, with a category breakdown"},
+	{"subscriptions", "Subscription audit", "Find the subscriptions worth reviewing.", "Find subscriptions, price increases, and anything I’m paying for twice.", "examples/2.png", "AI-generated subscription audit with illustrative data: recurring charges, price increases, and overlapping storage plans"},
+	{"portfolio", "Investment overview", "Put all my investments in one report.", "Show my allocation and unrealized gains across brokerages.", "examples/3.png", "AI-generated investment report with illustrative data: $284,316 across three brokerages, asset allocation, and unrealized gains"},
+	{"net-worth", "Net worth over time", "Show how my net worth changed this year.", "Chart it month by month and explain what moved it.", "examples/4.png", "AI-generated net-worth report with illustrative data: January to September growth, market gains, savings, and card balances"},
 }
 
-// Prompt is what the person asks: the card's headline and the line under it.
+// Prompt is what the person asks: the gallery caption and the line under it.
 func (e Example) Prompt() string { return e.Ask + " " + e.Detail }
 
 // TryURL is the example's try page on GitHub Pages.
@@ -34,7 +35,7 @@ func (e Example) TryURL() string { return PagesURL + "try/" + e.Slug + "/" }
 // agentPrompt tells the agent to answer with fin; the person's question
 // follows verbatim.
 func (e Example) agentPrompt() string {
-	return "Use fin, my local command-line tool for my bank and brokerage data (run `fin help` to see its commands), to answer this with a short report: " + e.Prompt()
+	return "Use fin, my local command-line tool for my bank and brokerage data (run `fin help` to see its commands), to create a polished visual report with charts and a concise summary: " + e.Prompt()
 }
 
 var tryPage = pageTemplate("try", `<!doctype html>
@@ -46,6 +47,9 @@ var tryPage = pageTemplate("try", `<!doctype html>
 <meta property="og:title" content="fin · {{.Ex.Title}}">
 <meta property="og:description" content="{{.Prompt}}">
 <meta property="og:image" content="`+PagesURL+`{{.Ex.Image}}">
+<meta property="og:image:alt" content="{{.Ex.Alt}}">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1600">
 <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
@@ -60,8 +64,8 @@ var tryPage = pageTemplate("try", `<!doctype html>
 <h1 class="display">“{{.Ex.Ask}}”</h1>
 <p class="lede">{{.Ex.Detail}}</p>
 <div class="buttons">
-<a href="{{.Claude}}"><img src="{{.Root}}try-in-claude.svg" alt="Try in Claude Code"></a>
-<a href="{{.Codex}}"><img src="{{.Root}}try-in-codex.svg" alt="Try in Codex"></a>
+<a href="{{.Claude}}"><img src="{{.Root}}try-in-claude.svg?v=flat2" alt="Try in Claude Code"></a>
+<a href="{{.Codex}}"><img src="{{.Root}}try-in-codex.svg?v=flat2" alt="Try in Codex"></a>
 </div>
 </section>
 <section class="section tight wrap">
@@ -72,8 +76,9 @@ var tryPage = pageTemplate("try", `<!doctype html>
 <p class="note">The app opens with this prompt filled in; read it, then press Enter. It needs <span class="fin">fin</span> installed and connected to your accounts, so <a href="{{.Root}}">set it up first</a> if you haven't.</p>
 </section>
 <section class="section wrap">
-<p class="kicker">// what you might get · made-up numbers</p>
-<img class="report" src="{{.Root}}{{.Ex.Image}}" alt="{{.Ex.Title}}, with made-up numbers">
+<p class="kicker">// AI-generated report · illustrative data</p>
+<p class="note">fin supplies the data. Your agent creates the layout, charts, and analysis.</p>
+<img class="report" src="{{.Root}}{{.Ex.Image}}" alt="{{.Ex.Alt}}" width="2400" height="1600" loading="lazy">
 <nav class="pager" aria-label="More examples">
 {{- with .Prev}}
 <a class="prev" href="{{$.Root}}try/{{.Slug}}/"><small>← previous</small><span>“{{.Ask}}”</span></a>

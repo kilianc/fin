@@ -7,12 +7,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../../site.css?v=ed6fe40e90">
+<link rel="stylesheet" href="../../site.css?v=348daf231c">
 <title>fin · try it: Subscription audit</title>
 <meta name="description" content="Find the subscriptions worth reviewing. Find subscriptions, price increases, and anything I’m paying for twice.">
 <meta property="og:title" content="fin · Subscription audit">
 <meta property="og:description" content="Find the subscriptions worth reviewing. Find subscriptions, price increases, and anything I’m paying for twice.">
 <meta property="og:image" content="https://kilianc.github.io/fin/examples/2.png">
+<meta property="og:image:alt" content="AI-generated subscription audit with illustrative data: recurring charges, price increases, and overlapping storage plans">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1600">
 <meta name="twitter:card" content="summary_large_image">
 </head>
 <body>
@@ -24,28 +27,29 @@
 <main>
 <section class="section first wrap">
 <ul class="ex-nav" aria-label="Examples">
-<li><a href="../../try/spending/"><b>01</b>Spending report</a></li>
+<li><a href="../../try/spending/"><b>01</b>Monthly spending review</a></li>
 <li><a href="../../try/subscriptions/" aria-current="page"><b>02</b>Subscription audit</a></li>
-<li><a href="../../try/portfolio/"><b>03</b>Portfolio review</a></li>
-<li><a href="../../try/net-worth/"><b>04</b>Net worth</a></li>
+<li><a href="../../try/portfolio/"><b>03</b>Investment overview</a></li>
+<li><a href="../../try/net-worth/"><b>04</b>Net worth over time</a></li>
 </ul>
 <h1 class="display">“Find the subscriptions worth reviewing.”</h1>
 <p class="lede">Find subscriptions, price increases, and anything I’m paying for twice.</p>
 <div class="buttons">
-<a href="claude-cli://open?q=Use%20fin%2C%20my%20local%20command-line%20tool%20for%20my%20bank%20and%20brokerage%20data%20%28run%20%60fin%20help%60%20to%20see%20its%20commands%29%2C%20to%20answer%20this%20with%20a%20short%20report%3A%20Find%20the%20subscriptions%20worth%20reviewing.%20Find%20subscriptions%2C%20price%20increases%2C%20and%20anything%20I%E2%80%99m%20paying%20for%20twice."><img src="../../try-in-claude.svg" alt="Try in Claude Code"></a>
-<a href="codex://new?prompt=Use%20fin%2C%20my%20local%20command-line%20tool%20for%20my%20bank%20and%20brokerage%20data%20%28run%20%60fin%20help%60%20to%20see%20its%20commands%29%2C%20to%20answer%20this%20with%20a%20short%20report%3A%20Find%20the%20subscriptions%20worth%20reviewing.%20Find%20subscriptions%2C%20price%20increases%2C%20and%20anything%20I%E2%80%99m%20paying%20for%20twice."><img src="../../try-in-codex.svg" alt="Try in Codex"></a>
+<a href="claude-cli://open?q=Use%20fin%2C%20my%20local%20command-line%20tool%20for%20my%20bank%20and%20brokerage%20data%20%28run%20%60fin%20help%60%20to%20see%20its%20commands%29%2C%20to%20create%20a%20polished%20visual%20report%20with%20charts%20and%20a%20concise%20summary%3A%20Find%20the%20subscriptions%20worth%20reviewing.%20Find%20subscriptions%2C%20price%20increases%2C%20and%20anything%20I%E2%80%99m%20paying%20for%20twice."><img src="../../try-in-claude.svg?v=flat2" alt="Try in Claude Code"></a>
+<a href="codex://new?prompt=Use%20fin%2C%20my%20local%20command-line%20tool%20for%20my%20bank%20and%20brokerage%20data%20%28run%20%60fin%20help%60%20to%20see%20its%20commands%29%2C%20to%20create%20a%20polished%20visual%20report%20with%20charts%20and%20a%20concise%20summary%3A%20Find%20the%20subscriptions%20worth%20reviewing.%20Find%20subscriptions%2C%20price%20increases%2C%20and%20anything%20I%E2%80%99m%20paying%20for%20twice."><img src="../../try-in-codex.svg?v=flat2" alt="Try in Codex"></a>
 </div>
 </section>
 <section class="section tight wrap">
 <div class="shell">
 <div class="shell-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="label">what your agent receives</span><button class="copy" id="copy" type="button">copy</button></div>
-<pre class="prose" id="prompt"><span class="you">you ›</span> Use fin, my local command-line tool for my bank and brokerage data (run `fin help` to see its commands), to answer this with a short report: <span class="hi">Find the subscriptions worth reviewing. Find subscriptions, price increases, and anything I’m paying for twice.</span></pre>
+<pre class="prose" id="prompt"><span class="you">you ›</span> Use fin, my local command-line tool for my bank and brokerage data (run `fin help` to see its commands), to create a polished visual report with charts and a concise summary: <span class="hi">Find the subscriptions worth reviewing. Find subscriptions, price increases, and anything I’m paying for twice.</span></pre>
 </div>
 <p class="note">The app opens with this prompt filled in; read it, then press Enter. It needs <span class="fin">fin</span> installed and connected to your accounts, so <a href="../../">set it up first</a> if you haven't.</p>
 </section>
 <section class="section wrap">
-<p class="kicker">// what you might get · made-up numbers</p>
-<img class="report" src="../../examples/2.png" alt="Subscription audit, with made-up numbers">
+<p class="kicker">// AI-generated report · illustrative data</p>
+<p class="note">fin supplies the data. Your agent creates the layout, charts, and analysis.</p>
+<img class="report" src="../../examples/2.png" alt="AI-generated subscription audit with illustrative data: recurring charges, price increases, and overlapping storage plans" width="2400" height="1600" loading="lazy">
 <nav class="pager" aria-label="More examples">
 <a class="prev" href="../../try/spending/"><small>← previous</small><span>“Build me a monthly spending review.”</span></a>
 <a class="next" href="../../try/portfolio/"><small>next →</small><span>“Put all my investments in one report.”</span></a>

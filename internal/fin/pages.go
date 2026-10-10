@@ -57,7 +57,7 @@ var setupPage = pageTemplate("setup", `<!doctype html>
 <p class="kicker">// setup · {{.Name}}</p>
 <h1 class="display">Opening {{.Name}}…</h1>
 <p class="lede">Your browser asks to open {{.Name}} with <span class="fin">fin</span>'s setup prompt filled in. Read the prompt, then press Enter; your agent does the clicking and leaves you only the parts that need you.</p>
-<div class="buttons"><a href="{{.Link}}"><img src="{{.Root}}setup-with-{{.Slug}}.svg" alt="Set up with {{.Name}}"></a></div>
+<div class="buttons"><a href="{{.Link}}"><img src="{{.Root}}setup-with-{{.Slug}}.svg?v=flat2" alt="Set up with {{.Name}}"></a></div>
 <p class="note">{{.Help}}</p>
 </section>
 <section class="section tight wrap">

@@ -33,8 +33,10 @@
 !/docs/*.svg
 !/docs/index.html
 !/docs/social-card.png
+!/docs/mascot.png
 !/docs/*/
 !/docs/*/index.html
+!/docs/examples/reports.css
 !/docs/*/*.png
 !/docs/try/*/
 !/docs/try/*/index.html

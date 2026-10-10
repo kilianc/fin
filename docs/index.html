@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./site.css?v=ed6fe40e90">
+<link rel="stylesheet" href="./site.css?v=348daf231c">
 <title>fin · a CLI for your financial data, built for the AI era</title>
 <meta name="description" content="A CLI for your financial data, built for the AI era: fin gives your AI agent your bank, card and brokerage data through Plaid, locally and for free.">
 <meta property="og:type" content="website">
@@ -37,9 +37,9 @@
 <h1 class="display">A CLI for your financial<br class="lg"> data, built for the AI era.</h1>
 <p class="lede"><b><span class="fin">fin</span></b> connects your banks, cards and brokerages through <a href="https://plaid.com/docs/">Plaid</a>. It <b>runs locally on your laptop</b>, keeps its keys in your Keychain, and <b>costs nothing</b> on Plaid's free Trial plan.</p>
 <div class="buttons">
-<a href="claude/"><img src="setup-with-claude.svg" alt="Set up with Claude"></a>
-<a href="codex/"><img src="setup-with-codex.svg" alt="Set up with Codex"></a>
-<button class="copy-prompt" id="copy-setup" type="button"><img src="copy-prompt.svg" alt="Copy the setup prompt"></button>
+<a href="claude/"><img src="setup-with-claude.svg?v=flat2" alt="Set up with Claude"></a>
+<a href="codex/"><img src="setup-with-codex.svg?v=flat2" alt="Set up with Codex"></a>
+<button class="copy-prompt" id="copy-setup" type="button"><img src="copy-prompt.svg?v=flat2" alt="Copy the setup prompt"></button>
 </div>
 <template id="setup-prompt">Help me set up fin, a local command-line tool that reads my own bank and brokerage data through Plaid. fin is already installed; run `fin help` to see its commands. Use my web browser to do the navigating, clicking and form-filling for me, and leave me only the parts that need me personally.
 
@@ -278,24 +278,25 @@ Steps:
 </section>
 
 <section id="examples" class="section wrap">
-<p class="kicker">// examples · made-up numbers</p>
+<p class="kicker">// AI-generated reports · illustrative data</p>
 <h2 class="title">Ask in plain words. Get a report.</h2>
+<p class="lede">fin supplies the data. Your agent creates the layout, charts, and analysis.</p>
 <div class="gal">
 <figure>
-<figcaption><p class="ask">“Build me a monthly spending review.” <span>Compare it to the month before.</span></p><a class="try" href="try/spending/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="">Try this prompt<span class="arr">→</span></a></figcaption>
-<a href="try/spending/"><img class="report" src="examples/1.png" alt="Spending report: last month by category compared with the month before"></a>
+<figcaption><p class="ask">“Build me a monthly spending review.” <span>Compare it to the month before.</span></p><a class="try" href="try/spending/">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/spending/"><img class="report" src="examples/1.png" alt="AI-generated spending report with illustrative data: $6,482 spent, down 9%, with a category breakdown" width="2400" height="1600" loading="lazy"></a>
 </figure>
 <figure>
-<figcaption><p class="ask">“Find the subscriptions worth reviewing.” <span>Find subscriptions, price increases, and anything I’m paying for twice.</span></p><a class="try" href="try/subscriptions/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="">Try this prompt<span class="arr">→</span></a></figcaption>
-<a href="try/subscriptions/"><img class="report" src="examples/2.png" alt="Subscription audit with price increases and duplicates flagged"></a>
+<figcaption><p class="ask">“Find the subscriptions worth reviewing.” <span>Find subscriptions, price increases, and anything I’m paying for twice.</span></p><a class="try" href="try/subscriptions/">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/subscriptions/"><img class="report" src="examples/2.png" alt="AI-generated subscription audit with illustrative data: recurring charges, price increases, and overlapping storage plans" width="2400" height="1600" loading="lazy"></a>
 </figure>
 <figure>
-<figcaption><p class="ask">“Put all my investments in one report.” <span>Show my allocation and unrealized gains across brokerages.</span></p><a class="try" href="try/portfolio/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="">Try this prompt<span class="arr">→</span></a></figcaption>
-<a href="try/portfolio/"><img class="report" src="examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages"></a>
+<figcaption><p class="ask">“Put all my investments in one report.” <span>Show my allocation and unrealized gains across brokerages.</span></p><a class="try" href="try/portfolio/">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/portfolio/"><img class="report" src="examples/3.png" alt="AI-generated investment report with illustrative data: $284,316 across three brokerages, asset allocation, and unrealized gains" width="2400" height="1600" loading="lazy"></a>
 </figure>
 <figure>
-<figcaption><p class="ask">“Show how my net worth changed this year.” <span>Chart it month by month and explain what moved it.</span></p><a class="try" href="try/net-worth/"><img src="https://raw.githubusercontent.com/kilianc/fin/main/mascot.png" alt="">Try this prompt<span class="arr">→</span></a></figcaption>
-<a href="try/net-worth/"><img class="report" src="examples/4.png" alt="Net worth: monthly chart for the year and what moved it"></a>
+<figcaption><p class="ask">“Show how my net worth changed this year.” <span>Chart it month by month and explain what moved it.</span></p><a class="try" href="try/net-worth/">Try this prompt<span class="arr">→</span></a></figcaption>
+<a href="try/net-worth/"><img class="report" src="examples/4.png" alt="AI-generated net-worth report with illustrative data: January to September growth, market gains, savings, and card balances" width="2400" height="1600" loading="lazy"></a>
 </figure>
 </div>
 </section>
@@ -335,8 +336,8 @@ Steps:
   var b=document.getElementById('copy-setup');
   b.onclick=function(){
     navigator.clipboard.writeText(document.getElementById('setup-prompt').content.textContent);
-    var img=b.querySelector('img');img.src='copied-prompt.svg';img.alt='Prompt copied';
-    setTimeout(function(){img.src='copy-prompt.svg';img.alt='Copy the setup prompt';},2400);
+    var img=b.querySelector('img');img.src='copied-prompt.svg?v=flat2';img.alt='Prompt copied';
+    setTimeout(function(){img.src='copy-prompt.svg?v=flat2';img.alt='Copy the setup prompt';},2400);
   };
 })();
 </script>

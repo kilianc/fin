@@ -25,29 +25,29 @@ you get tables; when an agent such as Claude runs it, it gets JSON.
 
 ## What you can ask
 
-Ask your agent in plain words; it runs fin and writes the report. Each "Try
-it" link opens the prompt in Claude Code or Codex. The numbers below are made
-up.
+fin supplies the data; your agent creates the layout, charts, and analysis.
+These AI-generated reports use illustrative data. Each "Try it" link opens
+the prompt in Claude Code or Codex.
 
 <table>
 <tr>
 <td width="50%" valign="bottom">
 <p><b>“Build me a monthly spending review.”</b><br>Compare it to the month before.<br><a href="https://kilianc.github.io/fin/try/spending/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/spending/"><img src="docs/examples/1.png" alt="Spending report: last month by category compared with the month before"></a>
+<a href="https://kilianc.github.io/fin/try/spending/"><img src="docs/examples/1.png" alt="AI-generated spending report with illustrative data: $6,482 spent, down 9%, with a category breakdown"></a>
 </td>
 <td width="50%" valign="bottom">
 <p><b>“Find the subscriptions worth reviewing.”</b><br>Find subscriptions, price increases, and anything I’m paying for twice.<br><a href="https://kilianc.github.io/fin/try/subscriptions/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/subscriptions/"><img src="docs/examples/2.png" alt="Subscription audit: 14 subscriptions with price increases and duplicates flagged"></a>
+<a href="https://kilianc.github.io/fin/try/subscriptions/"><img src="docs/examples/2.png" alt="AI-generated subscription audit with illustrative data: recurring charges, price increases, and overlapping storage plans"></a>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="bottom">
 <p><b>“Put all my investments in one report.”</b><br>Show my allocation and unrealized gains across brokerages.<br><a href="https://kilianc.github.io/fin/try/portfolio/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/portfolio/"><img src="docs/examples/3.png" alt="Portfolio review: allocation and unrealized gain across three brokerages"></a>
+<a href="https://kilianc.github.io/fin/try/portfolio/"><img src="docs/examples/3.png" alt="AI-generated investment report with illustrative data: $284,316 across three brokerages, asset allocation, and unrealized gains"></a>
 </td>
 <td width="50%" valign="bottom">
 <p><b>“Show how my net worth changed this year.”</b><br>Chart it month by month and explain what moved it.<br><a href="https://kilianc.github.io/fin/try/net-worth/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/net-worth/"><img src="docs/examples/4.png" alt="Net worth: monthly chart for the year and what moved it"></a>
+<a href="https://kilianc.github.io/fin/try/net-worth/"><img src="docs/examples/4.png" alt="AI-generated net-worth report with illustrative data: January to September growth, market gains, savings, and card balances"></a>
 </td>
 </tr>
 </table>
@@ -73,9 +73,9 @@ Let an AI agent do the setup. Pick one, read the prompt it opens with, and
 press Enter:
 
 <p>
-  <a href="https://kilianc.github.io/fin/claude/"><img src="docs/setup-with-claude.svg" alt="Set up with Claude" height="56"></a>
+  <a href="https://kilianc.github.io/fin/claude/"><img src="docs/setup-with-claude.svg?v=flat2" alt="Set up with Claude" height="56"></a>
   &nbsp;
-  <a href="https://kilianc.github.io/fin/codex/"><img src="docs/setup-with-codex.svg" alt="Set up with Codex" height="56"></a>
+  <a href="https://kilianc.github.io/fin/codex/"><img src="docs/setup-with-codex.svg?v=flat2" alt="Set up with Codex" height="56"></a>
 </p>
 
 The agent opens the pages, fills in the forms and brands Plaid Link with
@@ -479,9 +479,15 @@ Common codes:
 ```bash
 make test        # unit tests against a fake Plaid client
 make e2e         # end-to-end run against the real Plaid sandbox
-make docs        # regenerate the setup pages after changing the agent prompt
-make gallery     # re-render docs/examples/*.png with headless Chrome
+make docs        # regenerate setup, try, and privacy pages from their source
+make gallery     # re-render the four approved AI-generated report previews
 ```
+
+The report artwork lives in `docs/examples/index.html` and
+`docs/examples/reports.css`. Run `make gallery` after editing it; the landing
+page, all four try pages, social previews, and this README share the resulting
+`docs/examples/1.png` through `4.png` files. Try-page prompts and descriptions
+live in `internal/fin/examples.go`; run `make docs` after changing them.
 
 The end-to-end script needs sandbox keys (`PLAID_ENV=sandbox fin setup`). It
 uses a temporary state directory, links two sandbox Items without the Link UI,
@@ -492,6 +498,11 @@ the Keychain when it exits.
 `FIN_DEBUG=1` prints what Plaid Link reports on each poll, without tokens.
 
 ## Brand
+
+The report gallery shows independent AI-generated reports. Keep fin branding,
+prompts, and app sidebars out of the report artwork; questions and try links
+belong in the surrounding page. Each report can have its own visual style.
+
 
 The approved artwork is `mascot.png` (transparent circular badge) and
 `mascot-plaid.png` (opaque square), both 1024 × 1024. The terminal mascot is

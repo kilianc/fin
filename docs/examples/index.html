@@ -1,3 +1,494 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fin · example reports</title><style>
-:root{color-scheme:light;--navy:#00184b;--blue:#356b8d;--light:#81b1cf;--muted:#7c899b;--rule:#e3eaf0;--green:#27815e;--warm:#a67338}*{box-sizing:border-box}body{margin:0;background:#edf1f4;color:var(--navy);font:16px/1.5 -apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}.page{max-width:1248px;padding:24px;margin:auto}.page>h1{font-size:30px;letter-spacing:-1px;margin:12px 0}.page>p{color:var(--muted);margin-bottom:30px}.scroll{overflow:auto;margin-bottom:28px}.card{width:1200px;height:800px;display:grid;grid-template-columns:312px 1fr;overflow:hidden;background:white;border:1px solid var(--rule);border-radius:12px}.brief{padding:37px 31px 26px;background:#edf4f8;display:flex;flex-direction:column;border-right:1px solid #dae6ef}.brand{display:flex;align-items:center;gap:8px;font-size:31px;font-weight:700;letter-spacing:-1.4px}.brand img{width:39px;height:39px;object-fit:contain}.brief-label{font:10px ui-monospace,SFMono-Regular,monospace;letter-spacing:1.6px;color:#55738c;margin:48px 0 16px}.prompt{font-size:25px;font-weight:450;line-height:1.35;letter-spacing:-.65px;margin:0}.command{margin-top:28px;border-top:1px solid #d2e1ed;padding-top:19px;font-size:11px;color:#6d8399}.command code{display:block;font:11px/1.7 ui-monospace,SFMono-Regular,monospace;color:var(--blue);overflow-wrap:anywhere;margin-top:10px}.brief-bottom{margin-top:auto}.brief-bottom img{width:105px;height:105px;object-fit:contain;transform:rotate(-5deg);margin-left:-9px;display:block;margin-bottom:14px}.brief-bottom p{font-size:12px;line-height:1.7;color:#648099;margin:0}.report{padding:37px 39px 23px;display:flex;flex-direction:column;min-width:0}.report-top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rule);padding-bottom:18px;font-size:11px;color:var(--muted)}.report-top b{font-weight:500;color:var(--blue)}.report-top span{font:9px ui-monospace,SFMono-Regular,monospace;letter-spacing:1px}.report h2{font-size:27px;line-height:1.25;font-weight:500;letter-spacing:-.9px;margin:24px 0 5px}.subtitle{color:var(--muted);font-size:12px;margin:0}.metrics{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:24px;margin:23px 0 26px}.metric strong{font-size:34px;line-height:1.2;font-weight:500;letter-spacing:-1.3px;display:block;font-variant-numeric:tabular-nums}.metric span{font-size:10px;color:var(--muted);display:block;margin-top:7px}.metric:first-child strong{font-size:42px}.metric:not(:first-child){border-left:1px solid var(--rule);padding-left:24px;padding-top:7px}.good{color:var(--green)!important}.warn{color:var(--warm)!important}.bad{color:#a44f4d!important}.section-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#8290a1;margin-bottom:14px}.bars{display:grid;gap:15px}.bar{display:grid;grid-template-columns:117px 1fr 60px 37px;gap:13px;align-items:center;font-size:12px}.bar .track{height:8px;background:#f0f4f7;border-radius:3px;overflow:hidden}.bar .fill{height:100%;background:var(--blue);border-radius:3px}.bar .amount,.bar .change{text-align:right;font-variant-numeric:tabular-nums}.bar .change{font-size:10px;color:var(--muted)}.bar.dining .fill{background:#b3905e}.insight{background:#f2f6f9;border-left:2px solid var(--light);padding:14px 17px;font-size:12px;line-height:1.7;margin-top:25px;color:#4c627b}.insight b{color:var(--navy);font-weight:500}.foot{margin-top:auto;border-top:1px solid var(--rule);padding-top:14px;display:flex;justify-content:space-between;gap:20px;font-size:9px;color:#8290a1}.foot span:last-child{color:var(--blue)}table{border-collapse:collapse;width:100%;font-size:12px;font-variant-numeric:tabular-nums}th{font-size:9px;text-transform:uppercase;letter-spacing:.7px;text-align:left;font-weight:400;color:#8794a4;border-bottom:1px solid var(--rule);padding:9px 8px 11px 0}td{padding:10px 8px 10px 0;border-bottom:1px solid var(--rule)}td:last-child,th:last-child{padding-right:0}.right{text-align:right}.subtext{font-size:10px;color:#8a97a6}.flag{display:inline-block;border-radius:3px;font-size:10px;background:#f7f1e8;color:#947143;padding:3px 7px}.flag.red{color:#a05856;background:#f7eded}.merchant{display:flex;align-items:center;gap:11px}.merchant .monogram{width:27px;height:27px;display:grid;place-items:center;border-radius:6px;background:#f1f4f7;color:var(--blue);font-size:10px;font-weight:600}.allocation{display:flex;gap:3px;height:22px;margin:4px 0 13px;border-radius:4px;overflow:hidden}.legend{display:flex;gap:16px;font-size:10px;color:#75859a;margin-bottom:22px}.legend i{display:inline-block;width:6px;height:6px;border-radius:2px;margin-right:4px}.holdings td{padding-top:7px;padding-bottom:7px}.holdings small{display:block;color:#8996a6;font-size:9px}.net-chart{display:block;width:100%;height:231px;margin:3px 0 14px}.net-chart text{font-family:ui-monospace,SFMono-Regular,monospace;font-size:10px;fill:#8d9aaa}.drivers{display:flex;gap:25px;justify-content:space-between;padding:15px 0 0;border-top:1px solid var(--rule)}.driver span{display:block;color:#8492a3;font-size:10px}.driver b{font-size:18px;font-weight:500;letter-spacing:-.4px;display:block;margin-top:5px}.single{background:white;overflow:hidden}.single .page{max-width:none;padding:0;margin:0}.single .page>h1,.single .page>p{display:none}.single .scroll{margin:0;overflow:visible}.single .card{border:0;border-radius:0}
-</style></head><body><main class="page"><h1>Your questions. Your reports.</h1><p>Illustrative reports an agent can create with Fin. All numbers are made up.</p><div class="scroll"><article class="card" id="card-1"><aside class="brief"><div class="brand"><img src="../prototype/mascot.png" alt="">Fin</div><div class="brief-label">YOU ASK</div><h2 class="prompt">“Build me a monthly spending review.”</h2><p style="font-size:13px;color:#6d8298;line-height:1.75;margin:17px 0 0">Compare it to the month before.</p><div class="command">YOUR AGENT READS FROM FIN<code>fin transactions --since 2026-08-01 --json</code></div><div class="brief-bottom"><img src="../prototype/mascot.png" alt="Fin the shark"><p>Fin supplies your data.<br>Your agent builds the report.</p></div></aside><section class="report"><div class="report-top"><b>Spending review</b><span>ILLUSTRATIVE REPORT / 01</span></div><h2>A little less out. More left over.</h2><p class="subtitle">September 2026 · four cards and checking</p><div class="metrics"><div class="metric"><strong class="">$6,482</strong><span>total spending</span></div><div class="metric"><strong class="good">−9%</strong><span>vs. $7,121 in August</span></div><div class="metric"><strong class="">$3,368</strong><span>left from $9,850 in income</span></div></div><div class="section-label">Where it went</div><div class="bars"><div class="bar "><span>Rent & utilities</span><div class="track"><div class="fill" style="width:100.0%"></div></div><span class="amount">$2,850</span><span class="change">0%</span></div><div class="bar "><span>Groceries</span><div class="track"><div class="fill" style="width:28.49122807017544%"></div></div><span class="amount">$812</span><span class="change">−6%</span></div><div class="bar dining"><span>Dining out</span><div class="track"><div class="fill" style="width:24.350877192982455%"></div></div><span class="amount">$694</span><span class="change">+31%</span></div><div class="bar "><span>Travel</span><div class="track"><div class="fill" style="width:18.947368421052634%"></div></div><span class="amount">$540</span><span class="change">new</span></div><div class="bar "><span>Shopping</span><div class="track"><div class="fill" style="width:17.12280701754386%"></div></div><span class="amount">$488</span><span class="change">−71%</span></div><div class="bar "><span>Transport</span><div class="track"><div class="fill" style="width:12.666666666666668%"></div></div><span class="amount">$361</span><span class="change">−4%</span></div><div class="bar "><span>Subscriptions</span><div class="track"><div class="fill" style="width:7.508771929824562%"></div></div><span class="amount">$214</span><span class="change">+2%</span></div><div class="bar "><span>Everything else</span><div class="track"><div class="fill" style="width:18.350877192982455%"></div></div><span class="amount">$523</span><span class="change">−11%</span></div></div><div class="insight"><b>The biggest change wasn’t a habit.</b> August included a $1,180 standing desk. Dining out went the other way: up $165 this month.</div><div class="foot"><span>Sample data. An example of what your AI agent can create.</span><span>Read-only data via Fin ↗</span></div></section></article></div><div class="scroll"><article class="card" id="card-2"><aside class="brief"><div class="brand"><img src="../prototype/mascot.png" alt="">Fin</div><div class="brief-label">YOU ASK</div><h2 class="prompt">“Find the subscriptions worth reviewing.”</h2><p style="font-size:13px;color:#6d8298;line-height:1.75;margin:17px 0 0">Find subscriptions, price increases, and anything I’m paying for twice.</p><div class="command">YOUR AGENT READS FROM FIN<code>fin transactions --since 2025-10-01 --json</code></div><div class="brief-bottom"><img src="../prototype/mascot.png" alt="Fin the shark"><p>Fin supplies your data.<br>Your agent builds the report.</p></div></aside><section class="report"><div class="report-top"><b>Subscription audit</b><span>ILLUSTRATIVE REPORT / 02</span></div><h2>The small charges add up.</h2><p class="subtitle">14 subscriptions · three cards · selected charges below</p><div class="metrics"><div class="metric"><strong class="">$312.47</strong><span>each month · $3,749.64 a year</span></div><div class="metric"><strong class="">14</strong><span>active subscriptions</span></div><div class="metric"><strong class="good">$34.99</strong><span>potential monthly savings</span></div></div><table><thead><tr><th>Subscription</th><th>Monthly</th><th>What to look at</th></tr></thead><tbody><tr><td><div class="merchant"><span class="monogram">Ad</span><div>Adobe Creative Cloud<br><span class="subtext">Amex ••1009</span></div></div></td><td>$59.99</td><td><span class="subtext">No change</span></td></tr><tr><td><div class="merchant"><span class="monogram">NY</span><div>New York Times<br><span class="subtext">Chase ••4242</span></div></div></td><td>$25.00</td><td><span class="flag ">Trial became paid</span></td></tr><tr><td><div class="merchant"><span class="monogram">N</span><div>Netflix<br><span class="subtext">Chase ••4242</span></div></div></td><td>$24.99</td><td><span class="flag ">Up $2 since July</span></td></tr><tr><td><div class="merchant"><span class="monogram">S</span><div>Spotify Family<br><span class="subtext">Amex ••1009</span></div></div></td><td>$19.99</td><td><span class="subtext">No change</span></td></tr><tr><td><div class="merchant"><span class="monogram">iC</span><div>iCloud+ 2 TB<br><span class="subtext">Citi ••7781</span></div></div></td><td>$9.99</td><td><span class="flag red">Overlapping storage</span></td></tr><tr><td><div class="merchant"><span class="monogram">G</span><div>Google One 2 TB<br><span class="subtext">Chase ••4242</span></div></div></td><td>$9.99</td><td><span class="flag red">Overlapping storage</span></td></tr></tbody></table><div class="insight"><b>Two easy things to review:</b> the $25 news subscription and one $9.99 storage plan. Together, that’s $419.88 a year.</div><div class="foot"><span>Sample data. An example of what your AI agent can create.</span><span>Read-only data via Fin ↗</span></div></section></article></div><div class="scroll"><article class="card" id="card-3"><aside class="brief"><div class="brand"><img src="../prototype/mascot.png" alt="">Fin</div><div class="brief-label">YOU ASK</div><h2 class="prompt">“Put all my investments in one report.”</h2><p style="font-size:13px;color:#6d8298;line-height:1.75;margin:17px 0 0">Show my allocation and unrealized gains across brokerages.</p><div class="command">YOUR AGENT READS FROM FIN<code>fin holdings --json</code></div><div class="brief-bottom"><img src="../prototype/mascot.png" alt="Fin the shark"><p>Fin supplies your data.<br>Your agent builds the report.</p></div></aside><section class="report"><div class="report-top"><b>Portfolio review</b><span>ILLUSTRATIVE REPORT / 03</span></div><h2>Your portfolio, in one picture.</h2><p class="subtitle">Fidelity, Schwab, and Robinhood · sample snapshot</p><div class="metrics"><div class="metric"><strong class="">$284,316</strong><span>total invested</span></div><div class="metric"><strong class="good">+$41,207</strong><span>unrealized gain · 17.0%</span></div><div class="metric"><strong class="">3</strong><span>brokerages in one view</span></div></div><div class="section-label">Asset allocation</div><div class="allocation"><div style="width:58%;background:#356b8d"></div><div style="width:14%;background:#81b1cf"></div><div style="width:12%;background:#a5bbce"></div><div style="width:9%;background:#dce7ef"></div><div style="width:7%;background:#c4a16d"></div></div><div class="legend"><span><i style="background:#356b8d"></i>US stocks 58%</span><span><i style="background:#81b1cf"></i>International 14%</span><span><i style="background:#a5bbce"></i>Bonds 12%</span><span><i style="background:#dce7ef"></i>Cash 9%</span><span><i style="background:#c4a16d"></i>Crypto 7%</span></div><table class="holdings"><thead><tr><th>Top holdings</th><th>Brokerage</th><th class="right">Value</th><th class="right">Gain</th></tr></thead><tbody><tr><td>VTI<small>Total US stock market</small></td><td>Fidelity</td><td class="right">$71,880</td><td class="right good">+$14,210</td></tr><tr><td>FXAIX<small>S&P 500 index</small></td><td>Fidelity</td><td class="right">$48,320</td><td class="right good">+$11,045</td></tr><tr><td>VXUS<small>International stocks</small></td><td>Schwab</td><td class="right">$39,800</td><td class="right good">+$3,120</td></tr><tr><td>BND<small>Total bond market</small></td><td>Schwab</td><td class="right">$34,110</td><td class="right bad">−$1,290</td></tr><tr><td>BTC<small>Bitcoin</small></td><td>Robinhood</td><td class="right">$19,900</td><td class="right good">+$8,760</td></tr></tbody></table><div class="insight"><b>Two US equity funds make up 42% of the portfolio.</b> VTI and FXAIX overlap in large US companies—worth considering when you review your allocation.</div><div class="foot"><span>Sample data. An example of what your AI agent can create.</span><span>Read-only data via Fin ↗</span></div></section></article></div><div class="scroll"><article class="card" id="card-4"><aside class="brief"><div class="brand"><img src="../prototype/mascot.png" alt="">Fin</div><div class="brief-label">YOU ASK</div><h2 class="prompt">“Show how my net worth changed this year.”</h2><p style="font-size:13px;color:#6d8298;line-height:1.75;margin:17px 0 0">Chart it month by month and explain what moved it.</p><div class="command">YOUR AGENT READS FROM FIN<code>fin accounts --json<br>fin holdings --json<br>fin transactions --since 2026-01-01 --json</code></div><div class="brief-bottom"><img src="../prototype/mascot.png" alt="Fin the shark"><p>Fin supplies your data.<br>Your agent builds the report.</p></div></aside><section class="report"><div class="report-top"><b>Net worth</b><span>ILLUSTRATIVE REPORT / 04</span></div><h2>A bigger picture, over time.</h2><p class="subtitle">January–September 2026 · every account, month by month</p><div class="metrics"><div class="metric"><strong class="">$326,940</strong><span>net worth in September</span></div><div class="metric"><strong class="good">+$38,410</strong><span>since January</span></div><div class="metric"><strong class="good">+13.3%</strong><span>year to date</span></div></div><svg class="net-chart" viewBox="0 0 760 231" role="img" aria-label="Net worth from January to September"><defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#81b1cf" stop-opacity=".23"/><stop offset="1" stop-color="#81b1cf" stop-opacity="0"/></linearGradient></defs><path d="M40 161.0H715" stroke="#e7edf2"/><text x="755" y="164.0" text-anchor="end">290k</text><path d="M40 127.0H715" stroke="#e7edf2"/><text x="755" y="130.0" text-anchor="end">300k</text><path d="M40 93.0H715" stroke="#e7edf2"/><text x="755" y="96.0" text-anchor="end">310k</text><path d="M40 59.0H715" stroke="#e7edf2"/><text x="755" y="62.0" text-anchor="end">320k</text><polygon points="40,199 40,166.00 124,156.92 208,178.00 292,158.28 376,132.44 460,110.34 544,84.16 628,94.02 712,35.40 712,199" fill="url(#area)"/><polyline points="40,166.00 124,156.92 208,178.00 292,158.28 376,132.44 460,110.34 544,84.16 628,94.02 712,35.40" fill="none" stroke="#356b8d" stroke-width="3" stroke-linejoin="round"/><text x="40" y="224" text-anchor="middle">JAN</text><text x="124" y="224" text-anchor="middle">FEB</text><text x="208" y="224" text-anchor="middle">MAR</text><text x="292" y="224" text-anchor="middle">APR</text><text x="376" y="224" text-anchor="middle">MAY</text><text x="460" y="224" text-anchor="middle">JUN</text><text x="544" y="224" text-anchor="middle">JUL</text><text x="628" y="224" text-anchor="middle">AUG</text><text x="712" y="224" text-anchor="middle">SEP</text><circle cx="712" cy="35.403999999999996" r="5" fill="#356b8d" stroke="white" stroke-width="2"/></svg><div class="drivers"><div class="driver"><span>Market gains</span><b class="good">+$27,960</b></div><div class="driver"><span>Cash saved</span><b class="good">+$14,850</b></div><div class="driver"><span>Card balances</span><b class="bad">−$4,400</b></div></div><div class="insight"><b>September’s lift includes a $9,000 bonus.</b> The March dip came from market losses. Card balances have risen since July.</div><div class="foot"><span>Sample data. An example of what your AI agent can create.</span><span>Read-only data via Fin ↗</span></div></section></article></div></main><script>const id=new URLSearchParams(location.search).get('card');if(['1','2','3','4'].includes(id)){document.body.classList.add('single');document.querySelectorAll('.scroll').forEach(el=>{if(!el.querySelector('#card-'+id))el.remove()})}</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI-generated financial reports · examples</title>
+<link rel="stylesheet" href="reports.css">
+</head>
+<body>
+<main class="page">
+<h1>Four questions. Four reports.</h1>
+<p>AI-generated financial reports. All numbers are illustrative.</p>
+<div class="scroll">
+<article class="card spending" id="card-1">
+<div class="report-sheet">
+<header class="top">
+<div>
+<span class="report-icon" aria-hidden="true">▤</span>
+<span class="top-name">Monthly spending review</span>
+</div>
+<span class="edition">SEPTEMBER 2026 <i>
+</i> 01 / 04</span>
+</header>
+<div class="spend-hero">
+<div>
+<p class="eyebrow">01 — MONTHLY SPENDING</p>
+<h2>September,<br>in perspective<span class="orange">.</span>
+</h2>
+<div class="hero-value">$6,482<span class="delta">↘ 9%</span>
+</div>
+<p class="muted">Down from $7,121 in August.</p>
+</div>
+<div class="spend-orbit">
+<div class="ring">
+<svg viewBox="0 0 360 360" aria-hidden="true">
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#fc714a" stroke-width="42" stroke-dasharray="42.767911138537485 57.232088861462515" stroke-dashoffset="0" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#f5b994" stroke-width="42" stroke-dasharray="11.326997840172785 88.67300215982722" stroke-dashoffset="-43.96791113853749" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#ded3bf" stroke-width="42" stroke-dasharray="9.50657204566492 90.49342795433508" stroke-dashoffset="-56.49490897871027" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#b9c9b4" stroke-width="42" stroke-dasharray="7.130762110459734 92.86923788954027" stroke-dashoffset="-67.20148102437518" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#789790" stroke-width="42" stroke-dasharray="6.328540573896945 93.67145942610306" stroke-dashoffset="-75.53224313483491" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#3f6668" stroke-width="42" stroke-dasharray="4.369268744214748 95.63073125578525" stroke-dashoffset="-83.06078370873186" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#1e4147" stroke-width="42" stroke-dasharray="2.10145016970071 97.89854983029929" stroke-dashoffset="-88.63005245294661" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#ede5d8" stroke-width="42" stroke-dasharray="6.868497377352669 93.13150262264733" stroke-dashoffset="-91.93150262264733" transform="rotate(-90 180 180)"/>
+</svg>
+<div class="ring-center">
+<strong>$6.5k</strong>
+<span>TOTAL SPENT</span>
+</div>
+</div>
+<div class="orbit-tag">
+<span>LEFT OVER · 34% OF INCOME</span>
+<strong>$3,368 <b>↗</b>
+</strong>
+</div>
+</div>
+</div>
+<div class="category-grid">
+<div class="category">
+<div>
+<span>
+<i style="background:#fc714a">
+</i>Rent & utilities</span>
+<strong>$2,850 <small>0%</small>
+</strong>
+</div>
+<div class="track">
+<span style="width:100.0%;background:#fc714a">
+</span>
+</div>
+</div>
+<div class="category">
+<div>
+<span>
+<i style="background:#f5b994">
+</i>Groceries</span>
+<strong>$812 <small>−6%</small>
+</strong>
+</div>
+<div class="track">
+<span style="width:28.49122807017544%;background:#f5b994">
+</span>
+</div>
+</div>
+<div class="category">
+<div>
+<span>
+<i style="background:#ded3bf">
+</i>Dining out</span>
+<strong>$694 <small>+31%</small>
+</strong>
+</div>
+<div class="track">
+<span style="width:24.350877192982455%;background:#ded3bf">
+</span>
+</div>
+</div>
+<div class="category">
+<div>
+<span>
+<i style="background:#b9c9b4">
+</i>Travel</span>
+<strong>$540 <small>new</small>
+</strong>
+</div>
+<div class="track">
+<span style="width:18.947368421052634%;background:#b9c9b4">
+</span>
+</div>
+</div>
+<div class="category">
+<div>
+<span>
+<i style="background:#789790">
+</i>Shopping</span>
+<strong>$488 <small>−71%</small>
+</strong>
+</div>
+<div class="track">
+<span style="width:17.12280701754386%;background:#789790">
+</span>
+</div>
+</div>
+<div class="category">
+<div>
+<span>
+<i style="background:#3f6668">
+</i>Transport</span>
+<strong>$361 <small>−4%</small>
+</strong>
+</div>
+<div class="track">
+<span style="width:12.666666666666668%;background:#3f6668">
+</span>
+</div>
+</div>
+<div class="category">
+<div>
+<span>
+<i style="background:#1e4147">
+</i>Subscriptions</span>
+<strong>$214 <small>+2%</small>
+</strong>
+</div>
+<div class="track">
+<span style="width:7.508771929824562%;background:#1e4147">
+</span>
+</div>
+</div>
+<div class="category">
+<div>
+<span>
+<i style="background:#ede5d8">
+</i>Everything else</span>
+<strong>$523 <small>−11%</small>
+</strong>
+</div>
+<div class="track">
+<span style="width:18.350877192982455%;background:#ede5d8">
+</span>
+</div>
+</div>
+</div>
+<div class="note">
+<b>A little context.</b> August included a $1,180 desk. Dining out rose $165 this month.</div>
+<footer>
+<span>ILLUSTRATIVE DATA</span>
+<span>AI-GENERATED REPORT <b>↗</b>
+</span>
+</footer>
+</div>
+</article>
+</div>
+<div class="scroll">
+<article class="card subscriptions" id="card-2">
+<div class="report-sheet">
+<header class="top">
+<div>
+<span class="report-icon" aria-hidden="true">▤</span>
+<span class="top-name">Subscription audit</span>
+</div>
+<span class="edition">SEPTEMBER 2026 <i>
+</i> 02 / 04</span>
+</header>
+<div class="subs-hero">
+<div>
+<p class="eyebrow">02 — RECURRING CHARGES</p>
+<h2>Recurring costs.<br>
+<em>A closer look.</em>
+</h2>
+</div>
+<div class="subs-total">
+<div class="hero-value">$312<span>.47</span>
+</div>
+<p>PER MONTH <i>·</i> 14 SUBSCRIPTIONS</p>
+<span class="annual">$3,749.64 a year · selected charges below</span>
+</div>
+</div>
+<div class="merchant-grid">
+<div class="merchant-card">
+<div class="merchant-top">
+<span class="app-icon adobe">Ad</span>
+<span class="merchant-price">$59.99<small>/mo</small>
+</span>
+</div>
+<h3>Adobe Creative Cloud</h3>
+<span class="account">Amex ••1009</span>
+<div class="merchant-note ">
+<i>
+</i>No price change</div>
+</div>
+<div class="merchant-card">
+<div class="merchant-top">
+<span class="app-icon nyt">NY</span>
+<span class="merchant-price">$25.00<small>/mo</small>
+</span>
+</div>
+<h3>New York Times</h3>
+<span class="account">Chase ••4242</span>
+<div class="merchant-note review">
+<i>
+</i>Trial became paid</div>
+</div>
+<div class="merchant-card">
+<div class="merchant-top">
+<span class="app-icon netflix">N</span>
+<span class="merchant-price">$24.99<small>/mo</small>
+</span>
+</div>
+<h3>Netflix</h3>
+<span class="account">Chase ••4242</span>
+<div class="merchant-note review">
+<i>
+</i>↑ $2 since July</div>
+</div>
+<div class="merchant-card">
+<div class="merchant-top">
+<span class="app-icon spotify">S</span>
+<span class="merchant-price">$19.99<small>/mo</small>
+</span>
+</div>
+<h3>Spotify Family</h3>
+<span class="account">Amex ••1009</span>
+<div class="merchant-note ">
+<i>
+</i>No price change</div>
+</div>
+<div class="merchant-card">
+<div class="merchant-top">
+<span class="app-icon icloud">☁</span>
+<span class="merchant-price">$9.99<small>/mo</small>
+</span>
+</div>
+<h3>iCloud+ 2 TB</h3>
+<span class="account">Citi ••7781</span>
+<div class="merchant-note review">
+<i>
+</i>Overlapping storage</div>
+</div>
+<div class="merchant-card">
+<div class="merchant-top">
+<span class="app-icon google">G</span>
+<span class="merchant-price">$9.99<small>/mo</small>
+</span>
+</div>
+<h3>Google One 2 TB</h3>
+<span class="account">Chase ••4242</span>
+<div class="merchant-note review">
+<i>
+</i>Overlapping storage</div>
+</div>
+</div>
+<div class="savings">
+<span class="spark">✳</span>
+<div>
+<b>A little cleanup goes a long way.</b>
+<span>Review the news subscription + one overlapping storage plan.</span>
+</div>
+<strong>$419.88<small>POTENTIAL YEARLY SAVINGS ↗</small>
+</strong>
+</div>
+<footer>
+<span>ILLUSTRATIVE DATA</span>
+<span>AI-GENERATED REPORT <b>↗</b>
+</span>
+</footer>
+</div>
+</article>
+</div>
+<div class="scroll">
+<article class="card portfolio" id="card-3">
+<div class="report-sheet">
+<header class="top">
+<div>
+<span class="report-icon" aria-hidden="true">▤</span>
+<span class="top-name">Investment overview</span>
+</div>
+<span class="edition">SEPTEMBER 2026 <i>
+</i> 03 / 04</span>
+</header>
+<div class="portfolio-hero">
+<div>
+<p class="eyebrow">03 — ALL YOUR INVESTMENTS</p>
+<h2>Your portfolio.<br>All together.</h2>
+<div class="hero-value">$284,316</div>
+<div class="portfolio-return">
+<span>↗ +$41,207</span>
+<b>+17.0%</b>
+<small>unrealized gain</small>
+</div>
+<p class="muted">Fidelity / Schwab / Robinhood</p>
+</div>
+<div class="portfolio-allocation">
+<div class="ring">
+<svg viewBox="0 0 360 360" aria-hidden="true">
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#d2f879" stroke-width="42" stroke-dasharray="56.8 43.2" stroke-dashoffset="0" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#ad9cff" stroke-width="42" stroke-dasharray="12.8 87.2" stroke-dashoffset="-58" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#73b1b4" stroke-width="42" stroke-dasharray="10.8 89.2" stroke-dashoffset="-72" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#e1dfcd" stroke-width="42" stroke-dasharray="7.8 92.2" stroke-dashoffset="-84" transform="rotate(-90 180 180)"/>
+<circle cx="180" cy="180" r="140" pathLength="100" fill="none" stroke="#fc987a" stroke-width="42" stroke-dasharray="5.8 94.2" stroke-dashoffset="-93" transform="rotate(-90 180 180)"/>
+</svg>
+<div class="ring-center">
+<strong>72%</strong>
+<span>IN EQUITIES</span>
+</div>
+</div>
+<div class="allocation-legend">
+<span>
+<i style="background:#d2f879">
+</i>US stocks<b>58%</b>
+</span>
+<span>
+<i style="background:#ad9cff">
+</i>International<b>14%</b>
+</span>
+<span>
+<i style="background:#73b1b4">
+</i>Bonds<b>12%</b>
+</span>
+<span>
+<i style="background:#e1dfcd">
+</i>Cash<b>9%</b>
+</span>
+<span>
+<i style="background:#fc987a">
+</i>Crypto<b>7%</b>
+</span>
+</div>
+</div>
+</div>
+<div class="holdings">
+<div class="table-head">
+<span>TOP HOLDINGS</span>
+<span>VALUE</span>
+<span>UNREALIZED GAIN</span>
+</div>
+<div class="holding">
+<div>
+<b>VTI</b>
+<span>Total US stock market <i>·</i> Fidelity</span>
+</div>
+<strong>$71,880</strong>
+<span class="gain">+$14,210</span>
+</div>
+<div class="holding">
+<div>
+<b>FXAIX</b>
+<span>S&P 500 index <i>·</i> Fidelity</span>
+</div>
+<strong>$48,320</strong>
+<span class="gain">+$11,045</span>
+</div>
+<div class="holding">
+<div>
+<b>VXUS</b>
+<span>International stocks <i>·</i> Schwab</span>
+</div>
+<strong>$39,800</strong>
+<span class="gain">+$3,120</span>
+</div>
+<div class="holding">
+<div>
+<b>BND</b>
+<span>Total bond market <i>·</i> Schwab</span>
+</div>
+<strong>$34,110</strong>
+<span class="loss">−$1,290</span>
+</div>
+<div class="holding">
+<div>
+<b>BTC</b>
+<span>Bitcoin <i>·</i> Robinhood</span>
+</div>
+<strong>$19,900</strong>
+<span class="gain">+$8,760</span>
+</div>
+</div>
+<div class="portfolio-note">
+<i>↗</i>
+<span>VTI + FXAIX make up <b>42%</b> of your portfolio, with overlapping US holdings.</span>
+</div>
+<footer>
+<span>ILLUSTRATIVE DATA</span>
+<span>AI-GENERATED REPORT <b>↗</b>
+</span>
+</footer>
+</div>
+</article>
+</div>
+<div class="scroll">
+<article class="card networth" id="card-4">
+<div class="report-sheet">
+<header class="top">
+<div>
+<span class="report-icon" aria-hidden="true">▤</span>
+<span class="top-name">Net worth over time</span>
+</div>
+<span class="edition">SEPTEMBER 2026 <i>
+</i> 04 / 04</span>
+</header>
+<div class="net-hero">
+<div>
+<p class="eyebrow">04 — JANUARY TO SEPTEMBER</p>
+<h2>Nine months.<br>One clear picture.</h2>
+</div>
+<div class="net-total">
+<div class="hero-value">$326,940</div>
+<span class="net-change">↗ +$38,410 <i>
+</i> +13.3% since January</span>
+</div>
+</div>
+<div class="chart-wrap">
+<span class="chart-caption">YOUR NET WORTH, OVER TIME</span>
+<svg viewBox="0 0 1080 310" role="img" aria-label="Net worth rises from $288,530 in January to $326,940 in September, with dips in March and August">
+<defs>
+<linearGradient id="net-fill" x1="0" y1="0" x2="0" y2="1">
+<stop stop-color="#acdc75" stop-opacity=".65"/>
+<stop offset="1" stop-color="#acdc75" stop-opacity="0"/>
+</linearGradient>
+</defs>
+<path d="M30 218.4 H1054" stroke="#ccdbca" stroke-dasharray="3 7"/>
+<text x="30" y="210.4" class="axis">$290k</text>
+<path d="M30 172.8 H1054" stroke="#ccdbca" stroke-dasharray="3 7"/>
+<text x="30" y="164.8" class="axis">$300k</text>
+<path d="M30 127.20000000000002 H1054" stroke="#ccdbca" stroke-dasharray="3 7"/>
+<text x="30" y="119.20000000000002" class="axis">$310k</text>
+<path d="M30 81.6 H1054" stroke="#ccdbca" stroke-dasharray="3 7"/>
+<text x="30" y="73.6" class="axis">$320k</text>
+<path d="M30.0,225.1 L158.0,212.9 L286.0,241.2 L414.0,214.8 L542.0,180.1 L670.0,150.5 L798.0,115.3 L926.0,128.6 L1054.0,50.0 L1054,272 L30,272 Z" fill="url(#net-fill)"/>
+<path d="M30.0,225.1 L158.0,212.9 L286.0,241.2 L414.0,214.8 L542.0,180.1 L670.0,150.5 L798.0,115.3 L926.0,128.6 L1054.0,50.0" fill="none" stroke="#296745" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="30" y="302" text-anchor="middle" class="month">JAN</text>
+<text x="158" y="302" text-anchor="middle" class="month">FEB</text>
+<text x="286" y="302" text-anchor="middle" class="month">MAR</text>
+<text x="414" y="302" text-anchor="middle" class="month">APR</text>
+<text x="542" y="302" text-anchor="middle" class="month">MAY</text>
+<text x="670" y="302" text-anchor="middle" class="month">JUN</text>
+<text x="798" y="302" text-anchor="middle" class="month">JUL</text>
+<text x="926" y="302" text-anchor="middle" class="month">AUG</text>
+<text x="1054" y="302" text-anchor="middle" class="month">SEP</text>
+<circle cx="1054" cy="49.953599999999994" r="11" fill="#296745" opacity=".14"/>
+<circle cx="1054" cy="49.953599999999994" r="5" fill="#296745"/>
+<rect x="844" y="21.953599999999994" width="184" height="31" rx="15" fill="#234d38"/>
+<text x="936" y="41.953599999999994" class="bonus" text-anchor="middle">SEPTEMBER: +$9K BONUS</text>
+</svg>
+</div>
+<div class="drivers">
+<div>
+<span>
+<i>↗</i> Market gains</span>
+<b>+$27,960</b>
+</div>
+<div>
+<span>
+<i>↗</i> Cash saved</span>
+<b>+$14,850</b>
+</div>
+<div>
+<span>
+<i>↘</i> Card balances</span>
+<b class="loss">−$4,400</b>
+</div>
+</div>
+<div class="note">September includes a $9,000 bonus. March’s dip reflects market losses.</div>
+<footer>
+<span>ILLUSTRATIVE DATA</span>
+<span>AI-GENERATED REPORT <b>↗</b>
+</span>
+</footer>
+</div>
+</article>
+</div>
+</main>
+<script>const id=new URLSearchParams(location.search).get('card');if(['1','2','3','4'].includes(id)){document.body.classList.add('single');document.querySelectorAll('.scroll').forEach(el=>{if(!el.querySelector('#card-'+id))el.remove()})}</script>
+</body>
+</html>

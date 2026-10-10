@@ -677,8 +677,19 @@ func TestTryPagesMatchTheExamples(t *testing.T) {
 		if !strings.Contains(files["docs/index.html"], `href="try/`+e.Slug+`/"`) {
 			t.Errorf("docs/index.html has no try link for %s", e.Slug)
 		}
-		if !strings.Contains(files["docs/examples/index.html"], "“"+e.Ask+"”") || !strings.Contains(files["docs/examples/index.html"], e.Detail) {
-			t.Errorf("docs/examples/index.html doesn't show the %s prompt verbatim", e.Slug)
+		for _, name := range []string{"README.md", "docs/index.html"} {
+			if !strings.Contains(files[name], "“"+e.Ask+"”") || !strings.Contains(files[name], e.Detail) {
+				t.Errorf("%s doesn't show the %s prompt verbatim", name, e.Slug)
+			}
+			if !strings.Contains(files[name], `alt="`+e.Alt+`"`) {
+				t.Errorf("%s doesn't describe the %s report preview", name, e.Slug)
+			}
+		}
+		if strings.Contains(files["docs/examples/index.html"], e.Ask) {
+			t.Errorf("report artwork should not include the %s prompt", e.Slug)
+		}
+		if _, err := os.Stat("../../docs/" + e.Image); err != nil {
+			t.Errorf("%s report preview: %v", e.Slug, err)
 		}
 		checkGenerated(t, "../../docs/try/"+e.Slug+"/index.html", TryPage(e))
 	}
