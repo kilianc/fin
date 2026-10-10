@@ -231,7 +231,9 @@ type promptModel struct {
 	cancelled bool
 }
 
-func (m promptModel) Init() tea.Cmd { return m.input.Focus() }
+// Init has a value receiver, so focusing here would focus a copy; Prompt
+// focuses the input before the program starts.
+func (m promptModel) Init() tea.Cmd { return nil }
 
 func (m promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if key, ok := msg.(tea.KeyPressMsg); ok {
@@ -272,6 +274,7 @@ func Prompt(in io.Reader, out io.Writer, label, placeholder string, secret bool)
 		ti.EchoMode = textinput.EchoPassword
 		ti.EchoCharacter = '•'
 	}
+	ti.Focus()
 	final, err := tea.NewProgram(promptModel{input: ti, label: label, secret: secret}, tea.WithInput(in), tea.WithOutput(out)).Run()
 	if err != nil {
 		return "", fmt.Errorf("terminal: %w", err)
