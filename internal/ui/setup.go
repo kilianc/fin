@@ -262,12 +262,12 @@ func (m setupModel) View() tea.View {
 		if m.imported {
 			how = "Imported your " + m.env + " keys from Plaid's CLI; Plaid accepted them"
 		}
-		b.WriteString(Line(Good, wrap(how+". They are in your macOS Keychain, nowhere else.", width-2)) + "\n")
+		b.WriteString(hangLine(Good, how+". They are in your macOS Keychain, nowhere else.", width) + "\n")
 		if m.opts.Next != "" {
 			b.WriteString("\n  Next: " + Accent.Bold(true).Render(m.opts.Next) + "\n")
 		}
 	case m.err != nil:
-		b.WriteString(Line(Bad, wrap(m.err.Error(), width-2)) + "\n")
+		b.WriteString(hangLine(Bad, m.err.Error(), width) + "\n")
 	default:
 		b.WriteString("  " + Muted.Render("Find both at ") + Link(m.opts.KeysURL, m.opts.KeysURL) + "\n")
 	}

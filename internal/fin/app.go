@@ -89,6 +89,9 @@ type App struct {
 
 	human     bool
 	envSource string
+	// onScreen is set while a full-screen ui.Flow owns the terminal, so
+	// nothing inside it starts a spinner of its own.
+	onScreen bool
 }
 
 const (
@@ -148,7 +151,7 @@ func (a *App) Run(ctx context.Context, args []string) int {
 // showSpinner reports whether a person is watching a full terminal, so
 // spinners and live prompts make sense.
 func (a *App) showSpinner() bool {
-	return a.human && a.StderrIsTerminal != nil && a.StderrIsTerminal() && a.IsTerminal != nil && a.IsTerminal()
+	return a.human && !a.onScreen && a.StderrIsTerminal != nil && a.StderrIsTerminal() && a.IsTerminal != nil && a.IsTerminal()
 }
 
 func (a *App) width() int {

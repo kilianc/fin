@@ -79,7 +79,10 @@ func (a *App) cmdSheet(ctx context.Context, args []string) (*result, error) {
 			Steps:    sheetSteps,
 			Open:     a.OpenURL,
 		}
-		if _, err := ui.Flow(ctx, a.Stdin, a.Stderr, opts, work); err != nil {
+		a.onScreen = true
+		_, err := ui.Flow(ctx, a.Stdin, a.Stderr, opts, work)
+		a.onScreen = false
+		if err != nil {
 			if errors.Is(err, ui.ErrCancelled) || errors.Is(err, context.Canceled) {
 				return nil, newErr("CANCELLED", "cancelled")
 			}

@@ -160,21 +160,20 @@ func (m flowModel) View() tea.View {
 		case stepFailed:
 			mark = Bad.Style().Bold(true).Render("✗")
 		}
-		line := mark + " " + label
 		if s.detail != "" {
-			line += Muted.Render("  " + s.detail)
+			label += Muted.Render("  " + s.detail)
 		}
-		b.WriteString("  " + line + "\n")
+		b.WriteString(hang("  "+mark+" ", label, width) + "\n")
 	}
 	if m.linkURL != "" {
 		b.WriteString("\n" + Box(Bold.Render(m.linkLabel)+"\n"+Link(m.linkURL, m.linkURL)+"\n\n"+
 			Muted.Render("The browser opened it. Press o to open it again."), width) + "\n")
 	}
 	if m.err != nil {
-		b.WriteString("\n" + Line(Bad, wrap(m.err.Error(), width-2)) + "\n")
+		b.WriteString("\n" + hangLine(Bad, m.err.Error(), width) + "\n")
 	}
 	if m.result != nil {
-		b.WriteString("\n" + Line(Good, wrap(m.result.Message, width-2)) + "\n")
+		b.WriteString("\n" + hangLine(Good, m.result.Message, width) + "\n")
 		if m.result.URL != "" {
 			b.WriteString("  " + Link(m.result.URL, m.result.URL) + "\n")
 		}
@@ -219,6 +218,17 @@ func (m flowModel) keys() string {
 
 func wrap(s string, width int) string {
 	return lipgloss.NewStyle().Width(max(width, 20)).Render(s)
+}
+
+// hang wraps text to fit after prefix, lining continuation lines up under
+// the text rather than under the prefix.
+func hang(prefix, text string, width int) string {
+	return lipgloss.JoinHorizontal(lipgloss.Top, prefix, wrap(text, width-lipgloss.Width(prefix)))
+}
+
+// hangLine is Line with continuation lines indented under the message.
+func hangLine(tone Tone, msg string, width int) string {
+	return hang(Line(tone, ""), msg, width)
 }
 
 type flowReporter struct{ p *tea.Program }
