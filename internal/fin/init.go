@@ -93,7 +93,12 @@ func (a *App) cmdInit(ctx context.Context, args []string) (*result, error) {
 		"tagline": Tagline, "status": status, "prompt": agentPrompt, "copied": copied,
 		"open_in": openIn, "skill": SkillInstall,
 	}
-	return &result{body: body, message: a.renderInit(status, copied)}, nil
+	msg := a.renderInit(status, copied)
+	if latest := a.availableUpdate(ctx); latest != "" {
+		body["update"] = map[string]string{"current": a.Version, "latest": latest, "command": "fin update"}
+		msg += "\n\n" + ui.Line(ui.Warn, updateNotice(latest))
+	}
+	return &result{body: body, message: msg}, nil
 }
 
 // SkillInstall teaches an agent to use fin: Claude Code installs the plugin

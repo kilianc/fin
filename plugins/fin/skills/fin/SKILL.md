@@ -37,6 +37,7 @@ items and Costco receipt and online order items, using the user's own sign-in.
 | `fin sql "<query>"` | Read-only DuckDB SQL over that file (`fin help sql` lists the tables) |
 | `fin sheet` | Syncs and writes everything to a Google Sheet; the first run needs the user to sign in to Google in the browser |
 | `fin paths [database]` | Where the state file and the DuckDB file are |
+| `fin update [--check]` | Installs the latest release in place; `fin init` reports one in `update` when it exists. Run it only when the user asks |
 | `fin amazon` | Amazon accounts connected for itemizing orders (experimental), with items left to categorize |
 | `fin amazon categorize [--set]` | Items without a category; `--set` saves them (see below) |
 | `fin costco` | Costco accounts connected for receipts, online orders and items (experimental) |

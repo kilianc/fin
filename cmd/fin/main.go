@@ -68,6 +68,7 @@ func run() int {
 	configDir, _ := os.UserConfigDir()
 	app := &fin.App{
 		Version:        version,
+		ReleasesURL:    fin.ReleasesURL,
 		EnvVar:         os.Getenv("PLAID_ENV"),
 		StatePath:      statePath,
 		DataDir:        dataDir,

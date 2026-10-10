@@ -142,6 +142,12 @@ one binary for Apple Silicon and Intel Macs on macOS 12 or later, into
 `~/.local/bin`; make sure that directory is on your `PATH`. Check it with
 `fin --version`. Each release lists the tarball's SHA-256 in `SHA256SUMS`.
 
+`fin update` installs a newer release in place, after checking it against
+`SHA256SUMS`. fin never updates itself: once a day `fin init`, `fin help` and
+`fin version` ask GitHub which release is latest and print one line when a
+newer one is out. `FIN_NO_UPDATE_CHECK=1` turns that off. A build from source
+is left alone; update it the way you built it.
+
 To build from source instead, you need [Go](https://go.dev/dl/) 1.26 or newer
 and the Xcode Command Line Tools (`xcode-select --install`), because fin
 embeds DuckDB through cgo:
@@ -287,7 +293,9 @@ and slot.
   `security -i` on stdin, so they never appear in a process listing.
 - **No middleman.** Your data goes from Plaid's API to your machine and
   nowhere else, unless you run `fin sheet`, which writes it to a spreadsheet
-  in your own Google Drive. fin has no server and no telemetry.
+  in your own Google Drive. fin has no server and no telemetry. Once a day it
+  asks github.com which release is latest, sending nothing about you
+  (`FIN_NO_UPDATE_CHECK=1` turns it off).
 - **Local data is private.** `~/.config/fin/state.json` holds only names,
   institution IDs and sync times. Synced transactions and account balances
   live in a DuckDB file in `~/.local/share/fin`, one per environment
@@ -315,6 +323,7 @@ and slot.
 | `fin sync` | Pull new and changed transactions into the local DuckDB file |
 | `fin sql "<query>"` | Query the local file with DuckDB SQL, read-only |
 | `fin paths [database]` | Where the state file and the DuckDB file are |
+| `fin update [--check]` | Install the latest release in place, checked against `SHA256SUMS` |
 | `fin sheet [--open]` | Keep a Google Sheet with your transactions and balances |
 | `fin amazon [login\|sync\|categorize\|logout]` | Itemize Amazon orders and split their charges by category (experimental) |
 | `fin costco [login\|sync\|categorize\|logout]` | Itemize Costco receipts and online orders (experimental) |
@@ -325,6 +334,7 @@ and slot.
 `PLAID_ENV` overrides the environment set with `fin env` for one command or
 shell. `FIN_CONFIG_DIR` moves the state file, and `FIN_DATA_DIR` moves the
 DuckDB files (default `$XDG_DATA_HOME/fin`, or `~/.local/share/fin`).
+`FIN_NO_UPDATE_CHECK=1` stops the daily new-release check.
 
 ## For AI agents
 

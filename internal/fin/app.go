@@ -3,7 +3,6 @@
 package fin
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"flag"
@@ -94,8 +93,13 @@ type App struct {
 	ReadLine         func(prompt string) (string, error)
 	ReadSecret       func(prompt string) (string, error)
 	OpenURL          func(url string) error
-	Copy             func(text string) error
-	PollInterval     time.Duration
+	// ReleasesURL is where fin update and the daily new-release check look;
+	// empty turns both off. Executable, if set, is the binary fin update
+	// replaces, for tests.
+	ReleasesURL  string
+	Executable   func() (string, error)
+	Copy         func(text string) error
+	PollInterval time.Duration
 	// Debug prints a summary of each Link poll to stderr (FIN_DEBUG=1).
 	Debug bool
 
@@ -130,8 +134,7 @@ func (a *App) Run(ctx context.Context, args []string) int {
 		return exitUsage
 	}
 	if args[0] == "--version" || args[0] == "version" {
-		fmt.Fprintf(a.Stdout, "fin %s\n", cmp.Or(a.Version, "dev"))
-		return exitOK
+		return a.cmdVersion(asJSON)
 	}
 	if args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
 		if len(args) > 1 {

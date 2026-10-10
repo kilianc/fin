@@ -1,6 +1,7 @@
 package fin
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -208,6 +209,18 @@ Amounts use Plaid's sign: positive is money out, negative is money in.`,
 			"fin sql \"select a.name, t.date, t.merchant_name, t.amount from transactions t join accounts a using (account_id) limit 20\"",
 		},
 		run: func(a *App) command { return a.cmdSQL },
+	},
+	{
+		name: "update", usage: "fin update [--check]", group: groupStart,
+		summary: "Update fin to the latest release",
+		detail: `Downloads the latest release from GitHub, checks it against the release's
+SHA256SUMS, makes sure it runs, and only then puts it in place of this fin.
+With --check, only says whether a newer release exists. fin never updates on
+its own: fin init, fin help and fin version say when a newer release is out
+(they ask GitHub at most once a day; FIN_NO_UPDATE_CHECK=1 turns that off).
+A fin built from source, or installed with go install, is left alone.`,
+		examples: []string{"fin update --check", "fin update"},
+		run:      func(a *App) command { return a.cmdUpdate },
 	},
 	{
 		name: "paths", usage: "fin paths [database]", group: groupRead,
@@ -427,7 +440,8 @@ const envHelp = `  PLAID_ENV        sandbox or production; overrides fin env for
   FIN_CONFIG_DIR   state directory (default ~/.config/fin)
   FIN_DATA_DIR     local database directory (default $XDG_DATA_HOME/fin,
                    or ~/.local/share/fin)
-  FIN_DEBUG        print what Plaid Link reports while waiting`
+  FIN_DEBUG        print what Plaid Link reports while waiting
+  FIN_NO_UPDATE_CHECK  never ask GitHub whether a newer fin is out`
 
 func (a *App) heading(s string) string {
 	if a.human {
@@ -442,6 +456,9 @@ func (a *App) printUsage() {
 		b.WriteString(ui.Brand.Render("fin") + "  " + ui.Muted.Render("bank and brokerage data, on your machine") + "\n\n")
 	}
 	b.WriteString(wrapText(Tagline, 78) + "\n\n")
+	if latest := a.availableUpdate(context.Background()); latest != "" {
+		b.WriteString(updateNotice(latest) + "\n\n")
+	}
 	b.WriteString(a.heading("Usage:") + "  fin <command> [flags]\n")
 	for _, group := range []string{groupStart, groupRead, groupLinks, groupMore} {
 		b.WriteString("\n" + a.heading(group+":") + "\n")
