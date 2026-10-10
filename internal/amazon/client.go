@@ -9,14 +9,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	mathrand "math/rand/v2"
 	"net/http"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kilianc/fin/internal/pace"
 )
 
 // Origin is Amazon.com's website.
@@ -51,16 +51,11 @@ type Client struct {
 	expires time.Time
 	request pageProps
 	trace   string
-	// Wait is the least time between two requests to Amazon, plus up to
-	// half again at random, however many goroutines share the Client; tests
-	// set it to zero.
-	Wait time.Duration
+	// Gate spaces requests to Amazon; tests set its Wait to zero.
+	Gate pace.Gate
 	// Log, if set, hears about every request: which kind ("page",
 	// "payments" or "order") and the HTTP status, 0 when none came back.
 	Log func(kind string, status int)
-
-	gate sync.Mutex
-	next time.Time
 }
 
 // NewClient returns a Client for base (Origin outside tests).
@@ -71,7 +66,7 @@ func NewClient(s *Session, base string) *Client {
 			return http.ErrUseLastResponse
 		}},
 		trace: newTraceID(),
-		Wait:  3 * time.Second,
+		Gate:  pace.Gate{Wait: 3 * time.Second},
 	}
 	for _, ck := range s.Cookies {
 		c.cookies[ck.Name] = ck
@@ -90,54 +85,18 @@ func (c *Client) Session(profile string) *Session {
 	return s
 }
 
-// ErrRateLimited means Amazon answered "too many requests".
-var ErrRateLimited = errors.New("Amazon is limiting requests; try again later")
-
-// RateLimited is the error for "too many requests". It matches
-// ErrRateLimited and carries the wait Amazon asked for, if it named one.
-type RateLimited struct{ RetryAfter time.Duration }
-
-func (e *RateLimited) Error() string { return ErrRateLimited.Error() }
-func (e *RateLimited) Unwrap() error { return ErrRateLimited }
-
-// MaxRetryAfter is the longest wait Amazon may ask for that a request waits
-// out before trying once more. Without one, or with a longer one, the request
-// fails at once: asking again soon only keeps the limit in place.
-var MaxRetryAfter = 2 * time.Minute
+// ErrRateLimited means Amazon answered "too many requests"; the error is a
+// *pace.RateLimited.
+var ErrRateLimited = pace.ErrRateLimited
 
 func (c *Client) do(ctx context.Context, method, path string, body []byte, accept string) ([]byte, error) {
-	b, retryAfter, err := c.once(ctx, method, path, body, accept)
-	if errors.Is(err, ErrRateLimited) && retryAfter > 0 && retryAfter <= MaxRetryAfter {
-		select {
-		case <-time.After(retryAfter):
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-		b, retryAfter, err = c.once(ctx, method, path, body, accept)
-	}
-	if errors.Is(err, ErrRateLimited) {
-		return nil, &RateLimited{RetryAfter: retryAfter}
-	}
+	var b []byte
+	err := pace.Retry(ctx, func() error {
+		var err error
+		b, err = c.once(ctx, method, path, body, accept)
+		return err
+	})
 	return b, err
-}
-
-// wait holds a request until Wait, plus jitter, has passed since the last
-// one, so requests reach Amazon one at a time at a person's pace.
-func (c *Client) wait(ctx context.Context) error {
-	c.gate.Lock()
-	defer c.gate.Unlock()
-	if d := time.Until(c.next); d > 0 {
-		select {
-		case <-time.After(d):
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	c.next = time.Now().Add(c.Wait)
-	if c.Wait > 0 {
-		c.next = c.next.Add(mathrand.N(c.Wait / 2))
-	}
-	return nil
 }
 
 func (c *Client) log(path string, status int) {
@@ -154,13 +113,13 @@ func (c *Client) log(path string, status int) {
 	c.Log(kind, status)
 }
 
-func (c *Client) once(ctx context.Context, method, path string, body []byte, accept string) ([]byte, time.Duration, error) {
-	if err := c.wait(ctx); err != nil {
-		return nil, 0, err
+func (c *Client) once(ctx context.Context, method, path string, body []byte, accept string) ([]byte, error) {
+	if err := c.Gate.Pass(ctx); err != nil {
+		return nil, err
 	}
 	req, err := http.NewRequestWithContext(ctx, method, c.base+path, bytes.NewReader(body))
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	req.Header.Set("User-Agent", c.ua)
 	req.Header.Set("Accept", accept)
@@ -183,32 +142,32 @@ func (c *Client) once(ctx context.Context, method, path string, body []byte, acc
 	if err != nil {
 		c.log(path, 0)
 		if ctx.Err() != nil {
-			return nil, 0, ctx.Err()
+			return nil, ctx.Err()
 		}
-		return nil, 0, fmt.Errorf("amazon: request failed: %w", err)
+		return nil, fmt.Errorf("amazon: request failed: %w", err)
 	}
 	defer resp.Body.Close()
 	c.log(path, resp.StatusCode)
 	c.keepCookies(resp.Cookies())
+	if err := pace.Limited(resp); err != nil {
+		return nil, err
+	}
 	switch {
-	case resp.StatusCode == 429 || resp.StatusCode == 503:
-		secs, _ := strconv.Atoi(resp.Header.Get("Retry-After"))
-		return nil, time.Duration(secs) * time.Second, ErrRateLimited
 	case resp.StatusCode == 401 || resp.StatusCode == 403 || (resp.StatusCode >= 300 && resp.StatusCode < 400):
-		return nil, 0, ErrSignIn
+		return nil, ErrSignIn
 	case resp.StatusCode == 404:
-		return nil, 0, fmt.Errorf("amazon: %s: not found", path)
+		return nil, fmt.Errorf("amazon: %s: not found", path)
 	case resp.StatusCode != 200:
-		return nil, 0, fmt.Errorf("amazon: %s: HTTP %d", strings.SplitN(path, "?", 2)[0], resp.StatusCode)
+		return nil, fmt.Errorf("amazon: %s: HTTP %d", strings.SplitN(path, "?", 2)[0], resp.StatusCode)
 	}
 	b, err := io.ReadAll(io.LimitReader(resp.Body, maxBody+1))
 	if err != nil {
-		return nil, 0, fmt.Errorf("amazon: read response: %w", err)
+		return nil, fmt.Errorf("amazon: read response: %w", err)
 	}
 	if len(b) > maxBody {
-		return nil, 0, errors.New("amazon: response larger than 16 MiB")
+		return nil, errors.New("amazon: response larger than 16 MiB")
 	}
-	return b, 0, nil
+	return b, nil
 }
 
 // keepCookies records cookies Amazon set or cleared, so the renewed session

@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/kilianc/fin/internal/amazon/amazontest"
 	"github.com/kilianc/fin/internal/money"
+	"github.com/kilianc/fin/internal/pace"
 )
 
 func TestParseOrderReadsItemsAndCostsExactly(t *testing.T) {
@@ -107,7 +107,7 @@ func TestClientPagesStopsAndKeepsCookies(t *testing.T) {
 		srv.Orders[o.ID] = page
 	}
 	c := NewClient(&Session{UserAgent: "test", Cookies: []*http.Cookie{{Name: "session-token", Value: "good"}}}, srv.URL)
-	c.Wait = 0
+	c.Gate.Wait = 0
 	ctx := context.Background()
 
 	all, err := c.Payments(ctx, "kilian", "", func([]Payment, string) bool { return false })
@@ -175,7 +175,7 @@ func TestClientStopsAtTheFirstRateLimit(t *testing.T) {
 	srv := amazontest.New(t)
 	srv.Rows = []json.RawMessage{amazontest.Payment("-$1.00", "Oct 2, 2026", "112-0000002-0000002", "Visa", "AMZN Mktp US", "Charged")}
 	c := NewClient(&Session{UserAgent: "test", Cookies: []*http.Cookie{{Name: "session-token", Value: "good"}}}, srv.URL)
-	c.Wait = 0
+	c.Gate.Wait = 0
 	read := func() error {
 		_, err := c.Payments(context.Background(), "pat", "", func([]Payment, string) bool { return false })
 		return err
@@ -188,26 +188,11 @@ func TestClientStopsAtTheFirstRateLimit(t *testing.T) {
 	// Without one, the first 429 ends the read: asking again keeps the limit in place.
 	srv.Limited, srv.RetryAfter = 5, ""
 	before := srv.Count("/cpe/yourpayments/transactions")
-	var rl *RateLimited
+	var rl *pace.RateLimited
 	if err := read(); !errors.As(err, &rl) || !errors.Is(err, ErrRateLimited) {
 		t.Errorf("err = %v, want RateLimited", err)
 	}
 	if n := srv.Count("/cpe/yourpayments/transactions") - before; n != 1 {
 		t.Errorf("made %d requests after a 429, want 1", n)
-	}
-}
-
-func TestClientSpacesRequests(t *testing.T) {
-	srv := amazontest.New(t)
-	c := NewClient(&Session{UserAgent: "test", Cookies: []*http.Cookie{{Name: "session-token", Value: "good"}}}, srv.URL)
-	c.Wait = 40 * time.Millisecond
-	start := time.Now()
-	for range 3 {
-		if err := c.Check(context.Background()); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if d := time.Since(start); d < 80*time.Millisecond {
-		t.Errorf("three requests took %v; want at least two waits of 40ms", d)
 	}
 }

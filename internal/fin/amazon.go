@@ -22,6 +22,7 @@ import (
 
 	"github.com/kilianc/fin/internal/amazon"
 	"github.com/kilianc/fin/internal/keychain"
+	"github.com/kilianc/fin/internal/pace"
 	"github.com/kilianc/fin/internal/state"
 	"github.com/kilianc/fin/internal/store"
 	"github.com/kilianc/fin/internal/ui"
@@ -217,7 +218,7 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 		return nil, err
 	}
 	client := amazon.NewClient(sess, a.amazonBase())
-	client.Wait = a.AmazonPause
+	client.Gate.Wait = a.AmazonPause
 	if log, err := a.openAmazonLog(acct); err == nil {
 		defer log.Close()
 		client.Log = func(kind string, status int) {
@@ -472,7 +473,7 @@ func (a *App) amazonErr(ctx context.Context, s *store.Store, acct state.AmazonAc
 		return err
 	case errors.Is(err, amazon.ErrRateLimited):
 		wait := amazonCooldown
-		var rl *amazon.RateLimited
+		var rl *pace.RateLimited
 		if errors.As(err, &rl) && rl.RetryAfter > wait {
 			wait = rl.RetryAfter
 		}
