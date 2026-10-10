@@ -42,3 +42,6 @@
 !/docs/try/*/index.html
 
 !*/
+
+# Claude Code worktrees live inside the checkout; they are not part of it.
+/.claude/
