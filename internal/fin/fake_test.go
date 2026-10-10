@@ -183,6 +183,13 @@ func (s *memSecrets) Get(account string) (string, error) {
 	return v, nil
 }
 
+func (s *memSecrets) Delete(account string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.m, account)
+	return nil
+}
+
 func (s *memSecrets) Set(account, value string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

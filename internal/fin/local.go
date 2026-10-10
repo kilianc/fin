@@ -122,15 +122,25 @@ func (a *App) cmdSync(ctx context.Context, args []string) (*result, error) {
 	if err != nil {
 		return nil, err
 	}
-	syncs, errs := []syncView{}, []ItemError{}
-	if len(items) > 0 {
+	accts := st.AmazonForEnv(string(a.Env))
+	syncs, errs, amazonViews := []syncView{}, []ItemError{}, []amazonSyncView{}
+	if len(items) > 0 || len(accts) > 0 {
 		s, err := a.openStore(ctx)
 		if err != nil {
 			return nil, err
 		}
 		defer s.Close()
-		if syncs, errs, err = a.syncStore(ctx, s, st, items, api); err != nil {
-			return nil, err
+		if len(items) > 0 {
+			if syncs, errs, err = a.syncStore(ctx, s, st, items, api); err != nil {
+				return nil, err
+			}
+		}
+		if len(accts) > 0 {
+			var amazonErrs []ItemError
+			if amazonViews, amazonErrs, err = a.syncAmazonAll(ctx, s, st, accts, false); err != nil {
+				return nil, err
+			}
+			errs = append(errs, amazonErrs...)
 		}
 	}
 	t := &ui.Table{
@@ -149,7 +159,14 @@ func (a *App) cmdSync(ctx context.Context, args []string) (*result, error) {
 		status := strings.ToLower(strings.ReplaceAll(v.TransactionsUpdateStatus, "_", " "))
 		t.Rows = append(t.Rows, []string{v.Item, strconv.Itoa(v.Changed), strconv.Itoa(v.Removed), status})
 	}
+	for _, v := range amazonViews {
+		t.Rows = append(t.Rows, []string{"amazon/" + v.Account, strconv.Itoa(v.Payments + v.Orders), "0",
+			fmt.Sprintf("%d payments, %d orders", v.Payments, v.Orders)})
+	}
 	body := map[string]any{"env": a.Env, "store": a.storePath(), "sync": syncs, "errors": errs}
+	if len(accts) > 0 {
+		body["amazon"] = amazonViews
+	}
 	return &result{body: body, table: t, errors: errs}, nil
 }
 

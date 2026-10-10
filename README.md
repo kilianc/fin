@@ -67,6 +67,24 @@ data, a Transactions tab and an Accounts tab, ready for pivot tables and
 charts. Run it again to refresh. fin can see that one spreadsheet and nothing
 else in your Drive.
 
+### Itemize Amazon orders (experimental)
+
+One Amazon charge often pays for things in several categories. `fin amazon
+login home` copies your amazon.com sign-in from Chrome, reads your Amazon
+payments and order pages, and matches each card charge to the order and items
+it paid for. Your agent then categorizes the items (`fin amazon categorize`),
+and the `spending` view in `fin sql` lists every transaction once, with each
+matched Amazon charge split into its items and their categories:
+
+```text
+$ fin sql "select category, sum(amount) from spending where amount > 0
+           and date >= '2026-09-01' group by 1 order by 2 desc"
+```
+
+This uses amazon.com's own website endpoints with your session. Amazon offers
+no API for it and its Conditions of Use do not allow it, so it can break or be
+blocked at any time. US amazon.com only. See `fin help amazon`.
+
 ## What you need
 
 - A Mac. fin keeps your keys in the macOS Keychain.
@@ -257,6 +275,7 @@ and slot.
 | `fin sql "<query>"` | Query the local file with DuckDB SQL, read-only |
 | `fin paths [database]` | Where the state file and the DuckDB file are |
 | `fin sheet [--open]` | Keep a Google Sheet with your transactions and balances |
+| `fin amazon [login\|sync\|categorize\|logout]` | Itemize Amazon orders and split their charges by category (experimental) |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Investment transactions |
 
@@ -559,6 +578,9 @@ Common codes:
 | `GOOGLE_SIGNIN_EXPIRED` | Google no longer accepts fin's sign-in; run `fin sheet --login` |
 | `GOOGLE_SIGNIN_CANCELLED` | The user declined Google sign-in |
 | `GOOGLE_SHEETS_ERROR` | The Sheets API failed; the message says why |
+| `AMAZON_SIGNIN_EXPIRED` | Amazon dropped the sign-in; sign in in Chrome, then `fin amazon login <name>` |
+| `AMAZON_RATE_LIMITED` | Amazon is limiting requests; what was read is saved, `fin amazon sync` later |
+| `PROFILE_REQUIRED` | Several Chrome profiles are signed in to Amazon; `details.profiles` lists them for `--profile` |
 | Plaid codes such as `INVALID_API_KEYS` | Passed through, with `details.request_id` |
 
 ## Development

@@ -64,6 +64,19 @@ func (k Keychain) Set(account, value string) error {
 	return nil
 }
 
+// Delete removes the entry; a missing entry is not an error.
+func (k Keychain) Delete(account string) error {
+	if err := k.check(account); err != nil {
+		return err
+	}
+	err := exec.Command(securityBin, "delete-generic-password", "-s", k.Service, "-a", account).Run()
+	var exitErr *exec.ExitError
+	if err != nil && !(errors.As(err, &exitErr) && exitErr.ExitCode() == errSecItemNotFound) {
+		return fmt.Errorf("keychain: delete %s/%s: %w", k.Service, account, err)
+	}
+	return nil
+}
+
 func (k Keychain) check(account string) error {
 	if !validName.MatchString(k.Service) || !validName.MatchString(account) {
 		return fmt.Errorf("keychain: invalid service or account name %q/%q", k.Service, account)

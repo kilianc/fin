@@ -36,6 +36,8 @@ for account numbers or personal details.
 | `fin sql "<query>"` | Read-only DuckDB SQL over that file (`fin help sql` lists the tables) |
 | `fin sheet` | Syncs and writes everything to a Google Sheet; the first run needs the user to sign in to Google in the browser |
 | `fin paths [database]` | Where the state file and the DuckDB file are |
+| `fin amazon` | Amazon accounts connected for itemizing orders (experimental), with items left to categorize |
+| `fin amazon categorize [--set]` | Items without a category; `--set` saves them (see below) |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Buys, sells, dividends, fees |
 | `fin institutions <name>` | Whether Plaid supports a bank, before using a slot |
@@ -60,6 +62,27 @@ are `YYYY-MM-DD`.
   objects under `rows`; `synced` says how fresh the data is.
 - Transfers between the user's own accounts and credit card payments show up
   on both sides. Leave them out of spending totals.
+
+## Amazon orders (experimental)
+
+If `fin amazon` lists accounts, `fin sync` also reads Amazon payments and
+orders, and Amazon charges can be split by item:
+
+- `amazon_items` has each order line with `allocated`, its share of what the
+  order cost. `amazon_matches` says which bank transaction each Amazon
+  payment became (`exact`, `ambiguous`, `unmatched`, `no_bank_charge`).
+- The `spending` view lists every transaction once, with each exactly matched
+  Amazon charge replaced by one row per item. Use it, not `transactions`, for
+  spending by category.
+- After a sync, categorize new items: `fin amazon categorize --json` lists
+  them; save with `fin amazon categorize --set --json` and a JSON list on
+  stdin: `[{"item": "111-…#1", "category": "HOME_IMPROVEMENT", "detailed":
+  "HOME_IMPROVEMENT_HARDWARE", "asin_default": true}]`. Use Plaid's
+  categories (the list comes back in `categories`); set `asin_default` for
+  things bought repeatedly. Ask the user when an item's purpose is unclear.
+- `fin amazon login <name>` needs the user: macOS asks them to allow
+  "Chrome Safe Storage". Never run it, or `fin amazon logout`, without their
+  go-ahead in chat.
 
 ## Rules
 

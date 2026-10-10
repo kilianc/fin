@@ -11,6 +11,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/kilianc/fin/internal/amazon"
 	"github.com/kilianc/fin/internal/keychain"
 	"github.com/kilianc/fin/internal/plaid"
 	"github.com/kilianc/fin/internal/sheets"
@@ -45,6 +46,7 @@ type Plaid interface {
 type Secrets interface {
 	Get(account string) (string, error)
 	Set(account, value string) error
+	Delete(account string) error
 }
 
 // App holds everything a command needs. main wires the real implementations;
@@ -65,8 +67,14 @@ type App struct {
 	SheetsBase string
 	// PlaidCLIConfig is Plaid's own CLI config.json, read by fin setup --from-plaid.
 	PlaidCLIConfig string
-	Secrets        Secrets
-	NewPlaid       func(env plaid.Env, clientID, secret string) Plaid
+	// Chrome is where fin amazon login reads Amazon cookies, and AmazonBase
+	// the Amazon website (empty means amazon.com).
+	Chrome     amazon.Chrome
+	AmazonBase string
+	// AmazonPause spaces out requests to Amazon.
+	AmazonPause time.Duration
+	Secrets     Secrets
+	NewPlaid    func(env plaid.Env, clientID, secret string) Plaid
 
 	Stdin  io.Reader
 	Stdout io.Writer

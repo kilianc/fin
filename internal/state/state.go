@@ -49,6 +49,62 @@ type State struct {
 	Items []Item `json:"items"`
 	// Sheets maps an environment to the spreadsheet fin sheet writes to.
 	Sheets map[string]string `json:"sheets,omitempty"`
+	// Amazon lists the connected Amazon.com accounts.
+	Amazon []AmazonAccount `json:"amazon,omitempty"`
+}
+
+// AmazonAccount is one Amazon.com sign-in, imported from a Chrome profile.
+// The session itself is encrypted on disk with a key in the Keychain.
+type AmazonAccount struct {
+	Name        string     `json:"name"`
+	Env         string     `json:"env"`
+	Profile     string     `json:"profile"`      // Chrome's profile directory, such as "Default"
+	ProfileName string     `json:"profile_name"` // the name Chrome shows for it
+	ConnectedAt time.Time  `json:"connected_at"`
+	LastSync    *time.Time `json:"last_sync,omitempty"`
+}
+
+// AmazonForEnv returns the Amazon accounts connected in env.
+func (s *State) AmazonForEnv(env string) []AmazonAccount {
+	out := []AmazonAccount{}
+	for _, a := range s.Amazon {
+		if a.Env == env {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+// FindAmazon looks an Amazon account up by name.
+func (s *State) FindAmazon(env, name string) (AmazonAccount, bool) {
+	for _, a := range s.Amazon {
+		if a.Env == env && strings.EqualFold(a.Name, name) {
+			return a, true
+		}
+	}
+	return AmazonAccount{}, false
+}
+
+// PutAmazon replaces the account with the same name, or appends it.
+func (s *State) PutAmazon(acct AmazonAccount) {
+	for i, a := range s.Amazon {
+		if a.Env == acct.Env && strings.EqualFold(a.Name, acct.Name) {
+			s.Amazon[i] = acct
+			return
+		}
+	}
+	s.Amazon = append(s.Amazon, acct)
+}
+
+// RemoveAmazon forgets an account.
+func (s *State) RemoveAmazon(env, name string) {
+	out := s.Amazon[:0]
+	for _, a := range s.Amazon {
+		if !(a.Env == env && strings.EqualFold(a.Name, name)) {
+			out = append(out, a)
+		}
+	}
+	s.Amazon = out
 }
 
 // DefaultPath is $FIN_CONFIG_DIR/state.json, or ~/.config/fin/state.json.

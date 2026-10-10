@@ -39,6 +39,7 @@ type sheetBody struct {
 	Created       bool        `json:"created"`
 	Transactions  int         `json:"transactions"`
 	Accounts      int         `json:"accounts"`
+	AmazonItems   int         `json:"amazon_items,omitempty"`
 	Sync          []syncView  `json:"sync"`
 	Errors        []ItemError `json:"errors"`
 }
@@ -135,14 +136,24 @@ func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, it
 
 	r.Start(stepSync, "")
 	var s *store.Store
-	if len(items) > 0 {
+	accts := st.AmazonForEnv(string(a.Env))
+	if len(items) > 0 || len(accts) > 0 {
 		if s, err = a.openStore(ctx); err != nil {
 			return nil, err
 		}
 		defer s.Close()
+	}
+	if len(items) > 0 {
 		if body.Sync, body.Errors, err = a.syncStore(ctx, s, st, items, api); err != nil {
 			return nil, err
 		}
+	}
+	if len(accts) > 0 {
+		_, amazonErrs, err := a.syncAmazonAll(ctx, s, st, accts, false)
+		if err != nil {
+			return nil, err
+		}
+		body.Errors = append(body.Errors, amazonErrs...)
 	}
 	changed := 0
 	for _, v := range body.Sync {
@@ -182,7 +193,16 @@ func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, it
 			return nil, storeErr(err)
 		}
 	}
-	for _, tab := range []sheets.Tab{transactionsTab(txs), accountsTab(accounts)} {
+	tabs := []sheets.Tab{transactionsTab(txs), accountsTab(accounts)}
+	if len(accts) > 0 {
+		rows, err := s.AmazonItemRows(ctx)
+		if err != nil {
+			return nil, storeErr(err)
+		}
+		tabs = append(tabs, amazonTab(rows))
+		body.AmazonItems = len(rows)
+	}
+	for _, tab := range tabs {
 		if err := svc.Write(ctx, sp, tab); err != nil {
 			return nil, newErr("GOOGLE_SHEETS_ERROR", "write %s: %v", tab.Title, err)
 		}
@@ -282,6 +302,23 @@ func accountsTab(accounts []store.Account) sheets.Tab {
 			ac.Item, ac.Institution, ac.Name, ac.OfficialName, ac.Mask, ac.Type, ac.Subtype,
 			ac.Current, ac.Available, ac.Limit, ac.IsoCurrencyCode, ac.UpdatedAt,
 		})
+	}
+	return tab
+}
+
+func amazonTab(rows []store.AmazonItemRow) sheets.Tab {
+	tab := sheets.Tab{Title: "Amazon items", Columns: []sheets.Column{
+		{Name: "Date", Kind: sheets.Date},
+		{Name: "Order"},
+		{Name: "Item"},
+		{Name: "Qty", Kind: sheets.Number},
+		{Name: "Category"},
+		{Name: "Amount", Kind: sheets.Money},
+		{Name: "Amazon account"},
+		{Name: "Bank transaction"},
+	}, Rows: [][]any{}}
+	for _, r := range rows {
+		tab.Rows = append(tab.Rows, []any{r.Date, r.OrderID, r.Title, r.Quantity, readable(deref(r.Category)), r.Allocated, r.Account, r.Transaction})
 	}
 	return tab
 }

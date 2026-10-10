@@ -40,6 +40,8 @@
 !/docs/*/*.png
 !/docs/try/*/
 !/docs/try/*/index.html
+!/internal/*/testdata/
+!/internal/*/testdata/*.html
 
 !*/
 

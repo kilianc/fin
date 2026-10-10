@@ -23,6 +23,7 @@ const (
 	groupStart = "Get started"
 	groupRead  = "Read your data"
 	groupLinks = "Manage connections"
+	groupMore  = "Experimental"
 )
 
 var commands = []commandSpec{
@@ -169,6 +170,11 @@ Tables:
   accounts      account_id, item_id, name, official_name, mask, type, subtype,
                 current, available, limit, iso_currency_code, updated_at
   items         item_id, item, institution, cursor, status, last_sync
+  spending      every transaction once; with fin amazon, matched Amazon
+                charges become one row per item with the item's category
+
+With fin amazon, also amazon_payments, amazon_orders, amazon_items,
+amazon_matches and amazon_splits (see fin help amazon).
 
 Amounts use Plaid's sign: positive is money out, negative is money in.`,
 		examples: []string{
@@ -225,6 +231,59 @@ Flags:
 		examples: []string{"fin sheet", "fin sheet --open"},
 		run:      func(a *App) command { return a.cmdSheet },
 	},
+	{
+		name: "amazon", usage: "fin amazon [login|sync|categorize|logout|profiles]", group: groupMore,
+		summary: "Itemize Amazon orders so their charges split by category",
+		detail: `Experimental. Matches each Amazon charge on your cards to the order it paid
+for and the items in it, so one big Amazon charge splits into categories like
+any other spending. It reads your amazon.com payments and order pages with
+the sign-in your Chrome already has. Amazon offers no API for this: it uses
+the website's own endpoints, which Amazon's Conditions of Use do not allow
+and which can change or stop working at any time. US amazon.com only.
+
+  fin amazon                     connected accounts, orders, items, matches
+  fin amazon login <name>        copy the sign-in from a Chrome profile, then
+                                 read every payment and order (minutes the
+                                 first time); macOS asks once to allow
+                                 "Chrome Safe Storage"
+      --profile P                the Chrome profile, by directory or name
+      --no-sync                  connect without reading anything yet
+  fin amazon sync [name]         read new payments and orders; fin sync does
+      --full                     this too. --full re-reads every payment
+  fin amazon categorize          items without a category
+      --all                      every item
+      --set ITEM CATEGORY [DETAILED] [--product]
+                                 save a category; --product reuses it for
+                                 later purchases of the same product. With
+                                 no ITEM, reads a JSON list on stdin:
+                                 [{"item", "category", "detailed", "asin_default"}]
+  fin amazon logout <name>       forget the sign-in and everything read
+  fin amazon profiles            Chrome profiles and which are signed in
+
+Categories are Plaid's (FOOD_AND_DRINK, HOME_IMPROVEMENT, …) so they total
+up with bank transactions. In fin sql:
+
+  amazon_payments  each charge or refund, with its order IDs
+  amazon_orders    order totals: items_subtotal, shipping, discounts, tax,
+                   gift_card, paid, refund_total, card_last4
+  amazon_items     order_id, line, asin, title, quantity, unit_price, seller,
+                   allocated (its share of what the order cost, so an
+                   order's items add up to it exactly)
+  amazon_matches   each payment's match: exact, ambiguous, unmatched, or
+                   no_bank_charge (gift cards), with the transaction_id
+  amazon_splits    each matched bank transaction split across its items
+  spending         every transaction once, with matched Amazon charges
+                   replaced by one row per item and its category
+
+The sign-in is kept encrypted in fin's data directory, with its key in the
+Keychain. Your Chrome stays signed in; fin never changes it.`,
+		examples: []string{
+			"fin amazon login home",
+			"fin amazon categorize --set 111-1234567-1234567#2 HOME_IMPROVEMENT --product",
+			"fin sql \"select category, sum(amount) from spending where amount > 0 group by 1 order by 2 desc\"",
+		},
+		run: func(a *App) command { return a.cmdAmazon },
+	},
 	{name: "sandbox-link", hidden: true, run: func(a *App) command { return a.cmdSandboxLink }},
 	{name: "sandbox-reset-login", hidden: true, run: func(a *App) command { return a.cmdSandboxResetLogin }},
 }
@@ -266,7 +325,7 @@ func (a *App) printUsage() {
 	}
 	b.WriteString(wrapText(Tagline, 78) + "\n\n")
 	b.WriteString(a.heading("Usage:") + "  fin <command> [flags]\n")
-	for _, group := range []string{groupStart, groupRead, groupLinks} {
+	for _, group := range []string{groupStart, groupRead, groupLinks, groupMore} {
 		b.WriteString("\n" + a.heading(group+":") + "\n")
 		for _, c := range commands {
 			if c.group == group && !c.hidden {
