@@ -253,7 +253,7 @@ func (a *App) cmdLink(ctx context.Context, args []string) (*result, error) {
 	if err != nil {
 		return nil, err
 	}
-	used := len(st.ForEnv(string(a.Env)))
+	used := st.SlotsUsed(string(a.Env))
 	if a.Env == plaid.Production {
 		if used >= SlotsTotal {
 			return nil, newErr("NO_SLOTS", "all %d production Item slots are used", SlotsTotal)
@@ -294,7 +294,7 @@ func (a *App) cmdLink(ctx context.Context, args []string) (*result, error) {
 		}
 		body.Linked = append(body.Linked, v)
 	}
-	body.SlotsUsed = len(st.ForEnv(string(a.Env)))
+	body.SlotsUsed = st.SlotsUsed(string(a.Env))
 	return &result{body: body, message: linkedMessage("Linked", body.Linked)}, nil
 }
 
@@ -684,7 +684,7 @@ func (a *App) cmdSandboxLink(ctx context.Context, args []string) (*result, error
 	if err != nil {
 		return nil, err
 	}
-	body := linkBody{Env: string(a.Env), Linked: []itemView{v}, SlotsUsed: len(st.ForEnv(string(a.Env))), SlotsTotal: SlotsTotal}
+	body := linkBody{Env: string(a.Env), Linked: []itemView{v}, SlotsUsed: st.SlotsUsed(string(a.Env)), SlotsTotal: SlotsTotal}
 	return &result{body: body, message: linkedMessage("Linked", body.Linked)}, nil
 }
 

@@ -135,3 +135,28 @@ func TestOpenReadOnlyWithoutStore(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestDeleteItemForgetsOnlyThatItem(t *testing.T) {
+	ctx := context.Background()
+	s, _ := openTemp(t)
+	other := delta("o1", []plaid.Transaction{tx("o", "2026-01-05", 3)})
+	other.ItemID, other.Item = "item-citi", "citi"
+	other.Accounts[0].AccountID, other.Upserts[0].AccountID = "citi-chk", "citi-chk"
+	for _, d := range []ItemSync{delta("c1", []plaid.Transaction{tx("a", "2026-01-02", 4.25)}), other} {
+		if err := s.Apply(ctx, d); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.DeleteItem(ctx, "item-chase"); err != nil {
+		t.Fatal(err)
+	}
+	for table, want := range map[string]int64{"transactions": 1, "accounts": 1, "items": 1} {
+		var n int64
+		if err := s.db.QueryRowContext(ctx, `select count(*) from `+table).Scan(&n); err != nil || n != want {
+			t.Errorf("%s: %d rows, %v", table, n, err)
+		}
+	}
+	if c, _ := s.Cursor(ctx, "item-chase"); c != "" {
+		t.Errorf("cursor kept: %q", c)
+	}
+}

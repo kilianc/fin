@@ -54,6 +54,19 @@ type State struct {
 	Sheets map[string]string `json:"sheets,omitempty"`
 	// Retailers lists the connected retailer accounts, such as Amazon.com.
 	Retailers []RetailerAccount `json:"retailers,omitempty"`
+	// Unlinked lists the Items removed with fin unlink. Plaid still counts
+	// them against the plan's Item limit.
+	Unlinked []UnlinkedItem `json:"unlinked,omitempty"`
+}
+
+// UnlinkedItem is an Item removed with fin unlink.
+type UnlinkedItem struct {
+	Name            string    `json:"name"`
+	ItemID          string    `json:"item_id"`
+	Env             string    `json:"env"`
+	InstitutionName string    `json:"institution_name"`
+	LinkedAt        time.Time `json:"linked_at"`
+	UnlinkedAt      time.Time `json:"unlinked_at"`
 }
 
 // RetailerAccount is one sign-in at a retailer, imported from a Chrome
@@ -211,6 +224,29 @@ func (s *State) Put(item Item) {
 		}
 	}
 	s.Items = append(s.Items, item)
+}
+
+// Unlink moves the Item with itemID in env to Unlinked.
+func (s *State) Unlink(env, itemID string, at time.Time) {
+	for i, it := range s.Items {
+		if it.Env == env && it.ItemID == itemID {
+			s.Items = append(s.Items[:i], s.Items[i+1:]...)
+			s.Unlinked = append(s.Unlinked, UnlinkedItem{Name: it.Name, ItemID: it.ItemID, Env: it.Env, InstitutionName: it.InstitutionName, LinkedAt: it.LinkedAt, UnlinkedAt: at.UTC()})
+			return
+		}
+	}
+}
+
+// SlotsUsed counts the Items ever linked in env, unlinked ones included:
+// the plan's limit counts every Item created.
+func (s *State) SlotsUsed(env string) int {
+	n := len(s.ForEnv(env))
+	for _, u := range s.Unlinked {
+		if u.Env == env {
+			n++
+		}
+	}
+	return n
 }
 
 var nonSlug = regexp.MustCompile(`[^a-z0-9]+`)

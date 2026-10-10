@@ -165,6 +165,12 @@ func (c *Client) ItemGet(ctx context.Context, accessToken string) (*ItemGetRespo
 	return &out, c.call(ctx, "/item/get", map[string]string{"access_token": accessToken}, &out)
 }
 
+// ItemRemove ends an Item at Plaid and invalidates its access token.
+func (c *Client) ItemRemove(ctx context.Context, accessToken string) error {
+	var out struct{}
+	return c.call(ctx, "/item/remove", map[string]string{"access_token": accessToken}, &out)
+}
+
 func (c *Client) InstitutionGetByID(ctx context.Context, institutionID string) (*Institution, error) {
 	var out struct {
 		Institution Institution `json:"institution"`

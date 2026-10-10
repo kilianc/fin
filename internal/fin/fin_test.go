@@ -978,3 +978,47 @@ func TestSheetAsksToSignInAgainWhenRevoked(t *testing.T) {
 		t.Errorf("exit %d, stderr %s", code, ta.stderr)
 	}
 }
+
+func TestUnlinkEndsTheItemAndKeepsItsSlotCounted(t *testing.T) {
+	ta := newTestApp(t, chase, state.Item{Name: "chase-2", ItemID: "item-chase-2", Kind: "bank", Products: []string{"transactions"}, InstitutionName: "Chase"})
+	ta.secrets.m[tokenAccount(plaid.Sandbox, "item-chase-2")] = "tok-item-chase-2"
+	if code, _ := ta.run(t, "unlink", "chase-2"); code != exitError || ta.stderrJSON(t)["code"] != "CONFIRMATION_REQUIRED" {
+		t.Fatalf("unconfirmed unlink: exit = %d, stderr %s", code, ta.stderr)
+	}
+	if len(ta.fake.calls) != 0 {
+		t.Fatalf("Plaid called before confirmation: %v", ta.fake.calls)
+	}
+	code, body := ta.run(t, "unlink", "chase-2", "--yes")
+	if code != exitOK || body["removed_at_plaid"] != true || body["slots_used"] != 2.0 {
+		t.Fatalf("exit = %d body = %v stderr %s", code, body, ta.stderr)
+	}
+	if !slices.Contains(ta.fake.calls, "item_remove tok-item-chase-2") {
+		t.Errorf("calls = %v", ta.fake.calls)
+	}
+	if _, ok := ta.secrets.m[tokenAccount(plaid.Sandbox, "item-chase-2")]; ok {
+		t.Error("access token left in the Keychain")
+	}
+	st, _ := state.Load(ta.StatePath)
+	if len(st.Items) != 1 || len(st.Unlinked) != 1 || st.Unlinked[0].Name != "chase-2" {
+		t.Errorf("state = %+v", st)
+	}
+	if _, body := ta.run(t, "items"); body["slots_used"] != 2.0 || len(body["items"].([]any)) != 1 {
+		t.Errorf("items = %v", body)
+	}
+}
+
+func TestUnlinkChangesNothingWhenPlaidRefuses(t *testing.T) {
+	ta := newTestApp(t, chase)
+	ta.fake.errs["tok-item-chase"] = &plaid.Error{Code: "INTERNAL_SERVER_ERROR", Message: "try later"}
+	if code, _ := ta.run(t, "unlink", "chase", "--yes"); code != exitError || ta.stderrJSON(t)["code"] != "UNLINK_FAILED" {
+		t.Fatalf("exit = %d stderr %s", code, ta.stderr)
+	}
+	st, _ := state.Load(ta.StatePath)
+	if len(st.Items) != 1 || len(st.Unlinked) != 0 || ta.secrets.m[tokenAccount(plaid.Sandbox, "item-chase")] == "" {
+		t.Errorf("changed after a refusal: %+v", st)
+	}
+	ta.fake.errs["tok-item-chase"] = &plaid.Error{Code: "ITEM_NOT_FOUND"}
+	if code, body := ta.run(t, "unlink", "chase", "--yes"); code != exitOK || body["removed_at_plaid"] != true {
+		t.Errorf("already gone at Plaid: exit = %d body = %v", code, body)
+	}
+}

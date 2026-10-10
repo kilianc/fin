@@ -98,6 +98,11 @@ func (f *fakePlaid) ItemGet(ctx context.Context, token string) (*plaid.ItemGetRe
 	return &plaid.ItemGetResponse{Item: plaid.Item{InstitutionID: &inst, Error: f.itemErrors[token], Products: f.itemProducts[token]}}, nil
 }
 
+func (f *fakePlaid) ItemRemove(ctx context.Context, token string) error {
+	f.record("item_remove %s", token)
+	return f.errs[token]
+}
+
 func (f *fakePlaid) InstitutionGetByID(ctx context.Context, id string) (*plaid.Institution, error) {
 	return &plaid.Institution{InstitutionID: id, Name: "Chase"}, nil
 }

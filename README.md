@@ -269,6 +269,11 @@ fin reconnect fidelity --add investments
 fin reconnect charles-schwab --add transactions
 ```
 
+The same goes for an account you didn't share the first time: run
+`fin reconnect <item>` and tick it. Linking the bank again makes a second
+connection to the same accounts, which counts everything twice; remove it
+with `fin unlink <item>`. Unlinking doesn't free its slot.
+
 ### Once a year: reconnect
 
 Many banks grant access for about a year. `fin items` shows each
@@ -318,6 +323,7 @@ and slot.
 | `fin link [--open]` | Connect a new institution (`fin link brokerage` for investment-only ones) |
 | `fin reconnect <item> [--add product]` | Sign in again, or add transactions or investments |
 | `fin items` | Connections, slots used, consent expiry, health |
+| `fin unlink <item>` | End a connection and forget its data (the slot stays used) |
 | `fin accounts [--live]` | Balances (`--live` asks each bank now, billed per call) |
 | `fin transactions --since DATE [--until DATE] [--account X]` | Transactions |
 | `fin sync` | Pull new and changed transactions into the local DuckDB file |

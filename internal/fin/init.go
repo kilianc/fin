@@ -38,6 +38,7 @@ type initStatus struct {
 	Env         string          `json:"env"`
 	Credentials map[string]bool `json:"credentials"`
 	Items       int             `json:"items"`
+	SlotsUsed   int             `json:"slots_used"`
 	Next        string          `json:"next"`
 }
 
@@ -57,6 +58,7 @@ func (a *App) cmdInit(ctx context.Context, args []string) (*result, error) {
 		Env:         string(a.Env),
 		Credentials: map[string]bool{},
 		Items:       len(st.ForEnv(string(plaid.Production))),
+		SlotsUsed:   st.SlotsUsed(string(plaid.Production)),
 	}
 	for _, env := range []plaid.Env{plaid.Sandbox, plaid.Production} {
 		has, err := a.hasCredentials(env)
@@ -136,7 +138,7 @@ func (a *App) renderInit(s initStatus, copied bool) string {
 	}
 	check(s.Credentials["production"], "Plaid account with the free Trial plan, keys saved with fin setup")
 	check(s.Env == "production", "Environment set to production (fin env production)")
-	check(s.Items > 0, fmt.Sprintf("Institutions connected (%d of %d slots used)", s.Items, SlotsTotal))
+	check(s.Items > 0, fmt.Sprintf("Institutions connected (%d of %d slots used)", s.SlotsUsed, SlotsTotal))
 	b.WriteString("\n" + ui.Bold.Render("Next: ") + s.Next + "\n\n")
 
 	b.WriteString(ui.Bold.Render("Let your AI agent do the clicking.") + "\n")

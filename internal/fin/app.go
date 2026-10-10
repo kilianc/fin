@@ -19,8 +19,8 @@ import (
 	"github.com/kilianc/fin/internal/ui"
 )
 
-// SlotsTotal is the number of production Items the Plaid plan allows. fin
-// never calls /item/remove, so a slot, once used, stays used.
+// SlotsTotal is the number of production Items the Plaid plan allows. The
+// limit counts every Item created, so a slot stays used after fin unlink.
 const SlotsTotal = 10
 
 // Plaid is the subset of the Plaid API fin uses. *plaid.Client implements it;
@@ -31,6 +31,7 @@ type Plaid interface {
 	LinkTokenGet(ctx context.Context, linkToken string) (*plaid.LinkTokenGetResponse, error)
 	ItemPublicTokenExchange(ctx context.Context, publicToken string) (*plaid.ExchangeResponse, error)
 	ItemGet(ctx context.Context, accessToken string) (*plaid.ItemGetResponse, error)
+	ItemRemove(ctx context.Context, accessToken string) error
 	InstitutionGetByID(ctx context.Context, institutionID string) (*plaid.Institution, error)
 	InstitutionsSearch(ctx context.Context, query string, products []string) ([]plaid.InstitutionDetail, error)
 	AccountsGet(ctx context.Context, accessToken string) (*plaid.AccountsResponse, error)

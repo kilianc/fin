@@ -134,6 +134,19 @@ Consent expiry is when the bank's permission runs out; reconnect before then.`,
 		run:      func(a *App) command { return a.cmdItems },
 	},
 	{
+		name: "unlink", usage: "fin unlink <item> [--yes]", group: groupLinks,
+		summary: "End a connection and forget its data",
+		detail: `Removes the connection at Plaid, deletes its access token from the Keychain,
+and deletes its accounts and transactions from the local file. It cannot be
+undone, and the slot stays used: Plaid's limit counts every connection ever
+made. To add accounts to a connection or sign in again, use fin reconnect.
+
+Flags:
+  --yes   skip the confirmation (agents: only after the user agreed)`,
+		examples: []string{"fin unlink chase-2"},
+		run:      func(a *App) command { return a.cmdUnlink },
+	},
+	{
 		name: "accounts", usage: "fin accounts [--live]", group: groupRead,
 		summary: "Balances for every account",
 		detail: `Balances come from Plaid's daily refresh.

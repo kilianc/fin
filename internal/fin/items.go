@@ -222,14 +222,14 @@ func (a *App) cmdItems(ctx context.Context, args []string) (*result, error) {
 	}
 	body := itemsBody{
 		Env:        string(a.Env),
-		SlotsUsed:  len(items),
+		SlotsUsed:  st.SlotsUsed(string(a.Env)),
 		SlotsTotal: SlotsTotal,
 		Items:      views,
 		Errors:     nonNil(errs),
 	}
 	t := itemsTable(views)
 	t.Title = fmt.Sprintf("Items · %s", a.Env)
-	t.Footer = fmt.Sprintf("%d of %d slots used", len(items), SlotsTotal)
+	t.Footer = fmt.Sprintf("%d of %d slots used", st.SlotsUsed(string(a.Env)), SlotsTotal)
 	if a.Env == plaid.Sandbox {
 		t.Footer = fmt.Sprintf("%d sandbox Items", len(items))
 	}

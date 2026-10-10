@@ -161,7 +161,12 @@ online order).
 - Never run `fin link` in production without the user's explicit go-ahead in
   chat. Each connection permanently uses one of their 10 free Plaid slots.
   Pass `--yes` only after they agree; without a terminal, `fin link` stops
-  with `CONFIRMATION_REQUIRED` instead of prompting.
+  with `CONFIRMATION_REQUIRED` instead of prompting. To add accounts the
+  user didn't share, or a product, use `fin reconnect <item>`, which keeps the
+  slot; linking the same bank again duplicates every balance and transaction.
+- `fin unlink <item>` ends a connection at Plaid and deletes its data; it
+  cannot be undone and does not free the slot. Run it only when the user asks,
+  with `--yes` once they confirm.
 - `fin link` and `fin reconnect` wait until the user finishes in the browser.
   Run them in the background and read the Hosted Link URL from stderr. So
   does `fin sheet` the first time, while the user signs in to Google; the

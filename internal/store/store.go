@@ -73,6 +73,21 @@ create table if not exists transactions (
 );
 `
 
+// DeleteItem forgets an Item's transactions, accounts and sync cursor.
+func (s *Store) DeleteItem(ctx context.Context, itemID string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, table := range []string{"transactions", "accounts", "items"} {
+		if _, err := tx.ExecContext(ctx, `delete from `+table+` where item_id = ?`, itemID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 // Store is an open DuckDB file.
 type Store struct {
 	db *sql.DB
