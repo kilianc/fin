@@ -26,7 +26,50 @@ func (a *App) openStore(ctx context.Context) (*store.Store, error) {
 	if err != nil {
 		return nil, storeErr(err)
 	}
+	// Keep the epoch in the database too, so queries can use it.
+	if st, err := a.loadState(); err == nil {
+		if err := s.SetSetting(ctx, "epoch", st.Epoch); err != nil {
+			s.Close()
+			return nil, storeErr(err)
+		}
+	}
 	return s, nil
+}
+
+// --- epoch ---
+
+func (a *App) cmdEpoch(ctx context.Context, args []string) (*result, error) {
+	if len(args) > 1 {
+		return nil, usageErr("usage: fin epoch [YYYY-MM-DD|none]")
+	}
+	st, err := a.loadState()
+	if err != nil {
+		return nil, err
+	}
+	if len(args) == 1 {
+		if args[0] == "none" {
+			st.Epoch = ""
+		} else if st.Epoch, err = parseDate("epoch", args[0]); err != nil {
+			return nil, err
+		}
+		if err := a.saveState(st); err != nil {
+			return nil, err
+		}
+		if _, err := os.Stat(a.storePath()); err == nil {
+			s, err := a.openStore(ctx)
+			if err != nil {
+				return nil, err
+			}
+			s.Close()
+		}
+	}
+	body := map[string]any{"epoch": nil}
+	msg := "No epoch: fin reports on everything it has. Set one with fin epoch YYYY-MM-DD."
+	if st.Epoch != "" {
+		body["epoch"] = st.Epoch
+		msg = "Epoch: " + ui.Bold.Render(st.Epoch) + ui.Muted.Render("  fin sheet and fin amazon start here; older data stays in the database")
+	}
+	return &result{body: body, message: msg}, nil
 }
 
 func storeErr(err error) error {

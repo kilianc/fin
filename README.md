@@ -264,6 +264,7 @@ and slot.
 | --- | --- |
 | `fin init [--copy]` | Status, next step, and a prompt for your AI agent |
 | `fin env [sandbox\|production]` | Show or switch the Plaid environment (default sandbox) |
+| `fin epoch [DATE]` | Show or set the first day of the finances fin reports on |
 | `fin setup [--from-plaid]` | Save your Plaid keys in the Keychain, typed or imported from Plaid's CLI |
 | `fin institutions <name>` | Check Plaid support before using a slot |
 | `fin link [--open]` | Connect a new institution (`fin link brokerage` for investment-only ones) |

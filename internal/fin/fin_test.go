@@ -960,6 +960,12 @@ func TestSheetSyncsAndWritesTabs(t *testing.T) {
 	if st.Sheets["sandbox"] != body["spreadsheet_id"] {
 		t.Errorf("state sheets = %v", st.Sheets)
 	}
+
+	// With an epoch, the sheet starts there; older rows stay in the database.
+	ta.run(t, "epoch", "2026-10-03")
+	if code, body = ta.run(t, "sheet"); code != exitOK || body["transactions"] != 1.0 {
+		t.Errorf("with an epoch: exit %d, body %v", code, body)
+	}
 }
 
 func TestSheetAsksToSignInAgainWhenRevoked(t *testing.T) {

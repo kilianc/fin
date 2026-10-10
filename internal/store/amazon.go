@@ -16,6 +16,11 @@ import (
 )
 
 const amazonSchema = `
+-- fin's settings that queries may want, such as the epoch set with fin epoch.
+create table if not exists settings (
+	key   varchar primary key,
+	value varchar
+);
 create table if not exists amazon_accounts (
 	account   varchar primary key,
 	profile   varchar,
@@ -172,6 +177,16 @@ select t.transaction_id, t.item_id, t.account_id, t.date, t.authorized_date, t.n
 	s.order_id, s.line, s.title
 from amazon_splits s join transactions t using (transaction_id);
 `
+
+// SetSetting saves one setting; an empty value removes it.
+func (s *Store) SetSetting(ctx context.Context, key, value string) error {
+	if value == "" {
+		_, err := s.db.ExecContext(ctx, `delete from settings where key = ?`, key)
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, `insert or replace into settings values (?, ?)`, key, value)
+	return err
+}
 
 // EarliestTransaction is the date of the oldest stored bank transaction, or
 // "" when there is none.
@@ -568,9 +583,10 @@ type AmazonItemRow struct {
 	Transaction *string // the matched bank transaction's name and date
 }
 
-// AmazonItemRows lists every item, newest first, with the bank transaction
-// its order's charge matched, if any.
-func (s *Store) AmazonItemRows(ctx context.Context) ([]AmazonItemRow, error) {
+// AmazonItemRows lists the items of orders placed on or after since (all
+// when empty), newest first, with the bank transaction its order's charge
+// matched, if any.
+func (s *Store) AmazonItemRows(ctx context.Context, since string) ([]AmazonItemRow, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		select coalesce(o.date::varchar, ''), i.order_id, i.title, i.quantity, coalesce(ic.category, ac.category),
 			i.allocated::double, o.account,
@@ -579,7 +595,8 @@ func (s *Store) AmazonItemRows(ctx context.Context) ([]AmazonItemRow, error) {
 		from amazon_items i join amazon_orders o using (order_id)
 		left join amazon_item_categories ic on ic.order_id = i.order_id and ic.line = i.line
 		left join amazon_asin_categories ac on ac.asin = i.asin
-		order by o.date desc, i.order_id, i.line`)
+		where ? = '' or o.date >= ?::date
+		order by o.date desc, i.order_id, i.line`, since, cmpDate(since))
 	if err != nil {
 		return nil, err
 	}
@@ -601,6 +618,13 @@ func centsMap(m map[string]amazon.Cents) map[string]float64 {
 		out[strings.TrimSuffix(k, ":")] = v.Dollars()
 	}
 	return out
+}
+
+func cmpDate(d string) string {
+	if d == "" {
+		return "0001-01-01"
+	}
+	return d
 }
 
 func nullable(s string) *string {

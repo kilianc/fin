@@ -40,11 +40,20 @@ for account numbers or personal details.
 | `fin amazon categorize [--set]` | Items without a category; `--set` saves them (see below) |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Buys, sells, dividends, fees |
+| `fin epoch [DATE]` | The first day of the finances the user wants reported |
 | `fin institutions <name>` | Whether Plaid supports a bank, before using a slot |
 | `fin help [command]` | Everything else |
 
 `--account` matches an account ID, its last four digits, or its name. Dates
 are `YYYY-MM-DD`.
+
+## The epoch
+
+`fin epoch` shows the first day of the finances the user wants reported,
+such as when a household started sharing money; `fin epoch YYYY-MM-DD` sets
+it. Ask before setting it. Default report periods to start no earlier than
+the epoch (in SQL: `(select value::date from settings where key = 'epoch')`)
+unless the user asks about earlier; older rows are history, not deleted.
 
 ## Reading the output
 
@@ -80,12 +89,9 @@ orders, and Amazon charges can be split by item:
   "HOME_IMPROVEMENT_HARDWARE", "asin_default": true}]`. Use Plaid's
   categories (the list comes back in `categories`); set `asin_default` for
   things bought repeatedly. Ask the user when an item's purpose is unclear.
-- `fin amazon login <name> [--since DATE]` needs the user: macOS asks them
-  to allow "Chrome Safe Storage". Never run it, or `fin amazon logout`,
-  without their go-ahead in chat. Ask from when they want Amazon read (an
-  account can be decades old; a household may only want the orders since
-  they started sharing money). Without `--since`, fin reads back to a week
-  before the oldest bank transaction. `fin amazon sync --since DATE` changes it.
+- `fin amazon login <name>` needs the user: macOS asks them to allow
+  "Chrome Safe Storage". Never run it, or `fin amazon logout`, without their
+  go-ahead in chat. It reads back to a week before the epoch (see below).
 
 ## Rules
 

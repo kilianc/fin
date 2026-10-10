@@ -51,6 +51,18 @@ single command or shell.`,
 		run:      func(a *App) command { return a.cmdEnv },
 	},
 	{
+		name: "epoch", usage: "fin epoch [YYYY-MM-DD|none]", group: groupStart,
+		summary: "Show or set the first day of the finances fin reports on",
+		detail: `The epoch is when your finances, as you want them reported, begin: when a
+household started sharing money, say. fin sheet writes transactions and Amazon
+items from that day on, fin amazon reads Amazon back to a week before it, and
+fin sql can read it from the settings table. Nothing older is deleted; it
+stays in the database as history. With no argument, shows it; none clears it.`,
+		examples: []string{"fin epoch", "fin epoch 2025-05-01",
+			"fin sql \"select sum(amount) from spending where date >= (select value::date from settings where key = 'epoch')\""},
+		run: func(a *App) command { return a.cmdEpoch },
+	},
+	{
 		name: "setup", usage: "fin setup [--from-plaid]", group: groupStart,
 		summary: "Save your Plaid keys in the macOS Keychain",
 		detail: `Asks for your Plaid client ID and the secret for the current environment
@@ -173,6 +185,8 @@ Tables:
   spending      every transaction once; with fin amazon, matched Amazon
                 charges become one row per item with the item's category
 
+  settings      key, value: the epoch set with fin epoch, under 'epoch'
+
 With fin amazon, also amazon_payments, amazon_orders, amazon_items,
 amazon_matches and amazon_splits (see fin help amazon).
 
@@ -247,13 +261,9 @@ and which can change or stop working at any time. US amazon.com only.
                                  first time); macOS asks once to allow
                                  "Chrome Safe Storage"
       --profile P                the Chrome profile, by directory or name
-      --since DATE               first day to read, such as when you began
-                                 sharing finances (default: a week before
-                                 your oldest bank transaction)
       --no-sync                  connect without reading anything yet
   fin amazon sync [name]         read new payments and orders; fin sync does
       --full                     this too. --full re-reads every payment
-      --since DATE               change the first day to read
   fin amazon categorize          items without a category
       --all                      every item
       --set ITEM CATEGORY [DETAILED] [--product]
@@ -263,6 +273,9 @@ and which can change or stop working at any time. US amazon.com only.
                                  [{"item", "category", "detailed", "asin_default"}]
   fin amazon logout <name>       forget the sign-in and everything read
   fin amazon profiles            Chrome profiles and which are signed in
+
+fin amazon reads back to a week before the epoch set with fin epoch, or
+without one, to a week before your oldest bank transaction.
 
 Categories are Plaid's (FOOD_AND_DRINK, HOME_IMPROVEMENT, …) so they total
 up with bank transactions. In fin sql:
@@ -282,7 +295,7 @@ up with bank transactions. In fin sql:
 The sign-in is kept encrypted in fin's data directory, with its key in the
 Keychain. Your Chrome stays signed in; fin never changes it.`,
 		examples: []string{
-			"fin amazon login home --since 2025-05-01",
+			"fin epoch 2025-05-01 && fin amazon login home",
 			"fin amazon categorize --set 111-1234567-1234567#2 HOME_IMPROVEMENT --product",
 			"fin sql \"select category, sum(amount) from spending where amount > 0 group by 1 order by 2 desc\"",
 		},

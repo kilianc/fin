@@ -186,7 +186,8 @@ func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, it
 		for i, it := range items {
 			ids[i] = it.ItemID
 		}
-		if txs, err = s.Transactions(ctx, store.Filter{ItemIDs: ids, From: "0001-01-01", To: "9999-12-31"}); err != nil {
+		from := cmpOr(st.Epoch, "0001-01-01")
+		if txs, err = s.Transactions(ctx, store.Filter{ItemIDs: ids, From: from, To: "9999-12-31"}); err != nil {
 			return nil, storeErr(err)
 		}
 		if accounts, err = s.Accounts(ctx, ids); err != nil {
@@ -195,7 +196,7 @@ func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, it
 	}
 	tabs := []sheets.Tab{transactionsTab(txs), accountsTab(accounts)}
 	if len(accts) > 0 {
-		rows, err := s.AmazonItemRows(ctx)
+		rows, err := s.AmazonItemRows(ctx, st.Epoch)
 		if err != nil {
 			return nil, storeErr(err)
 		}
@@ -321,6 +322,13 @@ func amazonTab(rows []store.AmazonItemRow) sheets.Tab {
 		tab.Rows = append(tab.Rows, []any{r.Date, r.OrderID, r.Title, r.Quantity, readable(deref(r.Category)), r.Allocated, r.Account, r.Transaction})
 	}
 	return tab
+}
+
+func cmpOr(v, fallback string) string {
+	if v != "" {
+		return v
+	}
+	return fallback
 }
 
 // readable turns a Plaid category such as FOOD_AND_DRINK into "food and drink".
