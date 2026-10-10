@@ -509,7 +509,13 @@ func (a *App) cmdAmazonList(ctx context.Context, args []string) (*result, error)
 	}
 	accts := st.RetailerAccounts(amazonRetailer.ID, string(a.Env))
 	sums := map[string]store.AmazonSummary{}
-	if s, err := store.OpenReadOnly(ctx, a.storePath()); err == nil {
+	if len(accts) > 0 {
+		// Opened for writing so a database from an older fin gets the tables
+		// and views this one reads.
+		s, err := a.openStore(ctx)
+		if err != nil {
+			return nil, err
+		}
 		sums, err = s.AmazonSummaries(ctx)
 		s.Close()
 		if err != nil {

@@ -581,9 +581,11 @@ func (a *App) cmdCategorize(ctx context.Context, r retailer, args []string) (*re
 		if len(pos) > 0 {
 			return nil, usageErr("%s", usage)
 		}
-		s, err := store.OpenReadOnly(ctx, a.storePath())
+		// Opened for writing so a database from an older fin gets the views
+		// this one reads.
+		s, err := a.openStore(ctx)
 		if err != nil {
-			return nil, storeErr(err)
+			return nil, err
 		}
 		defer s.Close()
 		items, err := s.RetailerItems(ctx, r.ID, store.ItemFilter{Uncategorized: !*all})
