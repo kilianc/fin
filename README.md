@@ -4,10 +4,10 @@
 
 **A CLI for your financial data, built for the AI era.**
 
-fin is a local, read-only tool for you and your AI agents: your bank, card and
-brokerage data comes from Plaid, and your Amazon and Costco purchases item by
-item from your own sign-in, straight to this machine. Your keys stay in your
-macOS Keychain, and you own all of it end to end.
+fin is a local, read-only tool for you and your AI agents: it connects your
+banks, cards and brokerages through Plaid and brings in your Amazon and Costco
+purchases, straight to this machine. Your keys stay in your macOS Keychain, and
+you own all of it end to end.
 
 ```text
 $ fin accounts
