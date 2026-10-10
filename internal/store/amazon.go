@@ -75,7 +75,7 @@ create table if not exists amazon_items (
 	seller        varchar,
 	condition     varchar,
 	return_status varchar,
-	allocated     decimal(18, 4) not null,
+	cost          decimal(18, 4) not null,
 	primary key (order_id, line)
 );
 create table if not exists amazon_item_categories (
@@ -317,7 +317,7 @@ func writeOrder(ctx context.Context, tx *sql.Tx, account, id string, o *amazon.O
 	for _, it := range o.Items {
 		if _, err := tx.ExecContext(ctx, `insert into amazon_items values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			id, it.Line, nullable(it.ASIN), it.Title, it.Quantity, it.UnitPrice.String(), nullable(it.Seller),
-			nullable(it.Condition), nullable(it.Return), it.Allocated.String()); err != nil {
+			nullable(it.Condition), nullable(it.Return), it.Cost.String()); err != nil {
 			return fmt.Errorf("store: amazon item %s/%d: %w", id, it.Line, err)
 		}
 	}
@@ -384,7 +384,7 @@ type AmazonItem struct {
 	ASIN             *string `json:"asin"`
 	Title            string  `json:"title"`
 	Quantity         int     `json:"quantity"`
-	Allocated        float64 `json:"allocated"`
+	Cost             float64 `json:"cost"`
 	Category         *string `json:"category"`
 	CategoryDetailed *string `json:"category_detailed"`
 	Source           string  `json:"category_source"` // item, asin, or none
@@ -395,7 +395,7 @@ type AmazonItem struct {
 func (s *Store) AmazonItems(ctx context.Context, all bool) ([]AmazonItem, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		select i.order_id || '#' || i.line, i.order_id, i.line, coalesce(o.date::varchar, ''), i.asin, i.title, i.quantity,
-			i.allocated::double, coalesce(ic.category, ac.category), coalesce(ic.category_detailed, ac.category_detailed),
+			i.cost::double, coalesce(ic.category, ac.category), coalesce(ic.category_detailed, ac.category_detailed),
 			case when ic.category is not null then 'item' when ac.category is not null then 'asin' else 'none' end
 		from amazon_items i join amazon_orders o using (order_id)
 		left join amazon_item_categories ic on ic.order_id = i.order_id and ic.line = i.line
@@ -409,7 +409,7 @@ func (s *Store) AmazonItems(ctx context.Context, all bool) ([]AmazonItem, error)
 	out := []AmazonItem{}
 	for rows.Next() {
 		var it AmazonItem
-		if err := rows.Scan(&it.Item, &it.OrderID, &it.Line, &it.Date, &it.ASIN, &it.Title, &it.Quantity, &it.Allocated,
+		if err := rows.Scan(&it.Item, &it.OrderID, &it.Line, &it.Date, &it.ASIN, &it.Title, &it.Quantity, &it.Cost,
 			&it.Category, &it.CategoryDetailed, &it.Source); err != nil {
 			return nil, err
 		}
@@ -536,7 +536,7 @@ type AmazonItemRow struct {
 	Title       string
 	Quantity    int
 	Category    *string
-	Allocated   float64
+	Cost        float64
 	Account     string
 	Transaction *string // the matched bank transaction's name and date
 }
@@ -547,7 +547,7 @@ type AmazonItemRow struct {
 func (s *Store) AmazonItemRows(ctx context.Context, since string) ([]AmazonItemRow, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		select coalesce(o.date::varchar, ''), i.order_id, i.title, i.quantity, coalesce(ic.category, ac.category),
-			i.allocated::double, o.account,
+			i.cost::double, o.account,
 			(select first(t.name || ' · ' || t.date::varchar order by t.date) from amazon_matches m join transactions t using (transaction_id)
 				where m.match = 'exact' and list_contains(m.order_ids, i.order_id) and m.amount > 0)
 		from amazon_items i join amazon_orders o using (order_id)
@@ -562,7 +562,7 @@ func (s *Store) AmazonItemRows(ctx context.Context, since string) ([]AmazonItemR
 	out := []AmazonItemRow{}
 	for rows.Next() {
 		var r AmazonItemRow
-		if err := rows.Scan(&r.Date, &r.OrderID, &r.Title, &r.Quantity, &r.Category, &r.Allocated, &r.Account, &r.Transaction); err != nil {
+		if err := rows.Scan(&r.Date, &r.OrderID, &r.Title, &r.Quantity, &r.Category, &r.Cost, &r.Account, &r.Transaction); err != nil {
 			return nil, err
 		}
 		out = append(out, r)

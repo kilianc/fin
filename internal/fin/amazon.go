@@ -807,13 +807,13 @@ func (a *App) cmdAmazonCategorize(ctx context.Context, args []string) (*result, 
 		}
 		t := &ui.Table{
 			Title:   fmt.Sprintf("Amazon items · %d", len(items)),
-			Headers: []string{"Item", "Date", "Title", "Qty", "Amount", "Category"},
+			Headers: []string{"Item", "Date", "Title", "Qty", "Cost", "Category"},
 			Right:   []int{3, 4},
 			Footer:  "Set one with fin amazon categorize --set ITEM CATEGORY. Categories: " + strings.Join(pfcPrimary, ", "),
 		}
 		for _, it := range items {
 			t.Rows = append(t.Rows, []string{it.Item, it.Date, truncate(it.Title, 48), strconv.Itoa(it.Quantity),
-				strconv.FormatFloat(it.Allocated, 'f', 2, 64), deref(it.Category)})
+				strconv.FormatFloat(it.Cost, 'f', 2, 64), deref(it.Category)})
 		}
 		return &result{body: map[string]any{"items": items, "categories": pfcPrimary}, table: t}, nil
 	}

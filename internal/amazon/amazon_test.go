@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func TestParseOrderReadsItemsAndAllocatesExactly(t *testing.T) {
+func TestParseOrderReadsItemsAndCostsExactly(t *testing.T) {
 	page, err := os.ReadFile("testdata/order-multi.html")
 	if err != nil {
 		t.Fatal(err)
@@ -41,10 +41,10 @@ func TestParseOrderReadsItemsAndAllocatesExactly(t *testing.T) {
 		t.Errorf("item 2 = %+v", b)
 	}
 	// 61.99 split 40 : 15.50 : 4.50, the two rounding cents to the largest remainders.
-	if a.Allocated != 4133 || b.Allocated != 1601 || c.Allocated != 465 {
-		t.Errorf("allocated = %d %d %d", a.Allocated, b.Allocated, c.Allocated)
+	if a.Cost != 4133 || b.Cost != 1601 || c.Cost != 465 {
+		t.Errorf("cost = %d %d %d", a.Cost, b.Cost, c.Cost)
 	}
-	if a.Allocated+b.Allocated+c.Allocated != o.Paid {
+	if a.Cost+b.Cost+c.Cost != o.Paid {
 		t.Errorf("items do not add up to %d", o.Paid)
 	}
 }
@@ -58,13 +58,13 @@ func TestParseOrderRejectsOtherPages(t *testing.T) {
 	}
 }
 
-func TestAllocateNeverLosesACent(t *testing.T) {
+func TestCostNeverLosesACent(t *testing.T) {
 	for paid := Cents(0); paid < 500; paid += 7 {
 		o := &Order{Paid: paid, Items: []Item{{UnitPrice: 333, Quantity: 1}, {UnitPrice: 333, Quantity: 1}, {UnitPrice: 334, Quantity: 3}}}
-		allocate(o)
+		cost(o)
 		var sum Cents
 		for _, it := range o.Items {
-			sum += it.Allocated
+			sum += it.Cost
 		}
 		if sum != paid {
 			t.Fatalf("paid %d: items add up to %d", paid, sum)

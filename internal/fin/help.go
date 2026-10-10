@@ -281,8 +281,8 @@ up with bank transactions. In fin sql:
   amazon_orders    order totals: items_subtotal, shipping, discounts, tax,
                    gift_card, paid, refund_total, card_last4
   amazon_items     order_id, line, asin, title, quantity, unit_price, seller,
-                   allocated (its share of what the order cost, so an
-                   order's items add up to it exactly)
+                   cost (its price plus its share of shipping, discounts
+                   and tax, so an order's items add up to it exactly)
   amazon_matches   each payment's match: exact, ambiguous, unmatched, or
                    no_bank_charge (gift cards), with the transaction_id
   amazon_item_categories  order_id, line, category, category_detailed
@@ -294,7 +294,7 @@ Keychain. Your Chrome stays signed in; fin never changes it.`,
 		examples: []string{
 			"fin epoch 2025-05-01 && fin amazon login home",
 			"fin amazon categorize --set 111-1234567-1234567#2 HOME_IMPROVEMENT --product",
-			"fin sql \"select m.transaction_id, i.title, i.allocated from amazon_matches m join amazon_items i on list_contains(m.order_ids, i.order_id) where m.match = 'exact'\"",
+			"fin sql \"select m.transaction_id, i.title, i.cost from amazon_matches m join amazon_items i on list_contains(m.order_ids, i.order_id) where m.match = 'exact'\"",
 		},
 		run: func(a *App) command { return a.cmdAmazon },
 	},

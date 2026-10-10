@@ -314,12 +314,12 @@ func amazonTab(rows []store.AmazonItemRow) sheets.Tab {
 		{Name: "Item"},
 		{Name: "Qty", Kind: sheets.Number},
 		{Name: "Category"},
-		{Name: "Amount", Kind: sheets.Money},
+		{Name: "Cost", Kind: sheets.Money},
 		{Name: "Amazon account"},
 		{Name: "Bank transaction"},
 	}, Rows: [][]any{}}
 	for _, r := range rows {
-		tab.Rows = append(tab.Rows, []any{r.Date, r.OrderID, r.Title, r.Quantity, readable(deref(r.Category)), r.Allocated, r.Account, r.Transaction})
+		tab.Rows = append(tab.Rows, []any{r.Date, r.OrderID, r.Title, r.Quantity, readable(deref(r.Category)), r.Cost, r.Account, r.Transaction})
 	}
 	return tab
 }

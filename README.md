@@ -76,7 +76,7 @@ for. Each item comes with what it cost, its share of tax and shipping
 included, and your agent categorizes them (`fin amazon categorize`):
 
 ```text
-$ fin sql "select m.transaction_id, i.title, i.allocated
+$ fin sql "select m.transaction_id, i.title, i.cost
            from amazon_matches m join amazon_items i
              on list_contains(m.order_ids, i.order_id)
            where m.match = 'exact'"

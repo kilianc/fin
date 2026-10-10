@@ -79,9 +79,9 @@ orders, so an Amazon charge can be broken down by item:
 
 - `amazon_matches` says which bank transaction each Amazon payment became
   (`exact`, `ambiguous`, `unmatched`, `no_bank_charge`), with its
-  `order_ids`. `amazon_items` has each order line with `allocated`, its
-  share of what the order cost, tax and shipping included; an order's items
-  add up to its total.
+  `order_ids`. `amazon_items` has each order line with `cost`: its price
+  plus its share of shipping, discounts and tax, so an order's items add up
+  to its total.
 - An item's category is in `amazon_item_categories`, else in
   `amazon_asin_categories` by `asin`.
 - Amazon charges some orders in several payments, one per shipment, and does

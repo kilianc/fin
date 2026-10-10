@@ -26,8 +26,8 @@ type Order struct {
 	Shipping  Cents  // Shipping & Handling
 	Discounts Cents  // coupons, promotions and free shipping, as a negative amount
 	Tax       Cents
-	// Paid is what the order cost before gift cards and points: the amount
-	// its items are allocated.
+	// Paid is what the order cost before gift cards and points, and what its
+	// items' costs add up to.
 	Paid Cents
 	// GiftCard is the part paid with a gift card balance or points, positive.
 	GiftCard    Cents
@@ -49,9 +49,10 @@ type Item struct {
 	Seller    string
 	Condition string
 	Return    string // the return or refund status Amazon shows, if any
-	// Allocated is the item's share of Paid: its price plus its part of
-	// shipping, discounts and tax. An order's items add up to Paid exactly.
-	Allocated Cents
+	// Cost is what the item cost: its price plus its share of shipping,
+	// discounts and tax, in proportion to its price. An order's items add up
+	// to Paid exactly.
+	Cost Cents
 }
 
 // ErrNotOrderPage means the page is not a physical order's details page:
@@ -218,14 +219,14 @@ func ParseOrder(page []byte) (*Order, error) {
 		o.Items = append(o.Items, it)
 	}
 	o.Paid = o.Total + o.GiftCard
-	allocate(o)
+	cost(o)
 	return o, nil
 }
 
-// allocate splits Paid across the items in proportion to their prices, with
+// cost splits Paid across the items in proportion to their prices, with
 // the cents left over from rounding going to the largest lines first, so the
 // items add up to Paid exactly.
-func allocate(o *Order) {
+func cost(o *Order) {
 	var base Cents
 	for _, it := range o.Items {
 		base += it.UnitPrice * Cents(it.Quantity)
@@ -235,7 +236,7 @@ func allocate(o *Order) {
 	}
 	if base <= 0 {
 		// Free items: give everything to the first so the total still adds up.
-		o.Items[0].Allocated = o.Paid
+		o.Items[0].Cost = o.Paid
 		return
 	}
 	type rem struct {
@@ -253,14 +254,14 @@ func allocate(o *Order) {
 			share--
 			frac += int64(base)
 		}
-		o.Items[i].Allocated = Cents(share)
+		o.Items[i].Cost = Cents(share)
 		given += Cents(share)
 		rems[i] = rem{i, frac}
 	}
 	// Rounding down leaves fewer cents than there are items.
 	slices.SortStableFunc(rems, func(a, b rem) int { return cmp.Compare(b.frac, a.frac) })
 	for j := 0; j < int(o.Paid-given); j++ {
-		o.Items[rems[j].i].Allocated++
+		o.Items[rems[j].i].Cost++
 	}
 }
 

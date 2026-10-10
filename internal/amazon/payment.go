@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-// Cents is an amount of US cents, so allocations add up exactly.
+// Cents is an amount of US cents, so item costs add up exactly.
 type Cents int64
 
 // Dollars is the amount as a decimal number of dollars.
