@@ -116,8 +116,7 @@ func TestAmazonLoginSyncCategorizeAndSpending(t *testing.T) {
 		t.Errorf("an unknown category was accepted (exit %d)", code)
 	}
 
-	_, body = ta.run(t, "sql", "--json", "select i.line, coalesce(ic.category, ac.category) as category from amazon_items i "+
-		"left join amazon_item_categories ic using (order_id, line) left join amazon_asin_categories ac using (asin) order by 1")
+	_, body = ta.run(t, "sql", "--json", "select category from retailer_items where retailer = 'amazon' order by line")
 	got := []any{}
 	for _, r := range body["rows"].([]any) {
 		got = append(got, r.(map[string]any)["category"])
@@ -211,7 +210,7 @@ func TestAmazonRateLimitKeepsWhatWasRead(t *testing.T) {
 	if lines, _ := os.ReadFile(filepath.Join(ta.DataDir, "amazon", "sandbox-pat.log")); !bytes.Contains(lines, []byte(" payments 429\n")) {
 		t.Errorf("request log = %q", lines)
 	}
-	later := ta.Now().Add(amazonCooldown + time.Minute)
+	later := ta.Now().Add(retailerCooldown + time.Minute)
 	ta.Now = func() time.Time { return later }
 	if code, _ := ta.run(t, "amazon", "sync", "--json"); code != exitOK {
 		t.Fatalf("second sync exit %d: %s", code, ta.stderr)

@@ -33,15 +33,15 @@ const (
 )
 
 type sheetBody struct {
-	Env           plaid.Env   `json:"env"`
-	SpreadsheetID string      `json:"spreadsheet_id"`
-	URL           string      `json:"url"`
-	Created       bool        `json:"created"`
-	Transactions  int         `json:"transactions"`
-	Accounts      int         `json:"accounts"`
-	AmazonItems   int         `json:"amazon_items,omitempty"`
-	Sync          []syncView  `json:"sync"`
-	Errors        []ItemError `json:"errors"`
+	Env           plaid.Env      `json:"env"`
+	SpreadsheetID string         `json:"spreadsheet_id"`
+	URL           string         `json:"url"`
+	Created       bool           `json:"created"`
+	Transactions  int            `json:"transactions"`
+	Accounts      int            `json:"accounts"`
+	RetailerItems map[string]int `json:"retailer_items,omitempty"` // items written, by retailer
+	Sync          []syncView     `json:"sync"`
+	Errors        []ItemError    `json:"errors"`
 }
 
 func (a *App) cmdSheet(ctx context.Context, args []string) (*result, error) {
@@ -119,7 +119,7 @@ func (r linkOnlyReporter) Link(label, url string) {
 }
 
 func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, items []state.Item, api Plaid, fresh, login bool) (*sheetBody, error) {
-	body := &sheetBody{Env: a.Env, Sync: []syncView{}, Errors: []ItemError{}}
+	body := &sheetBody{Env: a.Env, Sync: []syncView{}, Errors: []ItemError{}, RetailerItems: map[string]int{}}
 
 	r.Start(stepSignIn, "")
 	token, err := a.Secrets.Get(googleTokenAccount)
@@ -137,8 +137,7 @@ func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, it
 
 	r.Start(stepSync, "")
 	var s *store.Store
-	accts := st.AmazonForEnv(string(a.Env))
-	if len(items) > 0 || len(accts) > 0 {
+	if len(items) > 0 || len(st.Retailers) > 0 {
 		if s, err = a.openStore(ctx); err != nil {
 			return nil, err
 		}
@@ -149,12 +148,12 @@ func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, it
 			return nil, err
 		}
 	}
-	if len(accts) > 0 {
-		_, amazonErrs, err := a.syncAmazonAll(ctx, s, st, accts, amazonSync{}, nil)
+	if len(st.Retailers) > 0 {
+		_, shopErrs, err := a.syncRetailers(ctx, s, st)
 		if err != nil {
 			return nil, err
 		}
-		body.Errors = append(body.Errors, amazonErrs...)
+		body.Errors = append(body.Errors, shopErrs...)
 	}
 	changed := 0
 	for _, v := range body.Sync {
@@ -196,13 +195,16 @@ func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, it
 		}
 	}
 	tabs := []sheets.Tab{transactionsTab(txs), accountsTab(accounts)}
-	if len(accts) > 0 {
-		rows, err := s.AmazonItemRows(ctx, st.Epoch)
+	for _, r := range retailers {
+		if len(st.RetailerAccounts(r.ID, string(a.Env))) == 0 {
+			continue
+		}
+		items, err := s.RetailerItems(ctx, r.ID, store.ItemFilter{Since: st.Epoch})
 		if err != nil {
 			return nil, storeErr(err)
 		}
-		tabs = append(tabs, amazonTab(rows))
-		body.AmazonItems = len(rows)
+		tabs = append(tabs, itemsTab(r, items))
+		body.RetailerItems[r.ID] = len(items)
 	}
 	for _, tab := range tabs {
 		if err := svc.Write(ctx, sp, tab); err != nil {
@@ -308,19 +310,19 @@ func accountsTab(accounts []store.Account) sheets.Tab {
 	return tab
 }
 
-func amazonTab(rows []store.AmazonItemRow) sheets.Tab {
-	tab := sheets.Tab{Title: "Amazon items", Columns: []sheets.Column{
+func itemsTab(r retailer, items []store.RetailerItem) sheets.Tab {
+	tab := sheets.Tab{Title: r.Name + " items", Columns: []sheets.Column{
 		{Name: "Date", Kind: sheets.Date},
 		{Name: "Order"},
 		{Name: "Item"},
 		{Name: "Qty", Kind: sheets.Number},
 		{Name: "Category"},
 		{Name: "Cost", Kind: sheets.Money},
-		{Name: "Amazon account"},
+		{Name: r.Name + " account"},
 		{Name: "Bank transaction"},
 	}, Rows: [][]any{}}
-	for _, r := range rows {
-		tab.Rows = append(tab.Rows, []any{r.Date, r.OrderID, r.Title, r.Quantity, readable(deref(r.Category)), r.Cost, r.Account, r.Transaction})
+	for _, it := range items {
+		tab.Rows = append(tab.Rows, []any{it.Date, it.OrderID, it.Title, it.Quantity, readable(deref(it.Category)), it.Cost, it.Account, it.Transaction})
 	}
 	return tab
 }

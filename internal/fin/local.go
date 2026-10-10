@@ -165,9 +165,8 @@ func (a *App) cmdSync(ctx context.Context, args []string) (*result, error) {
 	if err != nil {
 		return nil, err
 	}
-	accts := st.AmazonForEnv(string(a.Env))
-	syncs, errs, amazonViews := []syncView{}, []ItemError{}, []amazonSyncView{}
-	if len(items) > 0 || len(accts) > 0 {
+	syncs, errs, shops := []syncView{}, []ItemError{}, map[string][]any{}
+	if len(items) > 0 || len(st.Retailers) > 0 {
 		s, err := a.openStore(ctx)
 		if err != nil {
 			return nil, err
@@ -178,13 +177,11 @@ func (a *App) cmdSync(ctx context.Context, args []string) (*result, error) {
 				return nil, err
 			}
 		}
-		if len(accts) > 0 {
-			var amazonErrs []ItemError
-			if amazonViews, amazonErrs, err = a.syncAmazonAll(ctx, s, st, accts, amazonSync{}, nil); err != nil {
-				return nil, err
-			}
-			errs = append(errs, amazonErrs...)
+		var shopErrs []ItemError
+		if shops, shopErrs, err = a.syncRetailers(ctx, s, st); err != nil {
+			return nil, err
 		}
+		errs = append(errs, shopErrs...)
 	}
 	t := &ui.Table{
 		Title:   fmt.Sprintf("Synced · %d of %d Items", len(syncs), len(items)),
@@ -202,13 +199,15 @@ func (a *App) cmdSync(ctx context.Context, args []string) (*result, error) {
 		status := strings.ToLower(strings.ReplaceAll(v.TransactionsUpdateStatus, "_", " "))
 		t.Rows = append(t.Rows, []string{v.Item, strconv.Itoa(v.Changed), strconv.Itoa(v.Removed), status})
 	}
-	for _, v := range amazonViews {
-		t.Rows = append(t.Rows, []string{"amazon/" + v.Account, strconv.Itoa(v.Payments + v.Orders), "0",
-			fmt.Sprintf("%d payments, %d orders", v.Payments, v.Orders)})
-	}
 	body := map[string]any{"env": a.Env, "store": a.storePath(), "sync": syncs, "errors": errs}
-	if len(accts) > 0 {
-		body["amazon"] = amazonViews
+	for _, r := range retailers {
+		for _, v := range shops[r.ID] {
+			account, changed, status := v.(retailerSyncView).summary()
+			t.Rows = append(t.Rows, []string{r.ID + "/" + account, strconv.Itoa(changed), "0", status})
+		}
+		if views, ok := shops[r.ID]; ok {
+			body[r.ID] = views
+		}
 	}
 	return &result{body: body, table: t, errors: errs}, nil
 }

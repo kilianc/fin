@@ -184,8 +184,16 @@ Tables:
   items         item_id, item, institution, cursor, status, last_sync
   settings      key, value: the epoch set with fin epoch, under 'epoch'
 
-With fin amazon, also amazon_payments, amazon_orders, amazon_items,
-amazon_matches and the category tables (see fin help amazon).
+With a retailer connected (fin amazon), also:
+  retailer_items      every item bought: retailer, account, item, product,
+                      order_id, line, date, title, quantity, cost (with its
+                      share of tax, shipping and discounts), transaction_id
+                      (a bank transaction that paid for the order), category,
+                      category_detailed, category_source (item, product, none)
+  item_categories     retailer, item, category, category_detailed, set_at
+  product_categories  retailer, product, category, category_detailed, set_at
+  retailer_accounts   retailer, account, last_sync, status, limited_until
+and the retailer's own tables (see fin help amazon).
 
 Amounts use Plaid's sign: positive is money out, negative is money in.`,
 		examples: []string{
@@ -269,7 +277,7 @@ and which can change or stop working at any time. US amazon.com only.
                                  save a category; --product reuses it for
                                  later purchases of the same product. With
                                  no ITEM, reads a JSON list on stdin:
-                                 [{"item", "category", "detailed", "asin_default"}]
+                                 [{"item", "category", "detailed", "product"}]
   fin amazon logout <name>       forget the sign-in and everything read
   fin amazon profiles            Chrome profiles and which are signed in
 
@@ -291,16 +299,16 @@ up with bank transactions. In fin sql:
                    and tax, so an order's items add up to it exactly)
   amazon_matches   each payment's match: exact, ambiguous, unmatched, or
                    no_bank_charge (gift cards), with the transaction_id
-  amazon_item_categories  order_id, line, category, category_detailed
-  amazon_asin_categories  asin, category, category_detailed: set with
-                   --product; an item without its own category uses these
+
+Amazon's items, with their categories, are also in retailer_items (see fin
+help sql), where retailer = 'amazon' and product is the ASIN.
 
 The sign-in is kept encrypted in fin's data directory, with its key in the
 Keychain. Your Chrome stays signed in; fin never changes it.`,
 		examples: []string{
 			"fin epoch 2025-05-01 && fin amazon login home",
 			"fin amazon categorize --set 111-1234567-1234567#2 HOME_IMPROVEMENT --product",
-			"fin sql \"select m.transaction_id, i.title, i.cost from amazon_matches m join amazon_items i on list_contains(m.order_ids, i.order_id) where m.match = 'exact'\"",
+			"fin sql \"select date, title, cost, category from retailer_items where retailer = 'amazon' order by date desc\"",
 		},
 		run: func(a *App) command { return a.cmdAmazon },
 	},

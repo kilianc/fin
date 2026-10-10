@@ -52,13 +52,15 @@ type State struct {
 	Items []Item `json:"items"`
 	// Sheets maps an environment to the spreadsheet fin sheet writes to.
 	Sheets map[string]string `json:"sheets,omitempty"`
-	// Amazon lists the connected Amazon.com accounts.
-	Amazon []AmazonAccount `json:"amazon,omitempty"`
+	// Retailers lists the connected retailer accounts, such as Amazon.com.
+	Retailers []RetailerAccount `json:"retailers,omitempty"`
 }
 
-// AmazonAccount is one Amazon.com sign-in, imported from a Chrome profile.
-// The session itself is encrypted on disk with a key in the Keychain.
-type AmazonAccount struct {
+// RetailerAccount is one sign-in at a retailer, imported from a Chrome
+// profile. The session itself is encrypted on disk with a key in the
+// Keychain.
+type RetailerAccount struct {
+	Retailer    string     `json:"retailer"` // such as "amazon"
 	Name        string     `json:"name"`
 	Env         string     `json:"env"`
 	Profile     string     `json:"profile"`      // Chrome's profile directory, such as "Default"
@@ -67,47 +69,52 @@ type AmazonAccount struct {
 	LastSync    *time.Time `json:"last_sync,omitempty"`
 }
 
-// AmazonForEnv returns the Amazon accounts connected in env.
-func (s *State) AmazonForEnv(env string) []AmazonAccount {
-	out := []AmazonAccount{}
-	for _, a := range s.Amazon {
-		if a.Env == env {
+func (a RetailerAccount) is(retailer, env, name string) bool {
+	return a.Retailer == retailer && a.Env == env && strings.EqualFold(a.Name, name)
+}
+
+// RetailerAccounts returns the retailer's accounts connected in env.
+func (s *State) RetailerAccounts(retailer, env string) []RetailerAccount {
+	out := []RetailerAccount{}
+	for _, a := range s.Retailers {
+		if a.Retailer == retailer && a.Env == env {
 			out = append(out, a)
 		}
 	}
 	return out
 }
 
-// FindAmazon looks an Amazon account up by name.
-func (s *State) FindAmazon(env, name string) (AmazonAccount, bool) {
-	for _, a := range s.Amazon {
-		if a.Env == env && strings.EqualFold(a.Name, name) {
+// FindRetailer looks a retailer account up by name.
+func (s *State) FindRetailer(retailer, env, name string) (RetailerAccount, bool) {
+	for _, a := range s.Retailers {
+		if a.is(retailer, env, name) {
 			return a, true
 		}
 	}
-	return AmazonAccount{}, false
+	return RetailerAccount{}, false
 }
 
-// PutAmazon replaces the account with the same name, or appends it.
-func (s *State) PutAmazon(acct AmazonAccount) {
-	for i, a := range s.Amazon {
-		if a.Env == acct.Env && strings.EqualFold(a.Name, acct.Name) {
-			s.Amazon[i] = acct
+// PutRetailer replaces the account with the same retailer and name, or
+// appends it.
+func (s *State) PutRetailer(acct RetailerAccount) {
+	for i, a := range s.Retailers {
+		if a.is(acct.Retailer, acct.Env, acct.Name) {
+			s.Retailers[i] = acct
 			return
 		}
 	}
-	s.Amazon = append(s.Amazon, acct)
+	s.Retailers = append(s.Retailers, acct)
 }
 
-// RemoveAmazon forgets an account.
-func (s *State) RemoveAmazon(env, name string) {
-	out := s.Amazon[:0]
-	for _, a := range s.Amazon {
-		if !(a.Env == env && strings.EqualFold(a.Name, name)) {
+// RemoveRetailer forgets an account.
+func (s *State) RemoveRetailer(retailer, env, name string) {
+	out := s.Retailers[:0]
+	for _, a := range s.Retailers {
+		if !a.is(retailer, env, name) {
 			out = append(out, a)
 		}
 	}
-	s.Amazon = out
+	s.Retailers = out
 }
 
 // DefaultPath is $FIN_CONFIG_DIR/state.json, or ~/.config/fin/state.json.

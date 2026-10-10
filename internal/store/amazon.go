@@ -6,7 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -16,25 +15,17 @@ import (
 	"github.com/kilianc/fin/internal/money"
 )
 
+// amazonRetailer is Amazon's name in the shared retailer tables.
+const amazonRetailer = "amazon"
+
+// amazonItemSource is Amazon's part of the retailer_items view.
+const amazonItemSource = `select 'amazon' as retailer, o.account, i.order_id || '#' || i.line as item, i.asin as product,
+	i.order_id, i.line, o.date, i.title, i.quantity, i.cost,
+	(select first(m.transaction_id order by m.date) from amazon_matches m
+		where m.match = 'exact' and m.amount > 0 and list_contains(m.order_ids, i.order_id)) as transaction_id
+from amazon_items i join amazon_orders o using (order_id)`
+
 const amazonSchema = `
--- fin's settings that queries may want, such as the epoch set with fin epoch.
-create table if not exists settings (
-	key   varchar primary key,
-	value varchar
-);
-create table if not exists amazon_accounts (
-	account   varchar primary key,
-	profile   varchar,
-	last_sync timestamptz,
-	status    varchar
-);
--- complete_since: payments are stored without gaps back to this date.
-alter table amazon_accounts add column if not exists complete_since date;
--- resume_key: where a history read that Amazon cut short goes on from.
-alter table amazon_accounts add column if not exists resume_key varchar;
--- limited_until: after Amazon says "too many requests", fin asks nothing
--- of it before this time.
-alter table amazon_accounts add column if not exists limited_until timestamptz;
 create table if not exists amazon_payments (
 	payment_key       varchar primary key,
 	account           varchar not null,
@@ -84,21 +75,6 @@ create table if not exists amazon_items (
 	cost          decimal(18, 4) not null,
 	primary key (order_id, line)
 );
-create table if not exists amazon_item_categories (
-	order_id          varchar not null,
-	line              integer not null,
-	category          varchar not null,
-	category_detailed varchar,
-	set_at            timestamptz not null,
-	primary key (order_id, line)
-);
-create table if not exists amazon_asin_categories (
-	asin              varchar primary key,
-	category          varchar not null,
-	category_detailed varchar,
-	set_at            timestamptz not null
-);
-
 -- Each Amazon payment and the bank transaction it became: same amount, the
 -- bank's date within four days, an Amazon-looking merchant, and the card's
 -- last four digits when the order page showed them. Ambiguous cases are
@@ -142,24 +118,6 @@ select p.payment_key, p.account, p.date, p.amount, p.payment_method, p.descripto
 from p left join agg using (payment_key);
 `
 
-// SetSetting saves one setting; an empty value removes it.
-func (s *Store) SetSetting(ctx context.Context, key, value string) error {
-	if value == "" {
-		_, err := s.db.ExecContext(ctx, `delete from settings where key = ?`, key)
-		return err
-	}
-	_, err := s.db.ExecContext(ctx, `insert or replace into settings values (?, ?)`, key, value)
-	return err
-}
-
-// EarliestTransaction is the date of the oldest stored bank transaction, or
-// "" when there is none.
-func (s *Store) EarliestTransaction(ctx context.Context) (string, error) {
-	var d sql.NullString
-	err := s.db.QueryRowContext(ctx, `select min(date)::varchar from transactions`).Scan(&d)
-	return d.String, err
-}
-
 // AmazonPaymentKeys returns the keys of the payments stored for account.
 func (s *Store) AmazonPaymentKeys(ctx context.Context, account string) (map[string]bool, error) {
 	rows, err := s.db.QueryContext(ctx, `select payment_key from amazon_payments where account = ?`, account)
@@ -196,12 +154,10 @@ func (s *Store) ApplyAmazonPayments(ctx context.Context, account, profile string
 			return fmt.Errorf("store: amazon payment: %w", err)
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `insert into amazon_accounts (account, profile, last_sync, status) values (?, ?, ?, 'ok')
-		on conflict (account) do update set profile = excluded.profile, last_sync = excluded.last_sync, status = 'ok'`,
-		account, profile, at); err != nil {
+	if err := tx.Commit(); err != nil {
 		return err
 	}
-	return tx.Commit()
+	return s.SetRetailerSynced(ctx, amazonRetailer, account, profile, at)
 }
 
 // PruneAmazonPayments records that a read went back to since without gaps,
@@ -219,75 +175,10 @@ func (s *Store) PruneAmazonPayments(ctx context.Context, account, since string, 
 	if _, err := tx.ExecContext(ctx, `delete from amazon_payments where account = ? and not list_contains(?::varchar[], payment_key)`, account, keys); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `update amazon_accounts set complete_since = ?::date, resume_key = null where account = ?`, since, account); err != nil {
+	if err := setCompleteSince(ctx, tx, amazonRetailer, account, since); err != nil {
 		return err
 	}
 	return tx.Commit()
-}
-
-// AmazonResumeKey is where an unfinished history read goes on from, or "".
-func (s *Store) AmazonResumeKey(ctx context.Context, account string) (string, error) {
-	var key sql.NullString
-	err := s.db.QueryRowContext(ctx, `select resume_key from amazon_accounts where account = ?`, account).Scan(&key)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", nil
-	}
-	return key.String, err
-}
-
-// SetAmazonResumeKey saves where an unfinished history read goes on from;
-// "" clears it.
-func (s *Store) SetAmazonResumeKey(ctx context.Context, account, key string) error {
-	_, err := s.db.ExecContext(ctx, `update amazon_accounts set resume_key = nullif(?, '') where account = ?`, key, account)
-	return err
-}
-
-// SetAmazonCompleteSince records that payments are stored without gaps back
-// to since, after a history read that resumed part way, so nothing is pruned.
-func (s *Store) SetAmazonCompleteSince(ctx context.Context, account, since string) error {
-	_, err := s.db.ExecContext(ctx, `update amazon_accounts set complete_since = ?::date, resume_key = null where account = ?`, since, account)
-	return err
-}
-
-// AmazonLimitedUntil is when fin may ask Amazon again after a "too many
-// requests", or the zero time when it may now.
-func (s *Store) AmazonLimitedUntil(ctx context.Context, account string) (time.Time, error) {
-	var until sql.NullTime
-	err := s.db.QueryRowContext(ctx, `select limited_until from amazon_accounts where account = ?`, account).Scan(&until)
-	if errors.Is(err, sql.ErrNoRows) {
-		return time.Time{}, nil
-	}
-	return until.Time, err
-}
-
-// SetAmazonLimitedUntil records when fin may ask Amazon again; the zero time
-// clears it.
-func (s *Store) SetAmazonLimitedUntil(ctx context.Context, account, profile string, until time.Time) error {
-	var v any
-	if !until.IsZero() {
-		v = until.UTC()
-	}
-	_, err := s.db.ExecContext(ctx, `insert into amazon_accounts (account, profile, limited_until) values (?, ?, ?)
-		on conflict (account) do update set limited_until = excluded.limited_until`, account, profile, v)
-	return err
-}
-
-// SetAmazonAccountStatus records why an account's last sync failed.
-func (s *Store) SetAmazonAccountStatus(ctx context.Context, account, profile, status string) error {
-	_, err := s.db.ExecContext(ctx, `insert into amazon_accounts (account, profile, status) values (?, ?, ?)
-		on conflict (account) do update set status = excluded.status`, account, profile, status)
-	return err
-}
-
-// AmazonCompleteSince is the date back to which the account's payments are
-// stored without gaps, or "" when no read has gone back far enough yet.
-func (s *Store) AmazonCompleteSince(ctx context.Context, account string) (string, error) {
-	var since sql.NullString
-	err := s.db.QueryRowContext(ctx, `select complete_since::varchar from amazon_accounts where account = ?`, account).Scan(&since)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", nil
-	}
-	return since.String, err
 }
 
 // AmazonOrdersToFetch lists the account's physical orders whose page should
@@ -436,91 +327,6 @@ func (s *Store) ReparseAmazonOrders(ctx context.Context, parse func([]byte) (*am
 	return len(pages), nil
 }
 
-// AmazonItem is an order line for categorizing.
-type AmazonItem struct {
-	Item             string  `json:"item"` // order_id#line, the handle fin amazon categorize takes
-	OrderID          string  `json:"order_id"`
-	Line             int     `json:"line"`
-	Date             string  `json:"date"`
-	ASIN             *string `json:"asin"`
-	Title            string  `json:"title"`
-	Quantity         int     `json:"quantity"`
-	Cost             float64 `json:"cost"`
-	Category         *string `json:"category"`
-	CategoryDetailed *string `json:"category_detailed"`
-	Source           string  `json:"category_source"` // item, asin, or none
-}
-
-// AmazonItems lists order lines, newest first; with all false, only those
-// without a category.
-func (s *Store) AmazonItems(ctx context.Context, all bool) ([]AmazonItem, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		select i.order_id || '#' || i.line, i.order_id, i.line, coalesce(o.date::varchar, ''), i.asin, i.title, i.quantity,
-			i.cost::double, coalesce(ic.category, ac.category), coalesce(ic.category_detailed, ac.category_detailed),
-			case when ic.category is not null then 'item' when ac.category is not null then 'asin' else 'none' end
-		from amazon_items i join amazon_orders o using (order_id)
-		left join amazon_item_categories ic on ic.order_id = i.order_id and ic.line = i.line
-		left join amazon_asin_categories ac on ac.asin = i.asin
-		where ? or (ic.category is null and ac.category is null)
-		order by o.date desc, i.order_id, i.line`, all)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := []AmazonItem{}
-	for rows.Next() {
-		var it AmazonItem
-		if err := rows.Scan(&it.Item, &it.OrderID, &it.Line, &it.Date, &it.ASIN, &it.Title, &it.Quantity, &it.Cost,
-			&it.Category, &it.CategoryDetailed, &it.Source); err != nil {
-			return nil, err
-		}
-		out = append(out, it)
-	}
-	return out, rows.Err()
-}
-
-// CategoryChange sets one item's category, and optionally its product's.
-type CategoryChange struct {
-	OrderID          string
-	Line             int
-	Category         string
-	CategoryDetailed string
-	ASINDefault      bool
-}
-
-// ErrNoSuchItem means a category was set for an item fin does not have.
-var ErrNoSuchItem = errors.New("no such Amazon item")
-
-// SetAmazonCategories saves categories in one transaction.
-func (s *Store) SetAmazonCategories(ctx context.Context, changes []CategoryChange, at time.Time) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	for _, c := range changes {
-		var asin sql.NullString
-		err := tx.QueryRowContext(ctx, `select asin from amazon_items where order_id = ? and line = ?`, c.OrderID, c.Line).Scan(&asin)
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("%w: %s#%d", ErrNoSuchItem, c.OrderID, c.Line)
-		}
-		if err != nil {
-			return err
-		}
-		if _, err := tx.ExecContext(ctx, `insert or replace into amazon_item_categories values (?, ?, ?, ?, ?)`,
-			c.OrderID, c.Line, c.Category, nullable(c.CategoryDetailed), at); err != nil {
-			return err
-		}
-		if c.ASINDefault && asin.Valid {
-			if _, err := tx.ExecContext(ctx, `insert or replace into amazon_asin_categories values (?, ?, ?, ?)`,
-				asin.String, c.Category, nullable(c.CategoryDetailed), at); err != nil {
-				return err
-			}
-		}
-	}
-	return tx.Commit()
-}
-
 // AmazonSummary counts what is stored for one account.
 type AmazonSummary struct {
 	Account       string     `json:"account"`
@@ -544,14 +350,11 @@ func (s *Store) AmazonSummaries(ctx context.Context) (map[string]AmazonSummary, 
 			(select count(*) from amazon_orders o where o.account = a.account),
 			(select count(*) from amazon_orders o where o.account = a.account and o.kind = 'unreadable'),
 			(select count(*) from amazon_items i join amazon_orders o using (order_id) where o.account = a.account),
-			(select count(*) from amazon_items i join amazon_orders o using (order_id)
-				left join amazon_item_categories ic on ic.order_id = i.order_id and ic.line = i.line
-				left join amazon_asin_categories ac on ac.asin = i.asin
-				where o.account = a.account and ic.category is null and ac.category is null),
+			(select count(*) from retailer_items i where i.retailer = 'amazon' and i.account = a.account and i.category is null),
 			(select count(*) from amazon_matches m where m.account = a.account and m.match = 'exact'),
 			(select count(*) from amazon_matches m where m.account = a.account and m.match = 'unmatched'),
 			(select count(*) from amazon_matches m where m.account = a.account and m.match = 'ambiguous')
-		from amazon_accounts a`)
+		from retailer_accounts a where a.retailer = 'amazon'`)
 	if err != nil {
 		return nil, err
 	}
@@ -575,13 +378,14 @@ func (s *Store) DeleteAmazonAccount(ctx context.Context, account string) error {
 		return err
 	}
 	defer tx.Rollback()
+	if err := deleteRetailerAccount(ctx, tx, amazonRetailer, account); err != nil {
+		return err
+	}
 	for _, q := range []string{
-		`delete from amazon_item_categories where order_id in (select order_id from amazon_orders where account = ?)`,
 		`delete from amazon_items where order_id in (select order_id from amazon_orders where account = ?)`,
 		`delete from amazon_order_pages where order_id in (select order_id from amazon_orders where account = ?)`,
 		`delete from amazon_orders where account = ?`,
 		`delete from amazon_payments where account = ?`,
-		`delete from amazon_accounts where account = ?`,
 	} {
 		if _, err := tx.ExecContext(ctx, q, account); err != nil {
 			return err
@@ -590,65 +394,10 @@ func (s *Store) DeleteAmazonAccount(ctx context.Context, account string) error {
 	return tx.Commit()
 }
 
-// AmazonItemRow is one item with its order and match, for the spreadsheet.
-type AmazonItemRow struct {
-	Date        string
-	OrderID     string
-	Title       string
-	Quantity    int
-	Category    *string
-	Cost        float64
-	Account     string
-	Transaction *string // the matched bank transaction's name and date
-}
-
-// AmazonItemRows lists the items of orders placed on or after since (all
-// when empty), newest first, with the bank transaction its order's charge
-// matched, if any.
-func (s *Store) AmazonItemRows(ctx context.Context, since string) ([]AmazonItemRow, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		select coalesce(o.date::varchar, ''), i.order_id, i.title, i.quantity, coalesce(ic.category, ac.category),
-			i.cost::double, o.account,
-			(select first(t.name || ' · ' || t.date::varchar order by t.date) from amazon_matches m join transactions t using (transaction_id)
-				where m.match = 'exact' and list_contains(m.order_ids, i.order_id) and m.amount > 0)
-		from amazon_items i join amazon_orders o using (order_id)
-		left join amazon_item_categories ic on ic.order_id = i.order_id and ic.line = i.line
-		left join amazon_asin_categories ac on ac.asin = i.asin
-		where ? = '' or o.date >= ?::date
-		order by o.date desc, i.order_id, i.line`, since, cmpDate(since))
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := []AmazonItemRow{}
-	for rows.Next() {
-		var r AmazonItemRow
-		if err := rows.Scan(&r.Date, &r.OrderID, &r.Title, &r.Quantity, &r.Category, &r.Cost, &r.Account, &r.Transaction); err != nil {
-			return nil, err
-		}
-		out = append(out, r)
-	}
-	return out, rows.Err()
-}
-
 func centsMap(m map[string]money.Cents) map[string]float64 {
 	out := make(map[string]float64, len(m))
 	for k, v := range m {
 		out[strings.TrimSuffix(k, ":")] = v.Dollars()
 	}
 	return out
-}
-
-func cmpDate(d string) string {
-	if d == "" {
-		return "0001-01-01"
-	}
-	return d
-}
-
-func nullable(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
 }

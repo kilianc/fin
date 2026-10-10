@@ -29,6 +29,11 @@ var ErrBusy = errors.New("the local store is in use by another fin command")
 var lockWait = 10 * time.Second
 
 const schema = `
+-- fin's settings that queries may want, such as the epoch set with fin epoch.
+create table if not exists settings (
+	key   varchar primary key,
+	value varchar
+);
 create table if not exists items (
 	item_id     varchar primary key,
 	item        varchar not null,
@@ -102,7 +107,7 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.db.ExecContext(ctx, schema+amazonSchema); err != nil {
+	if _, err := s.db.ExecContext(ctx, schema+retailerSchema+amazonSchema+retailerItemsView()); err != nil {
 		s.Close()
 		return nil, fmt.Errorf("store: create schema: %w", err)
 	}

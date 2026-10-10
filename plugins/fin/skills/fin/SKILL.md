@@ -77,21 +77,22 @@ unless the user asks about earlier; older rows are history, not deleted.
 If `fin amazon` lists accounts, `fin sync` also reads Amazon payments and
 orders, so an Amazon charge can be broken down by item:
 
+- `retailer_items` has every item bought at a connected retailer
+  (`retailer = 'amazon'`), with `cost`: its price plus its share of
+  shipping, discounts and tax, so an order's items add up to its total. It
+  carries the item's `category` and a `transaction_id` that paid for the
+  order, when one matched.
 - `amazon_matches` says which bank transaction each Amazon payment became
   (`exact`, `ambiguous`, `unmatched`, `no_bank_charge`), with its
-  `order_ids`. `amazon_items` has each order line with `cost`: its price
-  plus its share of shipping, discounts and tax, so an order's items add up
-  to its total.
-- An item's category is in `amazon_item_categories`, else in
-  `amazon_asin_categories` by `asin`.
+  `order_ids`.
 - Amazon charges some orders in several payments, one per shipment, and does
   not say which items each payment covered. Report those at the order level;
   don't guess which items a payment paid for.
 - After a sync, categorize new items: `fin amazon categorize --json` lists
   them; save with `fin amazon categorize --set --json` and a JSON list on
   stdin: `[{"item": "111-…#1", "category": "HOME_IMPROVEMENT", "detailed":
-  "HOME_IMPROVEMENT_HARDWARE", "asin_default": true}]`. Use Plaid's
-  categories (the list comes back in `categories`); set `asin_default` for
+  "HOME_IMPROVEMENT_HARDWARE", "product": true}]`. Use Plaid's
+  categories (the list comes back in `categories`); set `product` for
   things bought repeatedly. Ask the user when an item's purpose is unclear.
 - `AMAZON_RATE_LIMITED` means Amazon refused requests. fin won't ask again
   before `retry_at`; don't retry sooner, and answer from what is stored.

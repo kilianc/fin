@@ -78,8 +78,8 @@ func TestAmazonMatchesAndCategories(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got, _ := s.AmazonCompleteSince(ctx, "pat"); got != "2026-01-01" {
-		t.Errorf("complete since = %q", got)
+	if got, _ := s.RetailerAccountState(ctx, "amazon", "pat"); got.CompleteSince != "2026-01-01" || got.Status != "ok" {
+		t.Errorf("account state = %+v", got)
 	}
 	if got, _ := s.EarliestTransaction(ctx); got != "2026-08-01" {
 		t.Errorf("earliest transaction = %q", got)
@@ -135,29 +135,30 @@ func TestAmazonMatchesAndCategories(t *testing.T) {
 		}
 	}
 
-	items, err := s.AmazonItems(ctx, false)
-	if err != nil || len(items) != 3 || items[0].Item != multi+"#1" || items[0].Source != "none" {
+	uncategorized := ItemFilter{Uncategorized: true}
+	items, err := s.RetailerItems(ctx, "amazon", uncategorized)
+	if err != nil || len(items) != 3 || items[0].Item != multi+"#1" || items[0].Source != "none" ||
+		items[0].Transaction == nil || *items[0].Transaction != "AMAZON MARKETPLACE NAMZN.COM/BILL · 2026-09-03" {
 		t.Fatalf("uncategorized = %+v, %v", items, err)
 	}
-	err = s.SetAmazonCategories(ctx, []CategoryChange{
-		{OrderID: multi, Line: 1, Category: "HOME_IMPROVEMENT", CategoryDetailed: "HOME_IMPROVEMENT_HARDWARE", ASINDefault: true},
-		{OrderID: multi, Line: 2, Category: "GENERAL_MERCHANDISE", CategoryDetailed: "GENERAL_MERCHANDISE_ELECTRONICS"},
+	err = s.SetCategories(ctx, "amazon", []CategoryChange{
+		{Item: multi + "#1", Category: "HOME_IMPROVEMENT", CategoryDetailed: "HOME_IMPROVEMENT_HARDWARE", Product: true},
+		{Item: multi + "#2", Category: "GENERAL_MERCHANDISE", CategoryDetailed: "GENERAL_MERCHANDISE_ELECTRONICS"},
 	}, syncedAt)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.SetAmazonCategories(ctx, []CategoryChange{{OrderID: multi, Line: 9, Category: "X"}}, syncedAt); err == nil {
+	if err := s.SetCategories(ctx, "amazon", []CategoryChange{{Item: multi + "#9", Category: "X"}}, syncedAt); err == nil {
 		t.Error("set a category on a missing item")
 	}
-	cats := map[int32]any{}
-	for _, r := range queryRows(t, s, `select i.line, coalesce(ic.category, ac.category) from amazon_items i
-		left join amazon_item_categories ic using (order_id, line) left join amazon_asin_categories ac using (asin)`) {
-		cats[r[0].(int32)] = r[1]
+	cats := map[string]any{}
+	for _, r := range queryRows(t, s, `select item, category from retailer_items`) {
+		cats[r[0].(string)] = r[1]
 	}
-	if cats[1] != "HOME_IMPROVEMENT" || cats[2] != "GENERAL_MERCHANDISE" || cats[3] != nil {
+	if cats[multi+"#1"] != "HOME_IMPROVEMENT" || cats[multi+"#2"] != "GENERAL_MERCHANDISE" || cats[multi+"#3"] != nil {
 		t.Errorf("categories = %v", cats)
 	}
-	if left, _ := s.AmazonItems(ctx, false); len(left) != 1 {
+	if left, _ := s.RetailerItems(ctx, "amazon", uncategorized); len(left) != 1 {
 		t.Errorf("uncategorized after setting two = %d", len(left))
 	}
 
@@ -184,7 +185,8 @@ func TestAmazonMatchesAndCategories(t *testing.T) {
 	if err := s.DeleteAmazonAccount(ctx, "pat"); err != nil {
 		t.Fatal(err)
 	}
-	if rows := queryRows(t, s, `select (select count(*) from amazon_payments) + (select count(*) from amazon_items) + (select count(*) from amazon_orders)`); rows[0][0] != int64(0) {
+	if rows := queryRows(t, s, `select (select count(*) from amazon_payments) + (select count(*) from amazon_items) + (select count(*) from amazon_orders) +
+		(select count(*) from item_categories) + (select count(*) from retailer_accounts)`); rows[0][0] != int64(0) {
 		t.Errorf("rows left after delete = %v", rows[0][0])
 	}
 }
