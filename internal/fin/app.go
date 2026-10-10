@@ -13,6 +13,7 @@ import (
 
 	"github.com/kilianc/fin/internal/keychain"
 	"github.com/kilianc/fin/internal/plaid"
+	"github.com/kilianc/fin/internal/sheets"
 	"github.com/kilianc/fin/internal/state"
 	"github.com/kilianc/fin/internal/ui"
 )
@@ -58,6 +59,10 @@ type App struct {
 	StatePath string
 	// DataDir holds the DuckDB files, one per environment.
 	DataDir string
+	// Google is fin's OAuth client for fin sheet, and SheetsBase the Sheets API
+	// root (empty means Google's).
+	Google     sheets.OAuthClient
+	SheetsBase string
 	// PlaidCLIConfig is Plaid's own CLI config.json, read by fin setup --from-plaid.
 	PlaidCLIConfig string
 	Secrets        Secrets

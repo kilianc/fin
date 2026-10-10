@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/kilianc/fin/internal/plaid"
+	"github.com/kilianc/fin/internal/sheets/sheetstest"
 	"github.com/kilianc/fin/internal/state"
 )
 
@@ -910,5 +911,64 @@ func TestSetupImportsKeysFromPlaidCLI(t *testing.T) {
 	code, _ = ta.run(t, "setup", "--from-plaid")
 	if e := ta.stderrJSON(t); code != exitError || e["code"] != "PLAID_CLI_NO_SECRET" || !strings.Contains(e["message"].(string), "plaid keys fetch") {
 		t.Errorf("no production secret: exit %d, stderr %s", code, ta.stderr)
+	}
+}
+
+func TestSheetSyncsAndWritesTabs(t *testing.T) {
+	ta := newTestApp(t, chase)
+	f := sheetstest.New(t)
+	ta.Google, ta.SheetsBase = f.Client(), f.URL
+	ta.secrets.m[googleTokenAccount] = f.Refresh
+	ta.fake.syncPages["tok-item-chase"] = func(cursor string, _ int) (*plaid.TransactionsSyncResponse, error) {
+		page := &plaid.TransactionsSyncResponse{
+			Accounts:                 []plaid.Account{{AccountID: "chk", Name: "Checking", Mask: ptr("0001"), Balances: plaid.Balances{Current: ptr(120.5)}}},
+			TransactionsUpdateStatus: "HISTORICAL_UPDATE_COMPLETE", NextCursor: "c1",
+		}
+		if cursor == "" {
+			page.Added = []plaid.Transaction{tx("a", "chk", "2026-10-02", 4.5), tx("b", "chk", "2026-10-03", 10)}
+		}
+		return page, nil
+	}
+
+	code, body := ta.run(t, "sheet")
+	if code != exitOK {
+		t.Fatalf("exit = %d; stderr %s", code, ta.stderr)
+	}
+	id := body["spreadsheet_id"].(string)
+	if body["created"] != true || body["transactions"] != 2.0 || body["accounts"] != 1.0 {
+		t.Errorf("body = %v", body)
+	}
+	sh := f.Sheets[id]
+	if sh.Title != "fin (sandbox)" || len(sh.Values["Transactions"]) != 3 || sh.Values["Transactions"][1][13] != "b" {
+		t.Errorf("sheet = %+v", sh)
+	}
+	if acc := sh.Values["Accounts"][1]; acc[2] != "Checking" || acc[7] != 120.5 {
+		t.Errorf("accounts row = %v", acc)
+	}
+
+	code, body = ta.run(t, "sheet")
+	if code != exitOK || body["spreadsheet_id"] != id || body["created"] != false {
+		t.Errorf("second run: exit %d, body %v", code, body)
+	}
+
+	f.Delete(id)
+	code, body = ta.run(t, "sheet")
+	if code != exitOK || body["spreadsheet_id"] == id || body["created"] != true {
+		t.Errorf("after delete: exit %d, body %v", code, body)
+	}
+	st, _ := state.Load(ta.StatePath)
+	if st.Sheets["sandbox"] != body["spreadsheet_id"] {
+		t.Errorf("state sheets = %v", st.Sheets)
+	}
+}
+
+func TestSheetAsksToSignInAgainWhenRevoked(t *testing.T) {
+	ta := newTestApp(t)
+	f := sheetstest.New(t)
+	ta.Google, ta.SheetsBase = f.Client(), f.URL
+	ta.secrets.m[googleTokenAccount] = "revoked"
+	code, _ := ta.run(t, "sheet")
+	if e := ta.stderrJSON(t); code != exitError || e["code"] != "GOOGLE_SIGNIN_EXPIRED" {
+		t.Errorf("exit %d, stderr %s", code, ta.stderr)
 	}
 }

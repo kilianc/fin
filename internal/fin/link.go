@@ -48,24 +48,21 @@ func (a *App) cmdSetup(ctx context.Context, args []string) (*result, error) {
 	} else if len(pos) > 0 {
 		return nil, usageErr("usage: fin setup [--from-plaid]")
 	}
+	if !*fromPlaid && a.showSpinner() {
+		return a.setupScreen(ctx)
+	}
 	var clientID, secret string
 	var err error
 	if *fromPlaid {
-		clientID, secret, err = a.plaidCLIKeys()
+		clientID, secret, err = a.plaidCLIKeys(a.Env)
 	} else {
 		clientID, secret, err = a.promptKeys()
 	}
 	if err != nil {
 		return nil, err
 	}
-	if err := a.NewPlaid(a.Env, clientID, secret).VerifyCredentials(ctx); err != nil {
+	if err := a.saveKeys(ctx, a.Env, clientID, secret); err != nil {
 		return nil, err
-	}
-	if err := a.Secrets.Set(accountClientID, clientID); err != nil {
-		return nil, newErr("KEYCHAIN_ERROR", "%v", err)
-	}
-	if err := a.Secrets.Set(secretAccount(a.Env), secret); err != nil {
-		return nil, newErr("KEYCHAIN_ERROR", "%v", err)
 	}
 	body := map[string]any{"env": a.Env, "stored": []string{accountClientID, secretAccount(a.Env)}, "verified": true}
 	msg := ui.Line(ui.Good, fmt.Sprintf("Plaid accepted your %s keys. They are saved in your macOS Keychain, nowhere else.", a.Env))
@@ -76,6 +73,81 @@ func (a *App) cmdSetup(ctx context.Context, args []string) (*result, error) {
 		msg = ui.Line(ui.Good, fmt.Sprintf("Imported your %s keys from Plaid's CLI. Plaid accepted them, and they are saved in your macOS Keychain.", a.Env)) +
 			"\n" + ui.Muted.Render(note)
 	}
+	return &result{body: body, message: msg}, nil
+}
+
+// saveKeys checks the keys with Plaid, then stores them in the Keychain.
+func (a *App) saveKeys(ctx context.Context, env plaid.Env, clientID, secret string) error {
+	if err := a.NewPlaid(env, clientID, secret).VerifyCredentials(ctx); err != nil {
+		return err
+	}
+	if err := a.Secrets.Set(accountClientID, clientID); err != nil {
+		return newErr("KEYCHAIN_ERROR", "%v", err)
+	}
+	if err := a.Secrets.Set(secretAccount(env), secret); err != nil {
+		return newErr("KEYCHAIN_ERROR", "%v", err)
+	}
+	return nil
+}
+
+const plaidKeysURL = "https://dashboard.plaid.com/developers/keys"
+
+// setupScreen is fin setup as a full-screen form, for a person at a terminal.
+func (a *App) setupScreen(ctx context.Context) (*result, error) {
+	stored, err := a.Secrets.Get(accountClientID)
+	if err != nil && !errors.Is(err, keychain.ErrNotFound) {
+		return nil, newErr("KEYCHAIN_ERROR", "%v", err)
+	}
+	opts := ui.SetupOptions{
+		Env:      string(a.Env),
+		ClientID: stored,
+		KeysURL:  plaidKeysURL,
+		Verify: func(ctx context.Context, env, clientID, secret string) error {
+			if err := a.NewPlaid(plaid.Env(env), clientID, secret).VerifyCredentials(ctx); err != nil {
+				return errors.New(asCLIError(err).Message)
+			}
+			return nil
+		},
+		Save: func(env, clientID, secret string) error {
+			if err := a.Secrets.Set(accountClientID, clientID); err != nil {
+				return err
+			}
+			return a.Secrets.Set(secretAccount(plaid.Env(env)), secret)
+		},
+		Open: a.OpenURL,
+		Next: "fin link --open",
+	}
+	// PLAID_ENV pins the environment for this shell, so it can't be switched here.
+	if a.EnvVar == "" {
+		opts.Envs = []string{string(plaid.Sandbox), string(plaid.Production)}
+		opts.SwitchEnv = func(env string) error {
+			st, err := a.loadState()
+			if err != nil {
+				return err
+			}
+			st.Env = env
+			return a.saveState(st)
+		}
+	}
+	if _, err := os.Stat(a.PlaidCLIConfig); err == nil {
+		opts.Import = func(env string) (string, string, error) {
+			id, secret, err := a.plaidCLIKeys(plaid.Env(env))
+			if err != nil {
+				return "", "", errors.New(asCLIError(err).Message)
+			}
+			return id, secret, nil
+		}
+	}
+	res, err := ui.Setup(ctx, a.Stdin, a.Stderr, opts)
+	if errors.Is(err, ui.ErrCancelled) {
+		return nil, newErr("CANCELLED", "setup cancelled; nothing was saved")
+	}
+	if err != nil {
+		return nil, err
+	}
+	a.Env = plaid.Env(res.Env)
+	body := map[string]any{"env": a.Env, "stored": []string{accountClientID, secretAccount(a.Env)}, "verified": true, "imported": res.Imported}
+	msg := ui.Line(ui.Good, fmt.Sprintf("Your %s keys are saved in your macOS Keychain. Next: fin link --open", a.Env))
 	return &result{body: body, message: msg}, nil
 }
 
@@ -126,7 +198,7 @@ type plaidCLIConfig struct {
 
 // plaidCLIKeys reads the client ID and the current environment's secret from
 // Plaid's CLI, so signing in through the Plaid Dashboard replaces pasting keys.
-func (a *App) plaidCLIKeys() (string, string, error) {
+func (a *App) plaidCLIKeys(env plaid.Env) (string, string, error) {
 	path := a.PlaidCLIConfig
 	data, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -143,13 +215,13 @@ func (a *App) plaidCLIKeys() (string, string, error) {
 	if cfg.ClientID == "" {
 		return "", "", newErr("PLAID_CLI_NOT_LOGGED_IN", "Plaid's CLI has no client ID yet; run plaid login first")
 	}
-	secret := cfg.Environments[string(a.Env)].Secret
+	secret := cfg.Environments[string(env)].Secret
 	if secret == "" {
 		hint := "run plaid login first"
-		if a.Env == plaid.Production {
+		if env == plaid.Production {
 			hint = "production keys arrive once your Trial plan is approved; then run plaid keys fetch"
 		}
-		return "", "", newErr("PLAID_CLI_NO_SECRET", "Plaid's CLI has no %s secret; %s", a.Env, hint)
+		return "", "", newErr("PLAID_CLI_NO_SECRET", "Plaid's CLI has no %s secret; %s", env, hint)
 	}
 	return cfg.ClientID, secret, nil
 }
@@ -644,8 +716,4 @@ func (a *App) cmdSandboxResetLogin(ctx context.Context, args []string) (*result,
 		return nil, err
 	}
 	return &result{body: map[string]any{"env": a.Env, "reset_login": it.Name}}, nil
-}
-
-func (a *App) cmdExport(ctx context.Context, args []string) (*result, error) {
-	return nil, newErr("NOT_IMPLEMENTED", "fin export sheet is not built yet")
 }

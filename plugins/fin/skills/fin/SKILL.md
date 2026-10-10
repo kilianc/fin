@@ -34,6 +34,7 @@ for account numbers or personal details.
 | `fin transactions --since DATE [--until DATE] [--account X]` | Transactions, newest first |
 | `fin sync` | Pulls new and changed transactions into a local DuckDB file |
 | `fin sql "<query>"` | Read-only DuckDB SQL over that file (`fin help sql` lists the tables) |
+| `fin sheet` | Syncs and writes everything to a Google Sheet; the first run needs the user to sign in to Google in the browser |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Buys, sells, dividends, fees |
 | `fin institutions <name>` | Whether Plaid supports a bank, before using a slot |

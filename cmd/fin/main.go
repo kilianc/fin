@@ -71,6 +71,7 @@ func run() int {
 		StatePath:      statePath,
 		DataDir:        dataDir,
 		PlaidCLIConfig: filepath.Join(configDir, "plaid-cli", "config.json"),
+		Google:         googleClient(),
 		Secrets:        keychain.Keychain{Service: "fin"},
 		NewPlaid: func(env plaid.Env, clientID, secret string) fin.Plaid {
 			return plaid.NewClient(env, clientID, secret)

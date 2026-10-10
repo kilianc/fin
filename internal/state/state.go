@@ -47,6 +47,8 @@ type State struct {
 	// Env is the Plaid environment chosen with `fin env`. PLAID_ENV overrides it.
 	Env   string `json:"env,omitempty"`
 	Items []Item `json:"items"`
+	// Sheets maps an environment to the spreadsheet fin sheet writes to.
+	Sheets map[string]string `json:"sheets,omitempty"`
 }
 
 // DefaultPath is $FIN_CONFIG_DIR/state.json, or ~/.config/fin/state.json.

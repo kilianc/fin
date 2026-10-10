@@ -206,7 +206,25 @@ Flags:
 		examples: []string{"fin investments --since 2026-01-01"},
 		run:      func(a *App) command { return a.cmdInvestments },
 	},
-	{name: "export", hidden: true, run: func(a *App) command { return a.cmdExport }},
+	{
+		name: "sheet", usage: "fin sheet [--open] [--new] [--login]", group: groupRead,
+		summary: "Keep a Google Sheet with your transactions and balances",
+		detail: `Syncs, then writes every stored transaction and account to a spreadsheet
+named "fin" in your Google Drive. The first run signs in to Google in your
+browser; fin asks only to create files and to edit the ones it created, so it
+cannot see anything else in your Drive. The login is kept in the Keychain.
+
+fin owns the Transactions and Accounts tabs and rewrites them on every run.
+Add your own tabs for charts and formulas; fin leaves them alone. Amounts use
+Plaid's sign: positive is money out, negative is money in.
+
+Flags:
+  --open    open the spreadsheet afterwards
+  --new     start a new spreadsheet (the old one stays in your Drive)
+  --login   sign in to Google again`,
+		examples: []string{"fin sheet", "fin sheet --open"},
+		run:      func(a *App) command { return a.cmdSheet },
+	},
 	{name: "sandbox-link", hidden: true, run: func(a *App) command { return a.cmdSandboxLink }},
 	{name: "sandbox-reset-login", hidden: true, run: func(a *App) command { return a.cmdSandboxResetLogin }},
 }

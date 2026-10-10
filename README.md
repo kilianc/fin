@@ -213,7 +213,8 @@ and slot.
   arguments, environment variables or logs. fin writes them through
   `security -i` on stdin, so they never appear in a process listing.
 - **No middleman.** Your data goes from Plaid's API to your machine and
-  nowhere else. fin has no server and no telemetry.
+  nowhere else, unless you run `fin sheet`, which writes it to a spreadsheet
+  in your own Google Drive. fin has no server and no telemetry.
 - **Local data is private.** `~/.config/fin/state.json` holds only names,
   institution IDs and sync times. Synced transactions and account balances
   live in a DuckDB file in `~/.local/share/fin`, one per environment
@@ -240,6 +241,7 @@ and slot.
 | `fin sync` | Pull new and changed transactions into the local DuckDB file |
 | `fin sql "<query>"` | Query the local file with DuckDB SQL, read-only |
 | `fin paths [database]` | Where the state file and the DuckDB file are |
+| `fin sheet [--open]` | Keep a Google Sheet with your transactions and balances |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Investment transactions |
 
@@ -430,6 +432,16 @@ fin sql "select category, sum(amount) as spent from transactions
 The file also opens in the `duckdb` CLI (`duckdb "$(fin paths database)"`)
 when no fin command is writing to it.
 
+### `fin sheet [--open] [--new] [--login]`
+
+For people who'd rather use a spreadsheet than SQL. The first run signs in to
+Google in your browser, with the `drive.file` permission only: fin can create
+spreadsheets and edit the ones it created, and can't see anything else in your
+Drive. Each run syncs, then rewrites the **Transactions** and **Accounts** tabs
+of a spreadsheet named "fin". Add your own tabs for charts and formulas; fin
+leaves them alone. Values are written raw, so a merchant name can never run as
+a formula. `--new` starts a fresh spreadsheet, `--login` signs in again.
+
 ### `fin holdings [--account X]`
 
 ```json
@@ -587,7 +599,5 @@ connections.
 
 ## Not built yet
 
-- `fin export sheet --id SHEET_ID`, to push everything to a Google Sheet,
-  returns `NOT_IMPLEMENTED` for now.
 - The local DuckDB file holds transactions and account balances only.
   Holdings and investment transactions are still read live from Plaid.

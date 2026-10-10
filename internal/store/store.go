@@ -292,6 +292,51 @@ func (s *Store) Transactions(ctx context.Context, f Filter) ([]Transaction, erro
 	return out, rows.Err()
 }
 
+// Account is one stored account with its latest balances.
+type Account struct {
+	Item            string   `json:"item"`
+	Institution     string   `json:"institution"`
+	AccountID       string   `json:"account_id"`
+	Name            string   `json:"name"`
+	OfficialName    *string  `json:"official_name"`
+	Mask            *string  `json:"mask"`
+	Type            string   `json:"type"`
+	Subtype         *string  `json:"subtype"`
+	Current         *float64 `json:"current"`
+	Available       *float64 `json:"available"`
+	Limit           *float64 `json:"limit"`
+	IsoCurrencyCode *string  `json:"iso_currency_code"`
+	UpdatedAt       string   `json:"updated_at"`
+}
+
+// Accounts lists the stored accounts of the given Items, by Item then name.
+func (s *Store) Accounts(ctx context.Context, itemIDs []string) ([]Account, error) {
+	out := []Account{}
+	if len(itemIDs) == 0 {
+		return out, nil
+	}
+	rows, err := s.db.QueryContext(ctx, `
+		select i.item, coalesce(i.institution, ''), a.account_id, a.name, a.official_name, a.mask,
+			coalesce(a.type, ''), a.subtype, a.current::double, a.available::double, a."limit"::double,
+			a.iso_currency_code, strftime(a.updated_at, '%Y-%m-%d')
+		from accounts a join items i using (item_id)
+		where a.item_id in (select unnest(?::varchar[]))
+		order by i.item, a.name`, itemIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var a Account
+		if err := rows.Scan(&a.Item, &a.Institution, &a.AccountID, &a.Name, &a.OfficialName, &a.Mask, &a.Type,
+			&a.Subtype, &a.Current, &a.Available, &a.Limit, &a.IsoCurrencyCode, &a.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
 // SyncInfo is when an Item was last synced into the store.
 type SyncInfo struct {
 	Item     string    `json:"item"`
