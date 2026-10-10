@@ -75,14 +75,18 @@ unless the user asks about earlier; older rows are history, not deleted.
 ## Amazon orders (experimental)
 
 If `fin amazon` lists accounts, `fin sync` also reads Amazon payments and
-orders, and Amazon charges can be split by item:
+orders, so an Amazon charge can be broken down by item:
 
-- `amazon_items` has each order line with `allocated`, its share of what the
-  order cost. `amazon_matches` says which bank transaction each Amazon
-  payment became (`exact`, `ambiguous`, `unmatched`, `no_bank_charge`).
-- The `spending` view lists every transaction once, with each exactly matched
-  Amazon charge replaced by one row per item. Use it, not `transactions`, for
-  spending by category.
+- `amazon_matches` says which bank transaction each Amazon payment became
+  (`exact`, `ambiguous`, `unmatched`, `no_bank_charge`), with its
+  `order_ids`. `amazon_items` has each order line with `allocated`, its
+  share of what the order cost, tax and shipping included; an order's items
+  add up to its total.
+- An item's category is in `amazon_item_categories`, else in
+  `amazon_asin_categories` by `asin`.
+- Amazon charges some orders in several payments, one per shipment, and does
+  not say which items each payment covered. Report those at the order level;
+  don't guess which items a payment paid for.
 - After a sync, categorize new items: `fin amazon categorize --json` lists
   them; save with `fin amazon categorize --set --json` and a JSON list on
   stdin: `[{"item": "111-…#1", "category": "HOME_IMPROVEMENT", "detailed":

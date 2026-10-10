@@ -71,14 +71,15 @@ else in your Drive.
 
 One Amazon charge often pays for things in several categories. `fin amazon
 login home` copies your amazon.com sign-in from Chrome, reads your Amazon
-payments and order pages, and matches each card charge to the order and items
-it paid for. Your agent then categorizes the items (`fin amazon categorize`),
-and the `spending` view in `fin sql` lists every transaction once, with each
-matched Amazon charge split into its items and their categories:
+payments and order pages, and matches each card charge to the order it paid
+for. Each item comes with what it cost, its share of tax and shipping
+included, and your agent categorizes them (`fin amazon categorize`):
 
 ```text
-$ fin sql "select category, sum(amount) from spending where amount > 0
-           and date >= '2026-09-01' group by 1 order by 2 desc"
+$ fin sql "select m.transaction_id, i.title, i.allocated
+           from amazon_matches m join amazon_items i
+             on list_contains(m.order_ids, i.order_id)
+           where m.match = 'exact'"
 ```
 
 This uses amazon.com's own website endpoints with your session. Amazon offers

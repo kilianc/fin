@@ -59,7 +59,7 @@ items from that day on, fin amazon reads Amazon back to a week before it, and
 fin sql can read it from the settings table. Nothing older is deleted; it
 stays in the database as history. With no argument, shows it; none clears it.`,
 		examples: []string{"fin epoch", "fin epoch 2025-05-01",
-			"fin sql \"select sum(amount) from spending where date >= (select value::date from settings where key = 'epoch')\""},
+			"fin sql \"select sum(amount) from transactions where date >= (select value::date from settings where key = 'epoch')\""},
 		run: func(a *App) command { return a.cmdEpoch },
 	},
 	{
@@ -182,13 +182,10 @@ Tables:
   accounts      account_id, item_id, name, official_name, mask, type, subtype,
                 current, available, limit, iso_currency_code, updated_at
   items         item_id, item, institution, cursor, status, last_sync
-  spending      every transaction once; with fin amazon, matched Amazon
-                charges become one row per item with the item's category
-
   settings      key, value: the epoch set with fin epoch, under 'epoch'
 
 With fin amazon, also amazon_payments, amazon_orders, amazon_items,
-amazon_matches and amazon_splits (see fin help amazon).
+amazon_matches and the category tables (see fin help amazon).
 
 Amounts use Plaid's sign: positive is money out, negative is money in.`,
 		examples: []string{
@@ -247,10 +244,10 @@ Flags:
 	},
 	{
 		name: "amazon", usage: "fin amazon [login|sync|categorize|logout|profiles]", group: groupMore,
-		summary: "Itemize Amazon orders so their charges split by category",
+		summary: "Itemize Amazon orders so their items can be categorized",
 		detail: `Experimental. Matches each Amazon charge on your cards to the order it paid
-for and the items in it, so one big Amazon charge splits into categories like
-any other spending. It reads your amazon.com payments and order pages with
+for and the items in it, each with its share of tax and shipping, so the
+items in one big charge can each get a category. It reads your amazon.com payments and order pages with
 the sign-in your Chrome already has. Amazon offers no API for this: it uses
 the website's own endpoints, which Amazon's Conditions of Use do not allow
 and which can change or stop working at any time. US amazon.com only.
@@ -288,16 +285,16 @@ up with bank transactions. In fin sql:
                    order's items add up to it exactly)
   amazon_matches   each payment's match: exact, ambiguous, unmatched, or
                    no_bank_charge (gift cards), with the transaction_id
-  amazon_splits    each matched bank transaction split across its items
-  spending         every transaction once, with matched Amazon charges
-                   replaced by one row per item and its category
+  amazon_item_categories  order_id, line, category, category_detailed
+  amazon_asin_categories  asin, category, category_detailed: set with
+                   --product; an item without its own category uses these
 
 The sign-in is kept encrypted in fin's data directory, with its key in the
 Keychain. Your Chrome stays signed in; fin never changes it.`,
 		examples: []string{
 			"fin epoch 2025-05-01 && fin amazon login home",
 			"fin amazon categorize --set 111-1234567-1234567#2 HOME_IMPROVEMENT --product",
-			"fin sql \"select category, sum(amount) from spending where amount > 0 group by 1 order by 2 desc\"",
+			"fin sql \"select m.transaction_id, i.title, i.allocated from amazon_matches m join amazon_items i on list_contains(m.order_ids, i.order_id) where m.match = 'exact'\"",
 		},
 		run: func(a *App) command { return a.cmdAmazon },
 	},

@@ -598,7 +598,7 @@ func (a *App) cmdAmazonLogin(ctx context.Context, args []string) (*result, error
 		if err := a.saveState(st); err != nil {
 			return ui.FlowResult{}, err
 		}
-		return ui.FlowResult{Message: fmt.Sprintf("Connected %s and read %d orders. Next: fin amazon categorize, then query the spending view with fin sql.", name, view.Orders)}, nil
+		return ui.FlowResult{Message: fmt.Sprintf("Connected %s and read %d orders. Next: fin amazon categorize.", name, view.Orders)}, nil
 	}
 
 	if a.showSpinner() {

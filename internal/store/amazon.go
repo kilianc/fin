@@ -134,66 +134,6 @@ select p.payment_key, p.account, p.date, p.amount, p.payment_method, p.descripto
 	case when agg.candidates = 1 and agg.per_transaction = 1 then agg.transaction_id end as transaction_id,
 	coalesce(agg.candidates, 0) as candidates
 from p left join agg using (payment_key);
-
--- Each matched bank transaction split across the items it paid for, in
--- proportion to their allocated amounts. A refund goes to the item whose
--- share it equals, else to the items Amazon marks returned, else to the whole
--- order. The splits of a transaction add up to its amount exactly; the
--- rounding cent goes to the largest item.
-create or replace view amazon_splits as
-with m as (
-	select transaction_id, payment_key, amount as charge, unnest(order_ids) as order_id
-	from amazon_matches where match = 'exact'
-),
-lines as (
-	select m.transaction_id, m.payment_key, m.charge, i.order_id, i.line, i.asin, i.title, i.quantity, i.allocated,
-		coalesce(ic.category, ac.category) as category,
-		coalesce(ic.category_detailed, ac.category_detailed) as category_detailed,
-		abs(i.allocated + m.charge) < 0.005 as equals_refund,
-		regexp_matches(lower(coalesce(i.return_status, '')), 'refund (has been )?issued|return is complete|returned|refunded') as returned
-	from m join amazon_items i using (order_id)
-	left join amazon_item_categories ic on ic.order_id = i.order_id and ic.line = i.line
-	left join amazon_asin_categories ac on ac.asin = i.asin
-),
-ranked as (
-	select *,
-		count(*) filter (where equals_refund) over w as n_equal,
-		count(*) filter (where returned) over w as n_returned,
-		row_number() over (partition by payment_key, equals_refund order by order_id, line) as nth_equal
-	from lines window w as (partition by payment_key)
-),
-kept as (
-	select *, sum(allocated) over (partition by payment_key) as base
-	from ranked
-	where charge >= 0
-		or (n_equal > 0 and equals_refund and nth_equal = 1)
-		or (n_equal = 0 and n_returned > 0 and returned)
-		or (n_equal = 0 and n_returned = 0)
-),
-shares as (
-	select *,
-		case when base = 0 then 0 else round(charge * allocated / base, 2) end::decimal(18, 4) as share,
-		row_number() over (partition by payment_key order by allocated desc, order_id, line) as rank
-	from kept
-)
-select transaction_id, payment_key, order_id, line, asin, title, quantity, category, category_detailed,
-	(share + case when rank = 1 then charge - sum(share) over (partition by payment_key) else 0 end)::decimal(18, 4) as amount
-from shares;
-
--- Every transaction once, except Amazon charges matched to an order, which
--- appear as one row per item with the item's category.
-create or replace view spending as
-select t.transaction_id, t.item_id, t.account_id, t.date, t.authorized_date, t.name, t.merchant_name,
-	t.amount, t.iso_currency_code, t.pending, t.category, t.category_detailed,
-	null::varchar as amazon_order_id, null::integer as amazon_line, null::varchar as amazon_item
-from transactions t
-where t.transaction_id not in (select transaction_id from amazon_splits)
-union all
-select t.transaction_id, t.item_id, t.account_id, t.date, t.authorized_date, t.name, t.merchant_name,
-	s.amount, t.iso_currency_code, t.pending,
-	coalesce(s.category, t.category), coalesce(s.category_detailed, t.category_detailed),
-	s.order_id, s.line, s.title
-from amazon_splits s join transactions t using (transaction_id);
 `
 
 // SetSetting saves one setting; an empty value removes it.

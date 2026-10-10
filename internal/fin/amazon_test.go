@@ -2,6 +2,7 @@ package fin
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -113,18 +114,14 @@ func TestAmazonLoginSyncCategorizeAndSpending(t *testing.T) {
 		t.Errorf("an unknown category was accepted (exit %d)", code)
 	}
 
-	_, body = ta.run(t, "sql", "--json", "select category, sum(amount)::double as total from spending group by 1 order by 1")
-	totals := map[string]float64{}
+	_, body = ta.run(t, "sql", "--json", "select i.line, coalesce(ic.category, ac.category) as category from amazon_items i "+
+		"left join amazon_item_categories ic using (order_id, line) left join amazon_asin_categories ac using (asin) order by 1")
+	got := []any{}
 	for _, r := range body["rows"].([]any) {
-		row := r.(map[string]any)
-		totals[row["category"].(string)] = row["total"].(float64)
+		got = append(got, r.(map[string]any)["category"])
 	}
-	// 51.99 splits 34.66 (knife), 13.43 (cable) and 3.90 (notebook, still the bank's category).
-	want := map[string]float64{"HOME_IMPROVEMENT": 34.66, "GENERAL_MERCHANDISE": 13.43 + 3.90, "FOOD_AND_DRINK": 4.25}
-	for k, v := range want {
-		if d := totals[k] - v; d > 0.001 || d < -0.001 {
-			t.Errorf("spending %s = %v, want %v (all: %v)", k, totals[k], v, totals)
-		}
+	if want := []any{"HOME_IMPROVEMENT", "GENERAL_MERCHANDISE", nil}; fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Errorf("item categories = %v, want %v", got, want)
 	}
 
 	code, body = ta.run(t, "amazon", "--json")

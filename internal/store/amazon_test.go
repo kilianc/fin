@@ -31,7 +31,7 @@ func queryRows(t *testing.T, s *Store, q string) [][]any {
 	return res.Rows
 }
 
-func TestAmazonMatchesSplitsAndSpending(t *testing.T) {
+func TestAmazonMatchesAndCategories(t *testing.T) {
 	ctx := context.Background()
 	s, _ := openTemp(t)
 	d := ItemSync{ItemID: "item-amex", Item: "amex", Cursor: "c", SyncedAt: syncedAt,
@@ -134,22 +134,6 @@ func TestAmazonMatchesSplitsAndSpending(t *testing.T) {
 		}
 	}
 
-	// 51.99 split by allocated 41.33 : 16.01 : 4.65 of 61.99.
-	splits := queryRows(t, s, `select line, amount from amazon_splits where transaction_id = 'charge' order by line`)
-	if len(splits) != 3 || splits[0][1] != 34.66 || splits[1][1] != 13.43 || splits[2][1] != 3.9 {
-		t.Errorf("charge splits = %v", splits)
-	}
-	// The 15.50 refund goes to the cable, the item Amazon marks refunded.
-	refund := queryRows(t, s, `select line, amount from amazon_splits where transaction_id = 'refund'`)
-	if len(refund) != 1 || refund[0][0] != int32(2) || refund[0][1] != -15.5 {
-		t.Errorf("refund splits = %v", refund)
-	}
-
-	total := queryRows(t, s, `select sum(amount)::double, count(*) from spending`)
-	if total[0][0] != 51.99-15.50+9+9+4.25 || total[0][1] != int64(3+1+3) {
-		t.Errorf("spending = %v; it must keep every dollar and list items in place of matched charges", total)
-	}
-
 	items, err := s.AmazonItems(ctx, false)
 	if err != nil || len(items) != 3 || items[0].Item != multi+"#1" || items[0].Source != "none" {
 		t.Fatalf("uncategorized = %+v, %v", items, err)
@@ -164,12 +148,13 @@ func TestAmazonMatchesSplitsAndSpending(t *testing.T) {
 	if err := s.SetAmazonCategories(ctx, []CategoryChange{{OrderID: multi, Line: 9, Category: "X"}}, syncedAt); err == nil {
 		t.Error("set a category on a missing item")
 	}
-	byCat := map[string]float64{}
-	for _, r := range queryRows(t, s, `select category, sum(amount)::double from spending where transaction_id = 'charge' group by 1`) {
-		byCat[r[0].(string)] = r[1].(float64)
+	cats := map[int32]any{}
+	for _, r := range queryRows(t, s, `select i.line, coalesce(ic.category, ac.category) from amazon_items i
+		left join amazon_item_categories ic using (order_id, line) left join amazon_asin_categories ac using (asin)`) {
+		cats[r[0].(int32)] = r[1]
 	}
-	if byCat["HOME_IMPROVEMENT"] != 34.66 || byCat["GENERAL_MERCHANDISE"] != 13.43+3.9 {
-		t.Errorf("charge by category = %v", byCat)
+	if cats[1] != "HOME_IMPROVEMENT" || cats[2] != "GENERAL_MERCHANDISE" || cats[3] != nil {
+		t.Errorf("categories = %v", cats)
 	}
 	if left, _ := s.AmazonItems(ctx, false); len(left) != 1 {
 		t.Errorf("uncategorized after setting two = %d", len(left))
