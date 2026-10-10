@@ -2,7 +2,7 @@
   "name": "fin",
   "displayName": "fin",
   "version": "0.4.1",
-  "description": "Read your own bank, card and brokerage data from your AI agent: balances, transactions, holdings and investment activity through Plaid, plus Amazon and Costco purchases item by item, read-only, on your machine.",
+  "description": "Read your own bank, card and brokerage data from your AI agent: balances, transactions, holdings and investment activity through Plaid, plus your Amazon and Costco purchases, read-only, on your machine.",
   "author": {
     "name": "Kilian Ciuffolo",
     "url": "https://github.com/kilianc"
