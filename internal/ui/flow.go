@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"io"
@@ -35,6 +36,9 @@ type FlowOptions struct {
 	Subtitle string
 	Steps    []string
 	Open     func(url string) error
+	// Width is the text width; zero means 72. Set it to fit the result URL
+	// so the screen does not reflow when the URL arrives.
+	Width int
 }
 
 type stepState int
@@ -140,7 +144,13 @@ func (m flowModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m flowModel) View() tea.View {
-	width := min(max(m.w-4, 40), 72)
+	// Widen for the result URL when the terminal allows: a wrapped URL is no
+	// longer one link, so it cannot be clicked.
+	width := cmp.Or(m.opts.Width, 72)
+	if m.result != nil {
+		width = max(width, lipgloss.Width(m.result.URL)+2)
+	}
+	width = min(max(m.w-4, 40), width)
 	var b strings.Builder
 	b.WriteString(Brand.Render(m.opts.Title) + "\n")
 	if m.opts.Subtitle != "" {

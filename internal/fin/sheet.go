@@ -78,6 +78,8 @@ func (a *App) cmdSheet(ctx context.Context, args []string) (*result, error) {
 			Subtitle: "fin keeps a spreadsheet in your Google Drive with your transactions and balances. It can only see the spreadsheet it creates, nothing else in your Drive.",
 			Steps:    sheetSteps,
 			Open:     a.OpenURL,
+			// A spreadsheet URL is 88 characters, and must not wrap to stay clickable.
+			Width: 90,
 		}
 		a.onScreen = true
 		_, err := ui.Flow(ctx, a.Stdin, a.Stderr, opts, work)
