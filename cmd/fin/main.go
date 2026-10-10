@@ -73,7 +73,7 @@ func run() int {
 		DataDir:        dataDir,
 		PlaidCLIConfig: filepath.Join(configDir, "plaid-cli", "config.json"),
 		Chrome:         amazon.Chrome{Dir: amazon.DefaultChromeDir(), SafeStorage: amazon.SafeStorageFromKeychain},
-		AmazonPause:    400 * time.Millisecond,
+		AmazonPause:    3 * time.Second,
 		Google:         googleClient(),
 		Secrets:        keychain.Keychain{Service: "fin"},
 		NewPlaid: func(env plaid.Env, clientID, secret string) fin.Plaid {

@@ -31,6 +31,9 @@ create table if not exists amazon_accounts (
 alter table amazon_accounts add column if not exists complete_since date;
 -- resume_key: where a history read that Amazon cut short goes on from.
 alter table amazon_accounts add column if not exists resume_key varchar;
+-- limited_until: after Amazon says "too many requests", fin asks nothing
+-- of it before this time.
+alter table amazon_accounts add column if not exists limited_until timestamptz;
 create table if not exists amazon_payments (
 	payment_key       varchar primary key,
 	account           varchar not null,
@@ -242,6 +245,29 @@ func (s *Store) SetAmazonResumeKey(ctx context.Context, account, key string) err
 // to since, after a history read that resumed part way, so nothing is pruned.
 func (s *Store) SetAmazonCompleteSince(ctx context.Context, account, since string) error {
 	_, err := s.db.ExecContext(ctx, `update amazon_accounts set complete_since = ?::date, resume_key = null where account = ?`, since, account)
+	return err
+}
+
+// AmazonLimitedUntil is when fin may ask Amazon again after a "too many
+// requests", or the zero time when it may now.
+func (s *Store) AmazonLimitedUntil(ctx context.Context, account string) (time.Time, error) {
+	var until sql.NullTime
+	err := s.db.QueryRowContext(ctx, `select limited_until from amazon_accounts where account = ?`, account).Scan(&until)
+	if errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, nil
+	}
+	return until.Time, err
+}
+
+// SetAmazonLimitedUntil records when fin may ask Amazon again; the zero time
+// clears it.
+func (s *Store) SetAmazonLimitedUntil(ctx context.Context, account, profile string, until time.Time) error {
+	var v any
+	if !until.IsZero() {
+		v = until.UTC()
+	}
+	_, err := s.db.ExecContext(ctx, `insert into amazon_accounts (account, profile, limited_until) values (?, ?, ?)
+		on conflict (account) do update set limited_until = excluded.limited_until`, account, profile, v)
 	return err
 }
 

@@ -17,7 +17,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/kilianc/fin/internal/amazon"
@@ -27,8 +26,11 @@ import (
 	"github.com/kilianc/fin/internal/ui"
 )
 
-// orderWorkers is how many order pages are read at once.
-const orderWorkers = 3
+// amazonCooldown is how long fin leaves Amazon alone after it says "too
+// many requests". On 2026-10-10 a limit hit after a morning of full reads
+// still held five minutes later, and let only six pages through ninety
+// minutes later; asking sooner only keeps it in place.
+const amazonCooldown = 2 * time.Hour
 
 var amazonName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,31}$`)
 
@@ -205,12 +207,25 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	if progress == nil {
 		progress = func(int, string) {}
 	}
+	until, err := s.AmazonLimitedUntil(ctx, acct.Name)
+	if err != nil {
+		return nil, storeErr(err)
+	}
+	if until.After(a.Now()) {
+		return nil, amazonLimitedErr(acct, until)
+	}
 	sess, err := a.loadAmazonSession(acct)
 	if err != nil {
 		return nil, err
 	}
 	client := amazon.NewClient(sess, a.amazonBase())
 	client.Wait = a.AmazonPause
+	if log, err := a.openAmazonLog(acct); err == nil {
+		defer log.Close()
+		client.Log = func(kind string, status int) {
+			fmt.Fprintf(log, "%s %s %d\n", time.Now().UTC().Format(time.RFC3339), kind, status)
+		}
+	}
 	now := a.Now().UTC()
 	if len(opts.Orders) > 0 {
 		return a.readAmazonOrders(ctx, s, st, acct, client, opts.Orders, &amazonSyncView{Account: acct.Name}, now, progress)
@@ -302,75 +317,38 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	return a.readAmazonOrders(ctx, s, st, acct, client, ids, &amazonSyncView{Account: acct.Name, Since: epoch, Payments: added}, now, progress)
 }
 
-// readAmazonOrders reads and stores the given order pages, a few at a time,
-// then saves the renewed session and the account's last sync.
+// readAmazonOrders reads and stores the given order pages, then saves the
+// renewed session and the account's last sync.
 func (a *App) readAmazonOrders(ctx context.Context, s *store.Store, st *state.State, acct state.AmazonAccount, client *amazon.Client, ids []string, view *amazonSyncView, now time.Time, progress func(step int, detail string)) (*amazonSyncView, error) {
 	progress(1, fmt.Sprintf("0 of %d", len(ids)))
-	type fetched struct {
-		id   string
-		page []byte
-		err  error
-	}
-	jobs := make(chan string)
-	results := make(chan fetched)
-	fctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	var wg sync.WaitGroup
-	for range min(orderWorkers, max(len(ids), 1)) {
-		wg.Go(func() {
-			for id := range jobs {
-				page, err := client.OrderPage(fctx, id)
-				results <- fetched{id, page, err}
-				if client.Pause(fctx) != nil {
-					return
-				}
-			}
-		})
-	}
-	go func() {
-		defer close(jobs)
-		for _, id := range ids {
-			select {
-			case jobs <- id:
-			case <-fctx.Done():
-				return
-			}
-		}
-	}()
-	go func() { wg.Wait(); close(results) }()
-
+	// One page at a time: the client spaces requests at a person's pace.
 	var stop error
-	done := 0
-	for r := range results {
-		done++
-		progress(1, fmt.Sprintf("%d of %d", done, len(ids)))
-		if stop != nil {
-			continue
-		}
+	for i, id := range ids {
+		page, err := client.OrderPage(ctx, id)
+		progress(1, fmt.Sprintf("%d of %d", i+1, len(ids)))
 		switch {
-		case errors.Is(r.err, amazon.ErrSignIn), errors.Is(r.err, context.Canceled):
-			stop = r.err
-			cancel()
-			continue
-		case r.err != nil:
+		case errors.Is(err, amazon.ErrSignIn), errors.Is(err, amazon.ErrRateLimited), errors.Is(err, context.Canceled):
+			stop = err
+		case err != nil:
 			// Not found or a server hiccup: try again on the next sync.
 			view.Failed++
 			continue
 		}
-		o, perr := amazon.ParseOrder(r.page)
+		if stop != nil {
+			break
+		}
+		o, perr := amazon.ParseOrder(page)
 		if errors.Is(perr, amazon.ErrSignIn) {
 			stop = perr
-			cancel()
-			continue
+			break
 		}
 		if perr != nil {
 			o = nil
 			view.Unreadable++
 		}
-		if err := s.ApplyAmazonOrder(ctx, acct.Name, r.id, r.page, o, perr, now); err != nil {
+		if err := s.ApplyAmazonOrder(ctx, acct.Name, id, page, o, perr, now); err != nil {
 			stop = storeErr(err)
-			cancel()
-			continue
+			break
 		}
 		view.Orders++
 	}
@@ -382,6 +360,9 @@ func (a *App) readAmazonOrders(ctx context.Context, s *store.Store, st *state.St
 		return nil, a.amazonErr(ctx, s, acct, stop)
 	}
 	if _, err := s.ReparseAmazonOrders(ctx, amazon.ParseOrder); err != nil {
+		return nil, storeErr(err)
+	}
+	if err := s.SetAmazonLimitedUntil(ctx, acct.Name, acct.Profile, time.Time{}); err != nil {
 		return nil, storeErr(err)
 	}
 	acct.LastSync = &now
@@ -408,6 +389,21 @@ func (a *App) amazonEpoch(ctx context.Context, s *store.Store, st *state.State) 
 	return a.Now().AddDate(-2, 0, 0).Format("2006-01-02"), nil
 }
 
+// amazonLimitedErr says Amazon refused requests and when fin will ask again.
+func amazonLimitedErr(acct state.AmazonAccount, until time.Time) *CLIError {
+	at := until.Local().Format("15:04")
+	return &CLIError{Code: "AMAZON_RATE_LIMITED",
+		Message: fmt.Sprintf("Amazon is limiting requests from %s; what was read so far is saved, and fin won't ask Amazon again before %s", acct.Name, at),
+		Details: map[string]any{"action": fmt.Sprintf("run fin amazon sync %s after %s", acct.Name, at), "retry_at": until.UTC().Format(time.RFC3339)}, exit: exitError}
+}
+
+// openAmazonLog opens the account's request log, one line per request to
+// Amazon (time, kind, HTTP status), kept to learn Amazon's limits.
+func (a *App) openAmazonLog(acct state.AmazonAccount) (*os.File, error) {
+	path := strings.TrimSuffix(a.amazonSessionPath(acct), ".session") + ".log"
+	return os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+}
+
 func (a *App) amazonErr(ctx context.Context, s *store.Store, acct state.AmazonAccount, err error) error {
 	switch {
 	case errors.Is(err, amazon.ErrSignIn):
@@ -416,10 +412,15 @@ func (a *App) amazonErr(ctx context.Context, s *store.Store, acct state.AmazonAc
 	case errors.Is(err, context.Canceled):
 		return err
 	case errors.Is(err, amazon.ErrRateLimited):
+		wait := amazonCooldown
+		var rl *amazon.RateLimited
+		if errors.As(err, &rl) && rl.RetryAfter > wait {
+			wait = rl.RetryAfter
+		}
+		until := a.Now().Add(wait)
 		_ = s.SetAmazonAccountStatus(ctx, acct.Name, acct.Profile, "AMAZON_RATE_LIMITED")
-		return &CLIError{Code: "AMAZON_RATE_LIMITED",
-			Message: "Amazon is limiting requests right now; what was read so far is saved, so run fin amazon sync later to finish",
-			Details: map[string]any{"action": "run fin amazon sync " + acct.Name + " later"}, exit: exitError}
+		_ = s.SetAmazonLimitedUntil(ctx, acct.Name, acct.Profile, until)
+		return amazonLimitedErr(acct, until)
 	}
 	var cerr *CLIError
 	if errors.As(err, &cerr) {
@@ -759,8 +760,10 @@ func (a *App) cmdAmazonLogout(ctx context.Context, args []string) (*result, erro
 	if !ok {
 		return nil, a.noAmazonAccount(st, args[0])
 	}
-	if err := os.Remove(a.amazonSessionPath(acct)); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return nil, err
+	for _, path := range []string{a.amazonSessionPath(acct), strings.TrimSuffix(a.amazonSessionPath(acct), ".session") + ".log"} {
+		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
 	}
 	if err := a.Secrets.Delete(amazonKeyAccount(acct)); err != nil {
 		return nil, newErr("KEYCHAIN_ERROR", "%v", err)

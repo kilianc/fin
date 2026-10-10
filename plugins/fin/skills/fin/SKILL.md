@@ -93,6 +93,8 @@ orders, so an Amazon charge can be broken down by item:
   "HOME_IMPROVEMENT_HARDWARE", "asin_default": true}]`. Use Plaid's
   categories (the list comes back in `categories`); set `asin_default` for
   things bought repeatedly. Ask the user when an item's purpose is unclear.
+- `AMAZON_RATE_LIMITED` means Amazon refused requests. fin won't ask again
+  before `retry_at`; don't retry sooner, and answer from what is stored.
 - `fin amazon login <name>` needs the user: macOS asks them to allow
   "Chrome Safe Storage". Never run it, or `fin amazon logout`, without their
   go-ahead in chat. It reads back to a week before the epoch (see below).

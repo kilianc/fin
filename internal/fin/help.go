@@ -274,7 +274,11 @@ and which can change or stop working at any time. US amazon.com only.
   fin amazon profiles            Chrome profiles and which are signed in
 
 fin amazon reads back to a week before the epoch set with fin epoch, or
-without one, to a week before your oldest bank transaction.
+without one, to a week before your oldest bank transaction. It asks Amazon
+for one page every few seconds, so the first sync takes a few minutes. If
+Amazon says it is getting too many requests, fin stops, keeps what it read,
+and leaves Amazon alone for two hours (AMAZON_RATE_LIMITED, with retry_at);
+the next sync after that goes on where it stopped.
 
 Categories are Plaid's (FOOD_AND_DRINK, HOME_IMPROVEMENT, …) so they total
 up with bank transactions. In fin sql:

@@ -32,8 +32,10 @@ type Server struct {
 	SignedIn bool
 	Token    string // the session-token cookie value it accepts
 	Requests map[string]int
-	// Limited answers the next this many requests with 429 Too Many Requests.
-	Limited int
+	// Limited answers the next this many requests with 429 Too Many Requests,
+	// naming RetryAfter (seconds) when it is set.
+	Limited    int
+	RetryAfter string
 	// PagesBeforeLimit, when set, answers 429 to every payments API call
 	// after this many.
 	PagesBeforeLimit int
@@ -73,7 +75,9 @@ func (f *Server) serve(w http.ResponseWriter, r *http.Request) {
 	f.Requests[r.URL.Path]++
 	if f.Limited > 0 {
 		f.Limited--
-		w.Header().Set("Retry-After", "0")
+		if f.RetryAfter != "" {
+			w.Header().Set("Retry-After", f.RetryAfter)
+		}
 		w.WriteHeader(http.StatusTooManyRequests)
 		return
 	}

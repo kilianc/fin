@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	mathrand "math/rand/v2"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -50,9 +51,16 @@ type Client struct {
 	expires time.Time
 	request pageProps
 	trace   string
-	// Wait is the pause between requests to Amazon; tests set it to zero.
-	Wait    time.Duration
-	backoff []time.Duration
+	// Wait is the least time between two requests to Amazon, plus up to
+	// half again at random, however many goroutines share the Client; tests
+	// set it to zero.
+	Wait time.Duration
+	// Log, if set, hears about every request: which kind ("page",
+	// "payments" or "order") and the HTTP status, 0 when none came back.
+	Log func(kind string, status int)
+
+	gate sync.Mutex
+	next time.Time
 }
 
 // NewClient returns a Client for base (Origin outside tests).
@@ -62,9 +70,8 @@ func NewClient(s *Session, base string) *Client {
 		http: &http.Client{Timeout: 45 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		}},
-		trace:   newTraceID(),
-		Wait:    400 * time.Millisecond,
-		backoff: Backoff,
+		trace: newTraceID(),
+		Wait:  3 * time.Second,
 	}
 	for _, ck := range s.Cookies {
 		c.cookies[ck.Name] = ck
@@ -83,35 +90,74 @@ func (c *Client) Session(profile string) *Session {
 	return s
 }
 
-// ErrRateLimited means Amazon kept answering "too many requests".
+// ErrRateLimited means Amazon answered "too many requests".
 var ErrRateLimited = errors.New("Amazon is limiting requests; try again later")
 
-// Backoff is how long to wait after each "too many requests" answer before
-// trying again; when it runs out, the request fails with ErrRateLimited.
-var Backoff = []time.Duration{5 * time.Second, 15 * time.Second, 30 * time.Second, 60 * time.Second}
+// RateLimited is the error for "too many requests". It matches
+// ErrRateLimited and carries the wait Amazon asked for, if it named one.
+type RateLimited struct{ RetryAfter time.Duration }
+
+func (e *RateLimited) Error() string { return ErrRateLimited.Error() }
+func (e *RateLimited) Unwrap() error { return ErrRateLimited }
+
+// MaxRetryAfter is the longest wait Amazon may ask for that a request waits
+// out before trying once more. Without one, or with a longer one, the request
+// fails at once: asking again soon only keeps the limit in place.
+var MaxRetryAfter = 2 * time.Minute
 
 func (c *Client) do(ctx context.Context, method, path string, body []byte, accept string) ([]byte, error) {
-	for attempt := 0; ; attempt++ {
-		b, retryAfter, err := c.once(ctx, method, path, body, accept)
-		if !errors.Is(err, ErrRateLimited) {
-			return b, err
-		}
-		if attempt >= len(c.backoff) {
-			return nil, err
-		}
-		wait := c.backoff[attempt]
-		if retryAfter > wait && retryAfter <= 5*time.Minute {
-			wait = retryAfter
-		}
+	b, retryAfter, err := c.once(ctx, method, path, body, accept)
+	if errors.Is(err, ErrRateLimited) && retryAfter > 0 && retryAfter <= MaxRetryAfter {
 		select {
-		case <-time.After(wait):
+		case <-time.After(retryAfter):
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		}
+		b, retryAfter, err = c.once(ctx, method, path, body, accept)
 	}
+	if errors.Is(err, ErrRateLimited) {
+		return nil, &RateLimited{RetryAfter: retryAfter}
+	}
+	return b, err
+}
+
+// wait holds a request until Wait, plus jitter, has passed since the last
+// one, so requests reach Amazon one at a time at a person's pace.
+func (c *Client) wait(ctx context.Context) error {
+	c.gate.Lock()
+	defer c.gate.Unlock()
+	if d := time.Until(c.next); d > 0 {
+		select {
+		case <-time.After(d):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	c.next = time.Now().Add(c.Wait)
+	if c.Wait > 0 {
+		c.next = c.next.Add(mathrand.N(c.Wait / 2))
+	}
+	return nil
+}
+
+func (c *Client) log(path string, status int) {
+	if c.Log == nil {
+		return
+	}
+	kind := "order"
+	switch strings.SplitN(path, "?", 2)[0] {
+	case paymentsPage:
+		kind = "page"
+	case paymentsAPI:
+		kind = "payments"
+	}
+	c.Log(kind, status)
 }
 
 func (c *Client) once(ctx context.Context, method, path string, body []byte, accept string) ([]byte, time.Duration, error) {
+	if err := c.wait(ctx); err != nil {
+		return nil, 0, err
+	}
 	req, err := http.NewRequestWithContext(ctx, method, c.base+path, bytes.NewReader(body))
 	if err != nil {
 		return nil, 0, err
@@ -135,12 +181,14 @@ func (c *Client) once(ctx context.Context, method, path string, body []byte, acc
 
 	resp, err := c.http.Do(req)
 	if err != nil {
+		c.log(path, 0)
 		if ctx.Err() != nil {
 			return nil, 0, ctx.Err()
 		}
 		return nil, 0, fmt.Errorf("amazon: request failed: %w", err)
 	}
 	defer resp.Body.Close()
+	c.log(path, resp.StatusCode)
 	c.keepCookies(resp.Cookies())
 	switch {
 	case resp.StatusCode == 429 || resp.StatusCode == 503:
@@ -293,9 +341,6 @@ func (c *Client) Payments(ctx context.Context, account, start string, stop func(
 		}
 		cursors[next] = true
 		cursor = next
-		if err := c.pause(ctx); err != nil {
-			return nil, err
-		}
 	}
 	return nil, errors.New("amazon: the payments list did not end after 1000 pages")
 }
@@ -339,21 +384,6 @@ func (c *Client) OrderPage(ctx context.Context, id string) ([]byte, error) {
 	}
 	return page, nil
 }
-
-func (c *Client) pause(ctx context.Context) error {
-	if c.Wait <= 0 {
-		return nil
-	}
-	select {
-	case <-time.After(c.Wait):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
-
-// Pause waits between order page requests.
-func (c *Client) Pause(ctx context.Context) error { return c.pause(ctx) }
 
 func newTraceID() string {
 	var b [16]byte

@@ -183,9 +183,6 @@ func TestAmazonLoginNeedsAProfileSignedIn(t *testing.T) {
 
 func TestAmazonRateLimitKeepsWhatWasRead(t *testing.T) {
 	ta, srv := amazonApp(t)
-	saved := amazon.Backoff
-	amazon.Backoff = []time.Duration{time.Millisecond}
-	t.Cleanup(func() { amazon.Backoff = saved })
 	if code, _ := ta.run(t, "amazon", "login", "pat", "--no-sync", "--json"); code != exitOK {
 		t.Fatalf("login exit %d: %s", code, ta.stderr)
 	}
@@ -197,12 +194,25 @@ func TestAmazonRateLimitKeepsWhatWasRead(t *testing.T) {
 	if e := body["errors"].([]any)[0].(map[string]any); e["code"] != "AMAZON_RATE_LIMITED" {
 		t.Errorf("error = %v", e)
 	}
+	if n := srv.Count(paymentsAPI); n != 2 {
+		t.Errorf("payment pages asked for = %d, want 2: no retry after a 429", n)
+	}
 	_, body = ta.run(t, "sql", "--json", "select count(*) as n from amazon_payments")
 	if n := body["rows"].([]any)[0].(map[string]any)["n"]; n != 2.0 {
 		t.Errorf("payments kept from the first page = %v, want 2", n)
 	}
 	srv.PagesBeforeLimit = 0
+	// Within the cooldown, fin doesn't ask Amazon at all.
 	before := srv.Count(paymentsAPI)
+	if code, body := ta.run(t, "amazon", "sync", "--json"); code != exitPartial || srv.Count(paymentsAPI) != before ||
+		body["errors"].([]any)[0].(map[string]any)["code"] != "AMAZON_RATE_LIMITED" {
+		t.Errorf("sync in the cooldown: exit %d, %d requests, %v", code, srv.Count(paymentsAPI)-before, body)
+	}
+	if lines, _ := os.ReadFile(filepath.Join(ta.DataDir, "amazon", "sandbox-pat.log")); !bytes.Contains(lines, []byte(" payments 429\n")) {
+		t.Errorf("request log = %q", lines)
+	}
+	later := ta.Now().Add(amazonCooldown + time.Minute)
+	ta.Now = func() time.Time { return later }
 	if code, _ := ta.run(t, "amazon", "sync", "--json"); code != exitOK {
 		t.Fatalf("second sync exit %d: %s", code, ta.stderr)
 	}
