@@ -16,6 +16,8 @@ import (
 
 const multiOrder = "111-0000001-0000001"
 
+const paymentsAPI = "/payments-portal/data/iris/live/v1/data/manage/get-transactions"
+
 // amazonApp is a test app with one bank Item holding an Amazon charge and a
 // coffee, a Chrome profile signed in to a fake amazon.com, and that charge's
 // order.
@@ -200,8 +202,13 @@ func TestAmazonRateLimitKeepsWhatWasRead(t *testing.T) {
 		t.Errorf("payments kept from the first page = %v, want 2", n)
 	}
 	srv.PagesBeforeLimit = 0
+	before := srv.Count(paymentsAPI)
 	if code, _ := ta.run(t, "amazon", "sync", "--json"); code != exitOK {
 		t.Fatalf("second sync exit %d: %s", code, ta.stderr)
+	}
+	// The second sync goes on from the page Amazon refused, not from the top.
+	if n := srv.Count(paymentsAPI) - before; n != 1 {
+		t.Errorf("second sync read %d payment pages, want 1", n)
 	}
 	_, body = ta.run(t, "sql", "--json", "select count(*) as n from amazon_payments")
 	if n := body["rows"].([]any)[0].(map[string]any)["n"]; n != 3.0 {
@@ -227,7 +234,7 @@ func TestAmazonReadsBackOnlyToTheEpoch(t *testing.T) {
 	if sync := body["sync"].(map[string]any); sync["since"] != "2026-09-01" || sync["new_payments"] != 2.0 {
 		t.Errorf("sync = %v; payments before the epoch were read", sync)
 	}
-	if n := srv.Count("/payments-portal/data/iris/live/v1/data/manage/get-transactions"); n != 2 {
+	if n := srv.Count(paymentsAPI); n != 2 {
 		t.Errorf("payments pages read = %d, want 2: it should stop at the first page past the epoch", n)
 	}
 
@@ -251,7 +258,7 @@ func TestAmazonSyncOrderReadsJustThatOrder(t *testing.T) {
 	if code, _ := ta.run(t, "amazon", "login", "pat", "--json"); code != exitOK {
 		t.Fatalf("login exit %d: %s", code, ta.stderr)
 	}
-	payments, orders := srv.Count("/payments-portal/data/iris/live/v1/data/manage/get-transactions"), srv.Count("/gp/css/summary/print.html")
+	payments, orders := srv.Count(paymentsAPI), srv.Count("/gp/css/summary/print.html")
 
 	code, body := ta.run(t, "amazon", "sync", "--order", multiOrder, "--json")
 	if code != exitOK {
@@ -260,8 +267,8 @@ func TestAmazonSyncOrderReadsJustThatOrder(t *testing.T) {
 	if v := body["amazon"].([]any)[0].(map[string]any); v["orders_read"] != 1.0 || v["new_payments"] != 0.0 {
 		t.Errorf("sync --order = %v", v)
 	}
-	if srv.Count("/payments-portal/data/iris/live/v1/data/manage/get-transactions") != payments || srv.Count("/gp/css/summary/print.html") != orders+1 {
-		t.Errorf("sync --order read payments %d→%d, orders %d→%d", payments, srv.Count("/payments-portal/data/iris/live/v1/data/manage/get-transactions"), orders, srv.Count("/gp/css/summary/print.html"))
+	if srv.Count(paymentsAPI) != payments || srv.Count("/gp/css/summary/print.html") != orders+1 {
+		t.Errorf("sync --order read payments %d→%d, orders %d→%d", payments, srv.Count(paymentsAPI), orders, srv.Count("/gp/css/summary/print.html"))
 	}
 	for _, id := range []string{"D01-0000003-0000003", "nope"} {
 		if code, _ := ta.run(t, "amazon", "sync", "--order", id, "--json"); code != exitUsage {

@@ -29,6 +29,8 @@ create table if not exists amazon_accounts (
 );
 -- complete_since: payments are stored without gaps back to this date.
 alter table amazon_accounts add column if not exists complete_since date;
+-- resume_key: where a history read that Amazon cut short goes on from.
+alter table amazon_accounts add column if not exists resume_key varchar;
 create table if not exists amazon_payments (
 	payment_key       varchar primary key,
 	account           varchar not null,
@@ -213,10 +215,34 @@ func (s *Store) PruneAmazonPayments(ctx context.Context, account, since string, 
 	if _, err := tx.ExecContext(ctx, `delete from amazon_payments where account = ? and not list_contains(?::varchar[], payment_key)`, account, keys); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `update amazon_accounts set complete_since = ?::date where account = ?`, since, account); err != nil {
+	if _, err := tx.ExecContext(ctx, `update amazon_accounts set complete_since = ?::date, resume_key = null where account = ?`, since, account); err != nil {
 		return err
 	}
 	return tx.Commit()
+}
+
+// AmazonResumeKey is where an unfinished history read goes on from, or "".
+func (s *Store) AmazonResumeKey(ctx context.Context, account string) (string, error) {
+	var key sql.NullString
+	err := s.db.QueryRowContext(ctx, `select resume_key from amazon_accounts where account = ?`, account).Scan(&key)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return key.String, err
+}
+
+// SetAmazonResumeKey saves where an unfinished history read goes on from;
+// "" clears it.
+func (s *Store) SetAmazonResumeKey(ctx context.Context, account, key string) error {
+	_, err := s.db.ExecContext(ctx, `update amazon_accounts set resume_key = nullif(?, '') where account = ?`, key, account)
+	return err
+}
+
+// SetAmazonCompleteSince records that payments are stored without gaps back
+// to since, after a history read that resumed part way, so nothing is pruned.
+func (s *Store) SetAmazonCompleteSince(ctx context.Context, account, since string) error {
+	_, err := s.db.ExecContext(ctx, `update amazon_accounts set complete_since = ?::date, resume_key = null where account = ?`, since, account)
+	return err
 }
 
 // SetAmazonAccountStatus records why an account's last sync failed.

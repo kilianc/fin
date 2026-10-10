@@ -228,8 +228,16 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	if err != nil {
 		return nil, storeErr(err)
 	}
-	// Until one read has gone back to the epoch without a gap, read all of it.
-	full = full || complete == "" || complete > epoch
+	// Until one read has gone back to the epoch without a gap, read all of it,
+	// going on from where Amazon last cut that read short.
+	history := complete == "" || complete > epoch
+	resume := ""
+	if history && !full {
+		if resume, err = s.AmazonResumeKey(ctx, acct.Name); err != nil {
+			return nil, storeErr(err)
+		}
+	}
+	full = full || history
 
 	// Each page is saved as it arrives, so a sync cut short by Amazon keeps
 	// what it read; a full re-read prunes rows Amazon no longer lists only
@@ -239,7 +247,7 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	fresh := []string{}
 	added := 0
 	var saveErr error
-	_, err = client.Payments(ctx, acct.Name, func(all []amazon.Payment) bool {
+	_, err = client.Payments(ctx, acct.Name, resume, func(all []amazon.Payment, next string) bool {
 		// The list is newest first: past the epoch, nothing more is needed.
 		page, past := []amazon.Payment{}, false
 		for _, p := range all {
@@ -261,6 +269,11 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 		if saveErr = s.ApplyAmazonPayments(ctx, acct.Name, acct.Profile, page, now); saveErr != nil {
 			return true
 		}
+		if history && !past {
+			if saveErr = s.SetAmazonResumeKey(ctx, acct.Name, next); saveErr != nil {
+				return true
+			}
+		}
 		progress(0, fmt.Sprintf("%d payments since %s", len(seen), epoch))
 		return past || (!full && allKnown)
 	})
@@ -270,7 +283,13 @@ func (a *App) syncAmazon(ctx context.Context, s *store.Store, st *state.State, a
 	if err != nil {
 		return nil, a.amazonErr(ctx, s, acct, err)
 	}
-	if full {
+	switch {
+	case resume != "":
+		// Only part of the list was read this time: nothing to prune.
+		if err := s.SetAmazonCompleteSince(ctx, acct.Name, epoch); err != nil {
+			return nil, storeErr(err)
+		}
+	case full:
 		if err := s.PruneAmazonPayments(ctx, acct.Name, epoch, seen); err != nil {
 			return nil, storeErr(err)
 		}

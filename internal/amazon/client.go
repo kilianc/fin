@@ -239,16 +239,17 @@ func (c *Client) bootstrap(ctx context.Context) error {
 	return nil
 }
 
-// Payments reads the payments list, newest first, page by page. Each page is
-// handed to stop, which says whether to read on.
-func (c *Client) Payments(ctx context.Context, account string, stop func(page []Payment) bool) ([]Payment, error) {
+// Payments reads the payments list, newest first, page by page, from the
+// page after start (the top when empty). Each page is handed to stop with
+// the key of the page after it ("" at the end); stop says whether to read on.
+func (c *Client) Payments(ctx context.Context, account, start string, stop func(page []Payment, next string) bool) ([]Payment, error) {
 	if err := c.bootstrap(ctx); err != nil {
 		return nil, err
 	}
 	out := []Payment{}
 	seen := map[string]int{}
 	cursors := map[string]bool{}
-	cursor := ""
+	cursor := start
 	for page := 0; page < 1000; page++ {
 		c.mu.Lock()
 		stale := time.Until(c.expires) < time.Minute
@@ -284,7 +285,7 @@ func (c *Client) Payments(ctx context.Context, account string, stop func(page []
 		out = append(out, rows...)
 		next := resp.Display.Next
 		// stop sees every page, the last one included.
-		if stopped := stop(rows); stopped || next == "" {
+		if stopped := stop(rows, next); stopped || next == "" {
 			return out, nil
 		}
 		if cursors[next] {

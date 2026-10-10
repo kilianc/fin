@@ -122,12 +122,12 @@ func TestClientPagesStopsAndKeepsCookies(t *testing.T) {
 	c.Wait = 0
 	ctx := context.Background()
 
-	all, err := c.Payments(ctx, "kilian", func([]Payment) bool { return false })
+	all, err := c.Payments(ctx, "kilian", "", func([]Payment, string) bool { return false })
 	if err != nil || len(all) != 5 {
 		t.Fatalf("all: %d rows, err %v", len(all), err)
 	}
 	pages := 0
-	some, err := c.Payments(ctx, "kilian", func([]Payment) bool { pages++; return pages == 2 })
+	some, err := c.Payments(ctx, "kilian", "", func([]Payment, string) bool { pages++; return pages == 2 })
 	if err != nil || len(some) != 4 {
 		t.Fatalf("stopped after two pages: %d rows, err %v", len(some), err)
 	}
@@ -144,7 +144,7 @@ func TestClientPagesStopsAndKeepsCookies(t *testing.T) {
 	}
 
 	srv.SignedIn = false
-	if _, err := c.Payments(ctx, "kilian", func([]Payment) bool { return false }); !errors.Is(err, ErrSignIn) {
+	if _, err := c.Payments(ctx, "kilian", "", func([]Payment, string) bool { return false }); !errors.Is(err, ErrSignIn) {
 		t.Errorf("signed out: err = %v", err)
 	}
 }
@@ -189,11 +189,11 @@ func TestClientWaitsOutRateLimits(t *testing.T) {
 	c := NewClient(&Session{UserAgent: "test", Cookies: []*http.Cookie{{Name: "session-token", Value: "good"}}}, srv.URL)
 	c.Wait, c.backoff = 0, []time.Duration{time.Millisecond, time.Millisecond}
 	srv.Limited = 2
-	if rows, err := c.Payments(context.Background(), "pat", func([]Payment) bool { return false }); err != nil || len(rows) != 1 {
+	if rows, err := c.Payments(context.Background(), "pat", "", func([]Payment, string) bool { return false }); err != nil || len(rows) != 1 {
 		t.Fatalf("after two 429s: %d rows, %v", len(rows), err)
 	}
 	srv.Limited = 3
-	if _, err := c.Payments(context.Background(), "pat", func([]Payment) bool { return false }); !errors.Is(err, ErrRateLimited) {
+	if _, err := c.Payments(context.Background(), "pat", "", func([]Payment, string) bool { return false }); !errors.Is(err, ErrRateLimited) {
 		t.Errorf("after the retries run out: err = %v", err)
 	}
 }
