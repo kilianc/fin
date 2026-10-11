@@ -84,6 +84,9 @@ func (a *App) emit(res *result) int {
 	case res.raw != "":
 		fmt.Fprintln(a.Stdout, res.raw)
 	case a.human && res.table != nil:
+		if res.table.Width == 0 {
+			res.table.Width = a.width()
+		}
 		ui.Print(a.Stdout, res.table.Render())
 	case a.human && res.message != "":
 		ui.Print(a.Stdout, res.message+"\n")

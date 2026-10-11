@@ -15,6 +15,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/table"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Brand colors come from the mascot (mascot.png), softened so text in them
@@ -92,6 +93,73 @@ type Table struct {
 	Right   []int // columns to right-align
 	Tone    func(row, col int) Tone
 	Footer  string
+	// Width, when set, is the terminal's width. A wider table shrinks its
+	// widest columns and cuts their text short with "…", so rows never wrap.
+	Width int
+}
+
+// minColumn is the narrowest a column shrinks to while fitting a table.
+const minColumn = 8
+
+// fit cuts cells so the table, with its borders and padding, fits width.
+func (t *Table) fit() (headers []string, rows [][]string) {
+	headers, rows = t.Headers, t.Rows
+	if t.Width <= 0 || len(headers) == 0 {
+		return headers, rows
+	}
+	widths := make([]int, len(headers))
+	for i, h := range headers {
+		widths[i] = lipgloss.Width(h)
+	}
+	for _, r := range rows {
+		for i, c := range r {
+			if i < len(widths) {
+				widths[i] = max(widths[i], lipgloss.Width(c))
+			}
+		}
+	}
+	// Each column has a space either side and a border on its left, plus
+	// one border at the right end.
+	total := len(widths)*3 + 1
+	for _, w := range widths {
+		total += w
+	}
+	shrunk := false
+	for total > t.Width {
+		widest := 0
+		for i, w := range widths {
+			if w > widths[widest] {
+				widest = i
+			}
+		}
+		if widths[widest] <= minColumn {
+			break
+		}
+		widths[widest]--
+		total--
+		shrunk = true
+	}
+	if !shrunk {
+		return headers, rows
+	}
+	cut := func(i int, s string) string {
+		if i < len(widths) && lipgloss.Width(s) > widths[i] {
+			return ansi.Truncate(s, widths[i], "…")
+		}
+		return s
+	}
+	headers = make([]string, len(t.Headers))
+	for i, h := range t.Headers {
+		headers[i] = cut(i, h)
+	}
+	rows = make([][]string, len(t.Rows))
+	for r, row := range t.Rows {
+		rows[r] = make([]string, len(row))
+		for i, c := range row {
+			rows[r][i] = cut(i, c)
+		}
+	}
+	return headers, rows
 }
 
 func (t *Table) Render() string {
@@ -106,11 +174,12 @@ func (t *Table) Render() string {
 		for _, c := range t.Right {
 			right[c] = true
 		}
+		headers, rows := t.fit()
 		tbl := table.New().
 			Border(lipgloss.RoundedBorder()).
 			BorderStyle(Muted).
-			Headers(t.Headers...).
-			Rows(t.Rows...).
+			Headers(headers...).
+			Rows(rows...).
 			StyleFunc(func(row, col int) lipgloss.Style {
 				s := lipgloss.NewStyle().Padding(0, 1)
 				if right[col] {
