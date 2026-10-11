@@ -2,8 +2,12 @@ package fin
 
 import (
 	"context"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/kilianc/fin/internal/plaid"
 	"github.com/kilianc/fin/internal/state"
 	"github.com/kilianc/fin/internal/store"
 )
@@ -15,6 +19,9 @@ const (
 	// investmentsOverlapDays is how much of the stored history later syncs
 	// read again, since a brokerage can post or correct a trade late.
 	investmentsOverlapDays = 30
+	// investmentsVersion changes when fin reads investment transactions
+	// differently; the next sync then reads the whole history again.
+	investmentsVersion = "2"
 )
 
 type investmentsView struct {
@@ -28,6 +35,10 @@ type investmentsView struct {
 // transactions. Fetches run in parallel; writes do not.
 func (a *App) syncInvestments(ctx context.Context, s *store.Store, items []state.Item, api Plaid) ([]investmentsView, []ItemError, error) {
 	today := a.Now()
+	version, err := s.Setting(ctx, "investments_version")
+	if err != nil {
+		return nil, nil, storeErr(err)
+	}
 	from := make([]string, len(items))
 	for i, it := range items {
 		last, err := s.InvestmentsFrom(ctx, it.ItemID)
@@ -35,7 +46,7 @@ func (a *App) syncInvestments(ctx context.Context, s *store.Store, items []state
 			return nil, nil, storeErr(err)
 		}
 		start := today.AddDate(0, 0, -investmentsHistoryDays)
-		if t, err := time.Parse(dateLayout, last); err == nil && t.AddDate(0, 0, -investmentsOverlapDays).After(start) {
+		if t, err := time.Parse(dateLayout, last); err == nil && version == investmentsVersion && t.AddDate(0, 0, -investmentsOverlapDays).After(start) {
 			start = t.AddDate(0, 0, -investmentsOverlapDays)
 		}
 		from[i] = start.Format(dateLayout)
@@ -70,6 +81,7 @@ func (a *App) syncInvestments(ctx context.Context, s *store.Store, items []state
 				break
 			}
 		}
+		cryptoDeposits(d)
 		syncs[i] = d
 		return nil
 	})
@@ -84,6 +96,11 @@ func (a *App) syncInvestments(ctx context.Context, s *store.Store, items []state
 			return nil, nil, storeErr(err)
 		}
 		views = append(views, investmentsView{Item: d.Item, Holdings: len(d.Holdings), Transactions: len(d.Txs), LastSync: &now})
+	}
+	if len(errs) == 0 && version != investmentsVersion {
+		if err := s.SetSetting(ctx, "investments_version", investmentsVersion); err != nil {
+			return nil, nil, storeErr(err)
+		}
 	}
 	return views, errs, nil
 }
@@ -112,4 +129,43 @@ func (a *App) readInvestments(ctx context.Context, read func(s *store.Store, ids
 		return nil, nil, storeErr(err)
 	}
 	return views, errs, nil
+}
+
+// cryptoDeposit is how Robinhood describes coins sent to it from outside,
+// such as a miner's payouts: Plaid lists them as cash with no security or
+// quantity, so the coin and amount are only in the name.
+var cryptoDeposit = regexp.MustCompile(`^Deposit of ([0-9]*\.?[0-9]+) ([A-Z][A-Z0-9]{1,9}) totaling \$([0-9,]*\.?[0-9]+)`)
+
+// cryptoDeposits fills in the coin, quantity and price of crypto deposits
+// from their names, so queries count them like the coins they added. Plaid's
+// type, subtype and amount stay as they were. A coin with no security from
+// Plaid, such as one no longer held, gets one named after its ticker.
+func cryptoDeposits(d *store.InvestmentSync) {
+	byTicker := map[string]string{}
+	for _, sec := range d.Securities {
+		if sec.TickerSymbol != nil && sec.Type != nil && *sec.Type == "cryptocurrency" {
+			byTicker[strings.ToUpper(*sec.TickerSymbol)] = sec.SecurityID
+		}
+	}
+	for i := range d.Txs {
+		t := &d.Txs[i]
+		m := cryptoDeposit.FindStringSubmatch(t.Name)
+		if m == nil || t.SecurityID != nil || t.Quantity != 0 {
+			continue
+		}
+		qty, err1 := strconv.ParseFloat(m[1], 64)
+		usd, err2 := strconv.ParseFloat(strings.ReplaceAll(m[3], ",", ""), 64)
+		if err1 != nil || err2 != nil || qty <= 0 {
+			continue
+		}
+		id, ok := byTicker[m[2]]
+		if !ok {
+			id = "fin-crypto-" + m[2]
+			ticker, name, kind := m[2], m[2], "cryptocurrency"
+			d.Securities = append(d.Securities, plaid.Security{SecurityID: id, TickerSymbol: &ticker, Name: &name, Type: &kind})
+			byTicker[m[2]] = id
+		}
+		t.SecurityID, t.Quantity = &id, qty
+		t.Price = usd / qty
+	}
 }

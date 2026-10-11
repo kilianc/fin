@@ -272,6 +272,11 @@ Flags:
 back, as far as Plaid goes; later ones read again from 30 days before the
 newest stored trade, for trades a brokerage posts or corrects late.
 
+Coins sent to a crypto account from outside, such as a miner's payouts, come
+from Plaid as cash with the coin only in the name ("Deposit of 0.0121 BTC
+totaling $775.99"); fin fills in their security, quantity and price, and
+keeps Plaid's type, subtype and amount.
+
 Flags:
   --since DATE    first day, YYYY-MM-DD (required)
   --until DATE    last day, YYYY-MM-DD (default today)
