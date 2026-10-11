@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"flag"
 	"html/template"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1062,5 +1063,36 @@ func TestInvestmentsAreKeptLocally(t *testing.T) {
 	_, body = ta.run(t, "sql", "select date::varchar d, quantity from holdings order by date")
 	if rows := body["rows"].([]any); len(rows) != 2 || rows[0].(map[string]any)["d"] != "2026-10-09" {
 		t.Errorf("holdings history = %v", rows)
+	}
+}
+
+func TestCryptoDepositsGetTheirCoinAndQuantity(t *testing.T) {
+	ta := newTestApp(t, fido)
+	ta.fake.holdings["tok-item-fido"] = &plaid.HoldingsResponse{
+		Securities: []plaid.Security{{SecurityID: "s-btc", TickerSymbol: ptr("BTC"), Type: ptr("cryptocurrency")}},
+	}
+	ta.fake.invTxs["tok-item-fido"] = []plaid.InvestmentTransaction{
+		{InvestmentTransactionID: "btc", AccountID: "acc-ira", Date: "2026-07-31", Type: "cash", Subtype: "deposit", Amount: -775.99,
+			Name: "Deposit of 0.012098 BTC totaling $775.99. - DEPOSIT"},
+		{InvestmentTransactionID: "doge", AccountID: "acc-ira", Date: "2026-07-30", Type: "cash", Subtype: "deposit", Amount: -1218.42,
+			Name: "Deposit of 5000 DOGE totaling $1,218.42. - DEPOSIT"},
+		{InvestmentTransactionID: "cash", AccountID: "acc-ira", Date: "2026-07-29", Type: "cash", Subtype: "deposit", Amount: -100, Name: "ACH deposit"},
+	}
+	code, body := ta.run(t, "investments", "--since", "2026-07-01")
+	if code != exitOK {
+		t.Fatalf("exit = %d stderr %s", code, ta.stderr)
+	}
+	got := map[string]map[string]any{}
+	for _, v := range body["investment_transactions"].([]any) {
+		got[v.(map[string]any)["investment_transaction_id"].(string)] = v.(map[string]any)
+	}
+	if b := got["btc"]; b["security_id"] != "s-btc" || b["ticker"] != "BTC" || b["quantity"] != 0.012098 || math.Abs(b["price"].(float64)-64142.0) > 0.1 || b["amount"] != -775.99 || b["type"] != "cash" {
+		t.Errorf("btc deposit = %v", b)
+	}
+	if d := got["doge"]; d["ticker"] != "DOGE" || d["quantity"] != 5000.0 || d["price"] != 0.243684 {
+		t.Errorf("doge deposit, a coin Plaid sent no security for = %v", d)
+	}
+	if c := got["cash"]; c["security_id"] != nil || c["quantity"] != 0.0 {
+		t.Errorf("cash deposit changed = %v", c)
 	}
 }

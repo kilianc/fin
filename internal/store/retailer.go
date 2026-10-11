@@ -246,6 +246,16 @@ func (s *Store) SetCategories(ctx context.Context, retailer string, changes []Ca
 }
 
 // SetSetting saves one setting; an empty value removes it.
+// Setting returns a setting, or "" when it is not set.
+func (s *Store) Setting(ctx context.Context, key string) (string, error) {
+	var v string
+	err := s.db.QueryRowContext(ctx, `select value from settings where key = ?`, key).Scan(&v)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return v, err
+}
+
 func (s *Store) SetSetting(ctx context.Context, key, value string) error {
 	if value == "" {
 		_, err := s.db.ExecContext(ctx, `delete from settings where key = ?`, key)
