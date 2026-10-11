@@ -165,8 +165,14 @@ func (a *App) cmdSync(ctx context.Context, args []string) (*result, error) {
 	if err != nil {
 		return nil, err
 	}
-	syncs, errs, shops := []syncView{}, []ItemError{}, map[string][]any{}
-	if len(items) > 0 || len(st.Retailers) > 0 {
+	invItems := a.itemsWith(st, "investments")
+	if api == nil && len(invItems) > 0 {
+		if api, err = a.plaid(); err != nil {
+			return nil, err
+		}
+	}
+	syncs, invs, errs, shops := []syncView{}, []investmentsView{}, []ItemError{}, map[string][]any{}
+	if len(items) > 0 || len(invItems) > 0 || len(st.Retailers) > 0 {
 		s, err := a.openStore(ctx)
 		if err != nil {
 			return nil, err
@@ -176,6 +182,13 @@ func (a *App) cmdSync(ctx context.Context, args []string) (*result, error) {
 			if syncs, errs, err = a.syncStore(ctx, s, st, items, api); err != nil {
 				return nil, err
 			}
+		}
+		if len(invItems) > 0 {
+			var invErrs []ItemError
+			if invs, invErrs, err = a.syncInvestments(ctx, s, invItems, api); err != nil {
+				return nil, err
+			}
+			errs = append(errs, invErrs...)
 		}
 		var shopErrs []ItemError
 		if shops, shopErrs, err = a.syncRetailers(ctx, s, st); err != nil {
@@ -199,7 +212,10 @@ func (a *App) cmdSync(ctx context.Context, args []string) (*result, error) {
 		status := strings.ToLower(strings.ReplaceAll(v.TransactionsUpdateStatus, "_", " "))
 		t.Rows = append(t.Rows, []string{v.Item, strconv.Itoa(v.Changed), strconv.Itoa(v.Removed), status})
 	}
-	body := map[string]any{"env": a.Env, "store": a.storePath(), "sync": syncs, "errors": errs}
+	for _, v := range invs {
+		t.Rows = append(t.Rows, []string{v.Item + " investments", strconv.Itoa(v.Transactions), "0", fmt.Sprintf("%d holdings", v.Holdings)})
+	}
+	body := map[string]any{"env": a.Env, "store": a.storePath(), "sync": syncs, "investments": invs, "errors": errs}
 	for _, r := range retailers {
 		for _, v := range shops[r.ID] {
 			account, changed, status := v.(retailerSyncView).summary()

@@ -42,7 +42,7 @@ items and Costco receipt and online order items, using the user's own sign-in.
 | `fin amazon categorize [--set]` | Items without a category; `--set` saves them (see below) |
 | `fin costco` | Costco accounts connected for receipts, online orders and items (experimental) |
 | `fin costco categorize [--set]` | Uncategorized Costco items; the same category workflow as Amazon |
-| `fin holdings [--account X]` | Positions with cost basis and tax lots |
+| `fin holdings [--account X]` | Latest positions with cost basis and tax lots; `holdings` in `fin sql` has one snapshot per day synced, for history |
 | `fin investments --since DATE [--until DATE] [--account X]` | Buys, sells, dividends, fees |
 | `fin epoch [DATE]` | The first day of the finances the user wants reported |
 | `fin institutions <name>` | Whether Plaid supports a bank, before using a slot |

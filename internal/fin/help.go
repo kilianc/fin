@@ -197,6 +197,14 @@ Tables:
                 current, available, limit, iso_currency_code, updated_at
   items         item_id, item, institution, cursor, status, last_sync
   settings      key, value: the epoch set with fin epoch, under 'epoch'
+  holdings      date, item_id, account_id, security_id, quantity, price,
+                price_as_of, value, cost_basis, iso_currency_code, tax_lots:
+                one snapshot per connection per day synced
+  investment_transactions  investment_transaction_id, item_id, account_id,
+                security_id, date, name, type, subtype, quantity, price,
+                amount, fees, iso_currency_code
+  securities    security_id, ticker, name, type, is_cash_equivalent,
+                close_price, iso_currency_code, updated_at
 
 With a retailer connected (fin amazon or fin costco), also:
   retailer_items      every item bought: retailer, account, item, product,
@@ -247,7 +255,10 @@ FIN_CONFIG_DIR and FIN_DATA_DIR move them.`,
 	{
 		name: "holdings", usage: "fin holdings [--account X]", group: groupRead,
 		summary: "Investment positions with cost basis and tax lots",
-		detail: `Tax lots appear when the brokerage reports them; otherwise the list is empty.
+		detail: `Syncs first, then shows each connection's latest positions from the local
+file. fin sync keeps one snapshot per day in the holdings table, so fin sql
+can show how positions and their value changed. Tax lots appear when the
+brokerage reports them; otherwise the list is empty.
 
 Flags:
   --account X     an account ID, last four digits, or account name`,
@@ -257,7 +268,11 @@ Flags:
 	{
 		name: "investments", usage: "fin investments --since DATE [--until DATE] [--account X]", group: groupRead,
 		summary: "Buys, sells, dividends and fees, newest first",
-		detail: `Flags:
+		detail: `Syncs first, then reads the local file. The first sync reads 24 months
+back, as far as Plaid goes; later ones read again from 30 days before the
+newest stored trade, for trades a brokerage posts or corrects late.
+
+Flags:
   --since DATE    first day, YYYY-MM-DD (required)
   --until DATE    last day, YYYY-MM-DD (default today)
   --account X     an account ID, last four digits, or account name`,

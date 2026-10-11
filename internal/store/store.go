@@ -73,14 +73,15 @@ create table if not exists transactions (
 );
 `
 
-// DeleteItem forgets an Item's transactions, accounts and sync cursor.
+// DeleteItem forgets an Item's transactions, holdings, investment
+// transactions, accounts and sync cursor.
 func (s *Store) DeleteItem(ctx context.Context, itemID string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	for _, table := range []string{"transactions", "accounts", "items"} {
+	for _, table := range []string{"transactions", "holdings", "investment_transactions", "accounts", "items"} {
 		if _, err := tx.ExecContext(ctx, `delete from `+table+` where item_id = ?`, itemID); err != nil {
 			return err
 		}
@@ -122,7 +123,7 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.db.ExecContext(ctx, schema+retailerSchema+amazonSchema+costcoSchema+retailerItemsView()); err != nil {
+	if _, err := s.db.ExecContext(ctx, schema+investmentsSchema+retailerSchema+amazonSchema+costcoSchema+retailerItemsView()); err != nil {
 		s.Close()
 		return nil, fmt.Errorf("store: create schema: %w", err)
 	}
@@ -202,17 +203,8 @@ func (s *Store) Apply(ctx context.Context, d ItemSync) error {
 	}
 	defer tx.Rollback()
 
-	accStmt, err := tx.PrepareContext(ctx, `insert or replace into accounts values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-	if err != nil {
+	if err := upsertAccounts(ctx, tx, d.ItemID, d.Accounts, d.SyncedAt); err != nil {
 		return err
-	}
-	defer accStmt.Close()
-	for _, a := range d.Accounts {
-		b := a.Balances
-		if _, err := accStmt.ExecContext(ctx, a.AccountID, d.ItemID, a.Name, a.OfficialName, a.Mask, a.Type, a.Subtype,
-			b.Current, b.Available, b.Limit, b.IsoCurrencyCode, d.SyncedAt); err != nil {
-			return fmt.Errorf("store: account %s: %w", a.AccountID, err)
-		}
 	}
 
 	delStmt, err := tx.PrepareContext(ctx, `delete from transactions where transaction_id = ?`)
@@ -248,6 +240,18 @@ func (s *Store) Apply(ctx context.Context, d ItemSync) error {
 		return fmt.Errorf("store: item %s: %w", d.ItemID, err)
 	}
 	return tx.Commit()
+}
+
+func upsertAccounts(ctx context.Context, tx *sql.Tx, itemID string, accounts []plaid.Account, at time.Time) error {
+	for _, a := range accounts {
+		b := a.Balances
+		if _, err := tx.ExecContext(ctx, `insert or replace into accounts values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			a.AccountID, itemID, a.Name, a.OfficialName, a.Mask, a.Type, a.Subtype,
+			b.Current, b.Available, b.Limit, b.IsoCurrencyCode, at); err != nil {
+			return fmt.Errorf("store: account %s: %w", a.AccountID, err)
+		}
+	}
+	return nil
 }
 
 // Transaction is one stored transaction joined with its account and Item.

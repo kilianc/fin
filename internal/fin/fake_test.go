@@ -143,11 +143,14 @@ func (f *fakePlaid) InvestmentsHoldingsGet(ctx context.Context, token string) (*
 	if f.holdingsErr != nil {
 		return nil, f.holdingsErr
 	}
-	return f.holdings[token], nil
+	if h := f.holdings[token]; h != nil {
+		return h, nil
+	}
+	return &plaid.HoldingsResponse{}, nil
 }
 
 func (f *fakePlaid) InvestmentsTransactionsGet(ctx context.Context, token, start, end string, offset, count int) (*plaid.InvestmentTransactionsResponse, error) {
-	f.record("inv_txs %s offset=%d", token, offset)
+	f.record("inv_txs %s %s..%s offset=%d", token, start, end, offset)
 	if err := f.errs[token]; err != nil {
 		return nil, err
 	}

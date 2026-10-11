@@ -1,8 +1,8 @@
 package fin
 
 import (
-	"cmp"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"slices"
@@ -186,23 +186,7 @@ func (a *App) cmdTransactions(ctx context.Context, args []string) (*result, erro
 
 // --- holdings ---
 
-type holdingView struct {
-	Item            string         `json:"item"`
-	Institution     string         `json:"institution"`
-	AccountID       string         `json:"account_id"`
-	AccountName     string         `json:"account_name"`
-	SecurityID      string         `json:"security_id"`
-	Ticker          *string        `json:"ticker"`
-	SecurityName    *string        `json:"security_name"`
-	SecurityType    *string        `json:"security_type"`
-	Quantity        float64        `json:"quantity"`
-	Price           float64        `json:"price"`
-	PriceAsOf       *string        `json:"price_as_of"`
-	Value           float64        `json:"value"`
-	CostBasis       *float64       `json:"cost_basis"`
-	IsoCurrencyCode *string        `json:"iso_currency_code"`
-	TaxLots         []plaid.TaxLot `json:"tax_lots"`
-}
+type holdingView = store.Holding
 
 func (a *App) cmdHoldings(ctx context.Context, args []string) (*result, error) {
 	fs := flag.NewFlagSet("holdings", flag.ContinueOnError)
@@ -212,49 +196,14 @@ func (a *App) cmdHoldings(ctx context.Context, args []string) (*result, error) {
 	} else if len(pos) > 0 {
 		return nil, usageErr("usage: fin holdings [--account X]")
 	}
-	_, items, api, err := a.readSetup("investments")
+	holdings := []holdingView{}
+	syncs, errs, err := a.readInvestments(ctx, func(s *store.Store, ids []string) (err error) {
+		holdings, err = s.Holdings(ctx, ids, *account)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
-	parts := make([][]holdingView, len(items))
-	errs := a.forEachItem(ctx, items, func(ctx context.Context, i int, token string) error {
-		resp, err := api.InvestmentsHoldingsGet(ctx, token)
-		if err != nil {
-			return err
-		}
-		accounts := indexAccounts(resp.Accounts)
-		securities := indexSecurities(resp.Securities)
-		for _, h := range resp.Holdings {
-			acc := accounts[h.AccountID]
-			if *account != "" && !matchAccount(*account, h.AccountID, acc) {
-				continue
-			}
-			sec := securities[h.SecurityID]
-			lots := h.TaxLots
-			if lots == nil {
-				lots = []plaid.TaxLot{}
-			}
-			parts[i] = append(parts[i], holdingView{
-				Item:            items[i].Name,
-				Institution:     items[i].InstitutionName,
-				AccountID:       h.AccountID,
-				AccountName:     acc.Name,
-				SecurityID:      h.SecurityID,
-				Ticker:          sec.TickerSymbol,
-				SecurityName:    sec.Name,
-				SecurityType:    sec.Type,
-				Quantity:        h.Quantity,
-				Price:           h.InstitutionPrice,
-				PriceAsOf:       h.InstitutionPriceAsOf,
-				Value:           h.InstitutionValue,
-				CostBasis:       h.CostBasis,
-				IsoCurrencyCode: h.IsoCurrencyCode,
-				TaxLots:         lots,
-			})
-		}
-		return nil
-	})
-	holdings := flatten(parts)
 	var total, basis float64
 	t := &ui.Table{
 		Headers: []string{"Item", "Account", "Security", "Quantity", "Price", "Value", "Cost basis", "Gain", "Lots"},
@@ -284,38 +233,22 @@ func (a *App) cmdHoldings(ctx context.Context, args []string) (*result, error) {
 			basis += *v.CostBasis
 		}
 		total += v.Value
+		var lots []json.RawMessage
+		_ = json.Unmarshal(v.TaxLots, &lots)
 		t.Rows = append(t.Rows, []string{
 			v.Item, v.AccountName, security, fmtNum(v.Quantity), fmtNum2(v.Price), fmtNum2(v.Value),
-			fmtMoney(v.CostBasis), gain, fmtNum(float64(len(v.TaxLots))),
+			fmtMoney(v.CostBasis), gain, fmtNum(float64(len(lots))),
 		})
 	}
 	t.Title = fmt.Sprintf("Holdings · %d positions · %s", len(holdings), fmtNum2(total))
 	t.Footer = fmt.Sprintf("Total value %s, cost basis %s where known.", fmtNum2(total), fmtNum2(basis))
-	body := map[string]any{"env": a.Env, "holdings": holdings, "errors": errs}
+	body := map[string]any{"env": a.Env, "holdings": holdings, "sync": syncs, "errors": errs}
 	return &result{body: body, table: t, errors: errs}, nil
 }
 
 // --- investment transactions ---
 
-type investmentTransactionView struct {
-	InvestmentTransactionID string   `json:"investment_transaction_id"`
-	Item                    string   `json:"item"`
-	Institution             string   `json:"institution"`
-	AccountID               string   `json:"account_id"`
-	AccountName             string   `json:"account_name"`
-	Date                    string   `json:"date"`
-	Name                    string   `json:"name"`
-	Type                    string   `json:"type"`
-	Subtype                 string   `json:"subtype"`
-	SecurityID              *string  `json:"security_id"`
-	Ticker                  *string  `json:"ticker"`
-	SecurityName            *string  `json:"security_name"`
-	Quantity                float64  `json:"quantity"`
-	Price                   float64  `json:"price"`
-	Amount                  float64  `json:"amount"`
-	Fees                    *float64 `json:"fees"`
-	IsoCurrencyCode         *string  `json:"iso_currency_code"`
-}
+type investmentTransactionView = store.InvestmentTransaction
 
 // invPageSize is Plaid's maximum page size for /investments/transactions/get.
 var invPageSize = 500
@@ -329,65 +262,14 @@ func (a *App) cmdInvestments(ctx context.Context, args []string) (*result, error
 	if err != nil {
 		return nil, err
 	}
-	_, items, api, err := a.readSetup("investments")
+	txs := []investmentTransactionView{}
+	syncs, errs, err := a.readInvestments(ctx, func(s *store.Store, ids []string) (err error) {
+		txs, err = s.InvestmentTransactions(ctx, store.Filter{ItemIDs: ids, From: from, To: to, Account: *account})
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
-	parts := make([][]investmentTransactionView, len(items))
-	errs := a.forEachItem(ctx, items, func(ctx context.Context, i int, token string) error {
-		accounts := map[string]plaid.Account{}
-		securities := map[string]plaid.Security{}
-		var txs []plaid.InvestmentTransaction
-		for {
-			page, err := api.InvestmentsTransactionsGet(ctx, token, from, to, len(txs), invPageSize)
-			if err != nil {
-				return err
-			}
-			txs = append(txs, page.InvestmentTransactions...)
-			for _, acc := range page.Accounts {
-				accounts[acc.AccountID] = acc
-			}
-			for _, sec := range page.Securities {
-				securities[sec.SecurityID] = sec
-			}
-			if len(page.InvestmentTransactions) == 0 || len(txs) >= page.TotalInvestmentTransactions {
-				break
-			}
-		}
-		for _, t := range txs {
-			acc := accounts[t.AccountID]
-			if *account != "" && !matchAccount(*account, t.AccountID, acc) {
-				continue
-			}
-			v := investmentTransactionView{
-				InvestmentTransactionID: t.InvestmentTransactionID,
-				Item:                    items[i].Name,
-				Institution:             items[i].InstitutionName,
-				AccountID:               t.AccountID,
-				AccountName:             acc.Name,
-				Date:                    t.Date,
-				Name:                    t.Name,
-				Type:                    t.Type,
-				Subtype:                 t.Subtype,
-				SecurityID:              t.SecurityID,
-				Quantity:                t.Quantity,
-				Price:                   t.Price,
-				Amount:                  t.Amount,
-				Fees:                    t.Fees,
-				IsoCurrencyCode:         t.IsoCurrencyCode,
-			}
-			if t.SecurityID != nil {
-				sec := securities[*t.SecurityID]
-				v.Ticker, v.SecurityName = sec.TickerSymbol, sec.Name
-			}
-			parts[i] = append(parts[i], v)
-		}
-		return nil
-	})
-	txs := flatten(parts)
-	slices.SortStableFunc(txs, func(x, y investmentTransactionView) int {
-		return cmp.Or(strings.Compare(y.Date, x.Date), strings.Compare(x.Item, y.Item), strings.Compare(x.InvestmentTransactionID, y.InvestmentTransactionID))
-	})
 	t := &ui.Table{
 		Title:   fmt.Sprintf("Investment transactions · %s → %s · %d", from, to, len(txs)),
 		Headers: []string{"Date", "Item", "Account", "Type", "Security", "Quantity", "Price", "Amount"},
@@ -415,7 +297,7 @@ func (a *App) cmdInvestments(ctx context.Context, args []string) (*result, error
 	}
 	body := map[string]any{
 		"env": a.Env, "since": from, "until": to, "account": *account,
-		"investment_transactions": txs, "errors": errs,
+		"investment_transactions": txs, "sync": syncs, "errors": errs,
 	}
 	return &result{body: body, table: t, errors: errs}, nil
 }
@@ -465,28 +347,6 @@ func (a *App) dateRange(fs *flag.FlagSet, args []string, since, until *string) (
 		return "", "", usageErr("--until %s is before --since %s", to, from)
 	}
 	return from, to, nil
-}
-
-// matchAccount matches an --account value against an account_id, the last
-// four digits, or the account name (case-insensitive).
-func matchAccount(filter, accountID string, acc plaid.Account) bool {
-	return filter == accountID || filter == deref(acc.Mask) || strings.EqualFold(filter, acc.Name)
-}
-
-func indexAccounts(accounts []plaid.Account) map[string]plaid.Account {
-	m := make(map[string]plaid.Account, len(accounts))
-	for _, acc := range accounts {
-		m[acc.AccountID] = acc
-	}
-	return m
-}
-
-func indexSecurities(securities []plaid.Security) map[string]plaid.Security {
-	m := make(map[string]plaid.Security, len(securities))
-	for _, sec := range securities {
-		m[sec.SecurityID] = sec
-	}
-	return m
 }
 
 func flatten[T any](parts [][]T) []T {

@@ -65,8 +65,9 @@ the prompt in Claude Code or Codex.
 
 ## No agent? Use SQL or a spreadsheet
 
-fin keeps your transactions and balances in a DuckDB file on your Mac.
-`fin sync` brings it up to date and `fin sql` queries it, read-only:
+fin keeps your transactions, balances and investments in a DuckDB file on
+your Mac, with a snapshot of your holdings for every day you sync. `fin sync`
+brings it up to date and `fin sql` queries it, read-only:
 
 ```text
 $ fin sql "select category, sum(amount) as spent from transactions
@@ -542,6 +543,7 @@ a formula. `--new` starts a fresh spreadsheet, `--login` signs in again.
   "errors": [],
   "holdings": [
     {
+      "date": "2026-10-09",
       "item": "fidelity",
       "institution": "Fidelity",
       "account_id": "JqMLm4rJwpF6gMPJwBqdh9ZjjPvvpDcb7kDK1",
@@ -572,7 +574,10 @@ a formula. `--new` starts a fresh spreadsheet, `--login` signs in again.
 }
 ```
 
-`tax_lots` is an empty list when the institution does not report lots.
+`date` is the day of the snapshot: fin syncs first and shows each
+connection's latest positions, and `fin sync` keeps one snapshot per day in
+the `holdings` table. `tax_lots` is an empty list when the institution does
+not report lots.
 `cost_basis` can be `null`.
 
 ### `fin investments --since DATE [--until DATE] [--account X]`
@@ -696,8 +701,3 @@ connections.
 ## License
 
 [MIT](LICENSE)
-
-## Not built yet
-
-- The local DuckDB file holds transactions and account balances only.
-  Holdings and investment transactions are still read live from Plaid.

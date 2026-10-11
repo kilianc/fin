@@ -344,7 +344,8 @@ func TestInvestmentsPagesByOffset(t *testing.T) {
 	if n := len(body["investment_transactions"].([]any)); n != 5 {
 		t.Errorf("got %d investment transactions, want 5", n)
 	}
-	want := []string{"inv_txs tok-item-fido offset=0", "inv_txs tok-item-fido offset=2", "inv_txs tok-item-fido offset=4"}
+	want := []string{"holdings tok-item-fido", "inv_txs tok-item-fido 2024-10-09..2026-10-09 offset=0",
+		"inv_txs tok-item-fido 2024-10-09..2026-10-09 offset=2", "inv_txs tok-item-fido 2024-10-09..2026-10-09 offset=4"}
 	if !slices.Equal(ta.fake.calls, want) {
 		t.Errorf("calls = %v, want %v", ta.fake.calls, want)
 	}
@@ -1020,5 +1021,46 @@ func TestUnlinkChangesNothingWhenPlaidRefuses(t *testing.T) {
 	ta.fake.errs["tok-item-chase"] = &plaid.Error{Code: "ITEM_NOT_FOUND"}
 	if code, body := ta.run(t, "unlink", "chase", "--yes"); code != exitOK || body["removed_at_plaid"] != true {
 		t.Errorf("already gone at Plaid: exit = %d body = %v", code, body)
+	}
+}
+
+func TestInvestmentsAreKeptLocally(t *testing.T) {
+	ta := newTestApp(t, fido)
+	vti := plaid.Security{SecurityID: "s-vti", TickerSymbol: ptr("VTI")}
+	holding := func(qty float64) *plaid.HoldingsResponse {
+		return &plaid.HoldingsResponse{
+			Accounts:   []plaid.Account{{AccountID: "acc-ira", Name: "IRA"}},
+			Securities: []plaid.Security{vti},
+			Holdings:   []plaid.Holding{{AccountID: "acc-ira", SecurityID: "s-vti", Quantity: qty, InstitutionPrice: 300, InstitutionValue: qty * 300}},
+		}
+	}
+	ta.fake.holdings["tok-item-fido"] = holding(10)
+	ta.fake.invTxs["tok-item-fido"] = []plaid.InvestmentTransaction{
+		{InvestmentTransactionID: "buy", AccountID: "acc-ira", SecurityID: ptr("s-vti"), Date: "2026-09-01", Type: "buy", Quantity: 10, Amount: 3000},
+		{InvestmentTransactionID: "late", AccountID: "acc-ira", Date: "2026-10-01", Type: "cash", Amount: -5},
+	}
+	if code, body := ta.run(t, "sync"); code != exitOK || len(body["investments"].([]any)) != 1 {
+		t.Fatalf("sync exit = %d body = %v stderr %s", code, body, ta.stderr)
+	}
+
+	// A day later: one more share, and Plaid no longer lists "late".
+	ta.Now = func() time.Time { return testNow.AddDate(0, 0, 1) }
+	ta.fake.calls = nil
+	ta.fake.holdings["tok-item-fido"] = holding(11)
+	ta.fake.invTxs["tok-item-fido"] = ta.fake.invTxs["tok-item-fido"][:1]
+	code, body := ta.run(t, "holdings")
+	if h := body["holdings"].([]any); code != exitOK || len(h) != 1 || h[0].(map[string]any)["quantity"] != 11.0 || h[0].(map[string]any)["ticker"] != "VTI" {
+		t.Fatalf("holdings exit = %d body = %v", code, body)
+	}
+	if !slices.Contains(ta.fake.calls, "inv_txs tok-item-fido 2026-09-01..2026-10-10 offset=0") {
+		t.Errorf("did not read from 30 days before the last stored trade: %v", ta.fake.calls)
+	}
+	_, body = ta.run(t, "investments", "--since", "2026-01-01")
+	if txs := body["investment_transactions"].([]any); len(txs) != 1 || txs[0].(map[string]any)["investment_transaction_id"] != "buy" {
+		t.Errorf("investment transactions = %v", txs)
+	}
+	_, body = ta.run(t, "sql", "select date::varchar d, quantity from holdings order by date")
+	if rows := body["rows"].([]any); len(rows) != 2 || rows[0].(map[string]any)["d"] != "2026-10-09" {
+		t.Errorf("holdings history = %v", rows)
 	}
 }
