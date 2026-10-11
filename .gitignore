@@ -30,6 +30,7 @@
 !/.agents/skills/*
 !/docs/*.css
 !/docs/
+!/vercel.json
 !/docs/*.svg
 !/docs/index.html
 !/docs/social-card.png

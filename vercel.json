@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "for f in $(grep -rlF https://kilianc.github.io/fin/ docs); do sed -i 's#https://kilianc\\.github\\.io/fin/#https://fin.ciuffolo.com/#g' \"$f\"; done; ! grep -rF kilianc.github.io docs",
+  "outputDirectory": "docs"
+}

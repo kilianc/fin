@@ -811,6 +811,11 @@ func TestSitePagesShareOneStyle(t *testing.T) {
 		if strings.Contains(page, "<style") || strings.Contains(page, ` style="`) {
 			t.Errorf("%s has styles of its own; put them in docs/site.css", path)
 		}
+		// fin.ciuffolo.com is a copy that vercel.json rewrites at deploy;
+		// the GitHub Pages site must never point at it
+		if strings.Contains(page, "ciuffolo.com") {
+			t.Errorf("%s links fin.ciuffolo.com; GitHub Pages must only link itself", path)
+		}
 	}
 }
 
