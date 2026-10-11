@@ -22,7 +22,7 @@ const siteParts = `{{define "head"}}<meta charset="utf-8">
 <span class="sp"></span>
 <nav><a href="{{.Root}}#examples">examples</a><a href="{{.Root}}#security">security</a><a href="https://github.com/kilianc/fin">github ↗</a></nav>
 </header>{{end}}
-{{define "footer"}}<footer class="site-footer wrap"><span>fin · MIT</span><span class="sp"></span><a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a></footer>{{end}}`
+{{define "footer"}}<footer class="site-footer wrap"><span>fin · MIT</span><span class="sp"></span><a href="{{.Root}}privacy/">privacy</a><a href="https://github.com/kilianc/fin">github.com/kilianc/fin</a></footer>{{end}}`
 
 // SiteCSSVersion is a short hash of docs/site.css. Pages link the
 // stylesheet with it so browsers fetch a fresh copy whenever it changes; the

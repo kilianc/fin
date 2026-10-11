@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-// PagesURL is where GitHub Pages serves docs/. The README's setup buttons
+// PagesURL is where GitHub Pages serves docs/, on its custom domain (docs/CNAME). The README's setup buttons
 // link there, because GitHub strips claude-cli:// and codex:// links.
-const PagesURL = "https://kilianc.github.io/fin/"
+const PagesURL = "https://fin.ciuffolo.com/"
 
 // Agent is a local AI agent app that can take the setup prompt from a link.
 type Agent struct {

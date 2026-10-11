@@ -33,32 +33,32 @@ the prompt in Claude Code or Codex.
 <table>
 <tr>
 <td width="50%" valign="bottom">
-<p><b>“Build me a monthly spending review.”</b><br>Compare it to the month before.<br><a href="https://kilianc.github.io/fin/try/spending/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/spending/"><img src="docs/examples/1.png" alt="AI-generated spending report with illustrative data: $6,482 spent, down 9%, with a category breakdown"></a>
+<p><b>“Build me a monthly spending review.”</b><br>Compare it to the month before.<br><a href="https://fin.ciuffolo.com/try/spending/">Try it in Claude Code or Codex →</a></p>
+<a href="https://fin.ciuffolo.com/try/spending/"><img src="docs/examples/1.png" alt="AI-generated spending report with illustrative data: $6,482 spent, down 9%, with a category breakdown"></a>
 </td>
 <td width="50%" valign="bottom">
-<p><b>“How many Costco chickens and hot dogs did we buy?”</b><br>Count rotisserie chickens and hot dog combos from our receipts over the last six months.<br><a href="https://kilianc.github.io/fin/try/costco/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/costco/"><img src="docs/examples/6.png" alt="AI-generated Costco report with illustrative data: 24 rotisserie chickens and 36 hot dog combos over six months, totaling $173.76 before tax"></a>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="bottom">
-<p><b>“Break down my Amazon spending item by item.”</b><br>Use my order history to categorize purchases, unpack card charges, and track refunds.<br><a href="https://kilianc.github.io/fin/try/amazon/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/amazon/"><img src="docs/examples/5.png" alt="AI-generated Amazon report with illustrative data: $1,284.37 across 23 orders, six items in a $412.07 Amex charge, and $86.20 in pending refunds"></a>
-</td>
-<td width="50%" valign="bottom">
-<p><b>“Find the subscriptions worth reviewing.”</b><br>Find subscriptions, price increases, and anything I’m paying for twice.<br><a href="https://kilianc.github.io/fin/try/subscriptions/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/subscriptions/"><img src="docs/examples/2.png" alt="AI-generated subscription audit with illustrative data: recurring charges, price increases, and overlapping storage plans"></a>
+<p><b>“How many Costco chickens and hot dogs did we buy?”</b><br>Count rotisserie chickens and hot dog combos from our receipts over the last six months.<br><a href="https://fin.ciuffolo.com/try/costco/">Try it in Claude Code or Codex →</a></p>
+<a href="https://fin.ciuffolo.com/try/costco/"><img src="docs/examples/6.png" alt="AI-generated Costco report with illustrative data: 24 rotisserie chickens and 36 hot dog combos over six months, totaling $173.76 before tax"></a>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="bottom">
-<p><b>“Put all my investments in one report.”</b><br>Show my allocation and unrealized gains across brokerages.<br><a href="https://kilianc.github.io/fin/try/portfolio/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/portfolio/"><img src="docs/examples/3.png" alt="AI-generated investment report with illustrative data: $284,316 across three brokerages, asset allocation, and unrealized gains"></a>
+<p><b>“Break down my Amazon spending item by item.”</b><br>Use my order history to categorize purchases, unpack card charges, and track refunds.<br><a href="https://fin.ciuffolo.com/try/amazon/">Try it in Claude Code or Codex →</a></p>
+<a href="https://fin.ciuffolo.com/try/amazon/"><img src="docs/examples/5.png" alt="AI-generated Amazon report with illustrative data: $1,284.37 across 23 orders, six items in a $412.07 Amex charge, and $86.20 in pending refunds"></a>
 </td>
 <td width="50%" valign="bottom">
-<p><b>“Show how my net worth changed this year.”</b><br>Chart it month by month and explain what moved it.<br><a href="https://kilianc.github.io/fin/try/net-worth/">Try it in Claude Code or Codex →</a></p>
-<a href="https://kilianc.github.io/fin/try/net-worth/"><img src="docs/examples/4.png" alt="AI-generated net-worth report with illustrative data: January to September growth, market gains, savings, and card balances"></a>
+<p><b>“Find the subscriptions worth reviewing.”</b><br>Find subscriptions, price increases, and anything I’m paying for twice.<br><a href="https://fin.ciuffolo.com/try/subscriptions/">Try it in Claude Code or Codex →</a></p>
+<a href="https://fin.ciuffolo.com/try/subscriptions/"><img src="docs/examples/2.png" alt="AI-generated subscription audit with illustrative data: recurring charges, price increases, and overlapping storage plans"></a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="bottom">
+<p><b>“Put all my investments in one report.”</b><br>Show my allocation and unrealized gains across brokerages.<br><a href="https://fin.ciuffolo.com/try/portfolio/">Try it in Claude Code or Codex →</a></p>
+<a href="https://fin.ciuffolo.com/try/portfolio/"><img src="docs/examples/3.png" alt="AI-generated investment report with illustrative data: $284,316 across three brokerages, asset allocation, and unrealized gains"></a>
+</td>
+<td width="50%" valign="bottom">
+<p><b>“Show how my net worth changed this year.”</b><br>Chart it month by month and explain what moved it.<br><a href="https://fin.ciuffolo.com/try/net-worth/">Try it in Claude Code or Codex →</a></p>
+<a href="https://fin.ciuffolo.com/try/net-worth/"><img src="docs/examples/4.png" alt="AI-generated net-worth report with illustrative data: January to September growth, market gains, savings, and card balances"></a>
 </td>
 </tr>
 </table>
@@ -163,9 +163,9 @@ Let an AI agent do the setup. Pick one, read the prompt it opens with, and
 press Enter:
 
 <p>
-  <a href="https://kilianc.github.io/fin/claude/"><img src="docs/setup-with-claude.svg?v=flat2" alt="Set up with Claude" height="56"></a>
+  <a href="https://fin.ciuffolo.com/claude/"><img src="docs/setup-with-claude.svg?v=flat2" alt="Set up with Claude" height="56"></a>
   &nbsp;
-  <a href="https://kilianc.github.io/fin/codex/"><img src="docs/setup-with-codex.svg?v=flat2" alt="Set up with Codex" height="56"></a>
+  <a href="https://fin.ciuffolo.com/codex/"><img src="docs/setup-with-codex.svg?v=flat2" alt="Set up with Codex" height="56"></a>
 </p>
 
 The agent opens the pages, fills in the forms and brands Plaid Link with
