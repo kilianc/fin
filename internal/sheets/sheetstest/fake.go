@@ -22,6 +22,8 @@ type Sheet struct {
 	Values map[string][][]any
 	// Options holds each write's valueInputOption, by tab title.
 	Options map[string]string
+	// Widths holds fixed column widths in pixels, by "sheetId:column".
+	Widths map[string]int
 }
 
 // Server fakes Google's token endpoint and the parts of the Sheets API fin uses.
@@ -85,7 +87,7 @@ func (f *Server) serve(w http.ResponseWriter, r *http.Request) {
 		json.NewDecoder(r.Body).Decode(&body)
 		f.nextID++
 		id := fmt.Sprintf("sheet-%d", f.nextID)
-		sh := &Sheet{Title: body.Properties.Title, Tabs: map[string]int{}, Values: map[string][][]any{}, Options: map[string]string{}}
+		sh := &Sheet{Title: body.Properties.Title, Tabs: map[string]int{}, Values: map[string][][]any{}, Options: map[string]string{}, Widths: map[string]int{}}
 		for i, s := range body.Sheets {
 			sh.Tabs[s.Properties.Title] = i + 1
 		}
@@ -118,6 +120,19 @@ func (f *Server) serve(w http.ResponseWriter, r *http.Request) {
 				sh.Tabs[add.Properties.Title] = sid
 				replies = append(replies, map[string]any{"addSheet": map[string]any{"properties": map[string]any{"sheetId": sid}}})
 				continue
+			}
+			if raw, ok := req["updateDimensionProperties"]; ok {
+				var u struct {
+					Range struct {
+						SheetID    int `json:"sheetId"`
+						StartIndex int `json:"startIndex"`
+					}
+					Properties struct {
+						PixelSize int `json:"pixelSize"`
+					}
+				}
+				json.Unmarshal(raw, &u)
+				sh.Widths[fmt.Sprintf("%d:%d", u.Range.SheetID, u.Range.StartIndex)] = u.Properties.PixelSize
 			}
 			replies = append(replies, map[string]any{})
 		}

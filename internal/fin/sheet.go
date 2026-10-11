@@ -267,8 +267,8 @@ func transactionsTab(txs []store.Transaction) sheets.Tab {
 		{Name: "Item"},
 		{Name: "Account"},
 		{Name: "Mask"},
-		{Name: "Description"},
-		{Name: "Merchant"},
+		{Name: "Description", Width: 280},
+		{Name: "Merchant", Width: 180},
 		{Name: "Amount", Kind: sheets.Money},
 		{Name: "Currency"},
 		{Name: "Category"},
@@ -314,12 +314,12 @@ func itemsTab(r retailer, items []store.RetailerItem) sheets.Tab {
 	tab := sheets.Tab{Title: r.Name + " items", Columns: []sheets.Column{
 		{Name: "Date", Kind: sheets.Date},
 		{Name: "Order"},
-		{Name: "Item"},
+		{Name: "Item", Width: 360},
 		{Name: "Qty", Kind: sheets.Number},
 		{Name: "Category"},
 		{Name: "Cost", Kind: sheets.Money},
 		{Name: r.Name + " account"},
-		{Name: "Bank transaction"},
+		{Name: "Bank transaction", Width: 280},
 	}, Rows: [][]any{}}
 	for _, it := range items {
 		tab.Rows = append(tab.Rows, []any{it.Date, it.OrderID, it.Title, it.Quantity, readable(deref(it.Category)), it.Cost, it.Account, it.Transaction})

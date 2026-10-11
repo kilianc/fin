@@ -146,6 +146,10 @@ const (
 type Column struct {
 	Name string
 	Kind Kind
+	// Width, in pixels, fixes the width of a column of long text, which is
+	// then clipped, so one long bank description does not push the rest of
+	// the sheet off screen. Other columns fit their contents.
+	Width int
 }
 
 // Tab is one sheet's full contents. Date cells are "YYYY-MM-DD" strings or nil.
@@ -242,6 +246,22 @@ func (s *Service) Write(ctx context.Context, sp *Spreadsheet, tab Tab) error {
 	formats = append(formats, map[string]any{"autoResizeDimensions": map[string]any{
 		"dimensions": map[string]any{"sheetId": sheetID, "dimension": "COLUMNS", "startIndex": 0, "endIndex": len(tab.Columns)},
 	}})
+	for i, c := range tab.Columns {
+		if c.Width == 0 {
+			continue
+		}
+		formats = append(formats,
+			map[string]any{"updateDimensionProperties": map[string]any{
+				"range":      map[string]any{"sheetId": sheetID, "dimension": "COLUMNS", "startIndex": i, "endIndex": i + 1},
+				"properties": map[string]any{"pixelSize": c.Width},
+				"fields":     "pixelSize",
+			}},
+			map[string]any{"repeatCell": map[string]any{
+				"range":  map[string]any{"sheetId": sheetID, "startRowIndex": 1, "startColumnIndex": i, "endColumnIndex": i + 1},
+				"cell":   map[string]any{"userEnteredFormat": map[string]any{"wrapStrategy": "CLIP"}},
+				"fields": "userEnteredFormat.wrapStrategy",
+			}})
+	}
 	return s.batchUpdate(ctx, sp.ID, formats)
 }
 

