@@ -7,8 +7,9 @@ import (
 	"strings"
 )
 
-// PagesURL is where GitHub Pages serves docs/, on its custom domain (docs/CNAME). The README's setup buttons
-// link there, because GitHub strips claude-cli:// and codex:// links.
+// PagesURL is where Vercel serves docs/ on our own domain; GitHub Pages serves
+// the same files at kilianc.github.io/fin/. The README's setup buttons link
+// there, because GitHub strips claude-cli:// and codex:// links.
 const PagesURL = "https://fin.ciuffolo.com/"
 
 // Agent is a local AI agent app that can take the setup prompt from a link.
