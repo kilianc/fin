@@ -7,10 +7,9 @@ import (
 	"strings"
 )
 
-// PagesURL is where Vercel serves docs/ on our own domain; GitHub Pages serves
-// the same files at kilianc.github.io/fin/. The README's setup buttons link
-// there, because GitHub strips claude-cli:// and codex:// links.
-const PagesURL = "https://fin.ciuffolo.com/"
+// PagesURL is where GitHub Pages serves docs/. The README's setup buttons
+// link there, because GitHub strips claude-cli:// and codex:// links.
+const PagesURL = "https://kilianc.github.io/fin/"
 
 // Agent is a local AI agent app that can take the setup prompt from a link.
 type Agent struct {

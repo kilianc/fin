@@ -7,7 +7,7 @@
     "name": "Kilian Ciuffolo",
     "url": "https://github.com/kilianc"
   },
-  "homepage": "https://fin.ciuffolo.com/",
+  "homepage": "https://kilianc.github.io/fin/",
   "repository": "https://github.com/kilianc/fin",
   "license": "MIT",
   "keywords": [
@@ -24,6 +24,6 @@
   "icon": "./.claude-plugin/icon.png",
   "documentationUrl": "https://github.com/kilianc/fin#readme",
   "supportUrl": "https://github.com/kilianc/fin/issues",
-  "privacyPolicyUrl": "https://fin.ciuffolo.com/privacy/",
+  "privacyPolicyUrl": "https://kilianc.github.io/fin/privacy/",
   "termsOfServiceUrl": "https://github.com/kilianc/fin/blob/main/LICENSE"
 }
