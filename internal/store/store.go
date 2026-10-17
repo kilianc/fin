@@ -71,17 +71,29 @@ create table if not exists transactions (
 	category_detailed varchar,
 	payment_channel   varchar
 );
+-- One balance per account per day: the last sync of the day replaces that
+-- day's row, and earlier days stay as history for net worth over time.
+create table if not exists balances (
+	date              date not null,
+	account_id        varchar not null,
+	item_id           varchar not null,
+	current           decimal(18, 4),
+	available         decimal(18, 4),
+	"limit"           decimal(18, 4),
+	iso_currency_code varchar,
+	primary key (date, account_id)
+);
 `
 
 // DeleteItem forgets an Item's transactions, holdings, investment
-// transactions, accounts and sync cursor.
+// transactions, accounts, balance history and sync cursor.
 func (s *Store) DeleteItem(ctx context.Context, itemID string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	for _, table := range []string{"transactions", "holdings", "investment_transactions", "accounts", "items"} {
+	for _, table := range []string{"transactions", "holdings", "investment_transactions", "balances", "accounts", "items"} {
 		if _, err := tx.ExecContext(ctx, `delete from `+table+` where item_id = ?`, itemID); err != nil {
 			return err
 		}
@@ -189,9 +201,12 @@ type ItemSync struct {
 	Cursor      string
 	Status      string
 	SyncedAt    time.Time
-	Accounts    []plaid.Account
-	Upserts     []plaid.Transaction
-	Removed     []string
+	// Day is the date the balances snapshot is kept under, YYYY-MM-DD;
+	// empty means SyncedAt's date.
+	Day      string
+	Accounts []plaid.Account
+	Upserts  []plaid.Transaction
+	Removed  []string
 }
 
 // Apply writes a delta and its cursor in one transaction, so a failed write
@@ -203,7 +218,11 @@ func (s *Store) Apply(ctx context.Context, d ItemSync) error {
 	}
 	defer tx.Rollback()
 
-	if err := upsertAccounts(ctx, tx, d.ItemID, d.Accounts, d.SyncedAt); err != nil {
+	day := d.Day
+	if day == "" {
+		day = d.SyncedAt.Format("2006-01-02")
+	}
+	if err := upsertAccounts(ctx, tx, d.ItemID, d.Accounts, d.SyncedAt, day); err != nil {
 		return err
 	}
 
@@ -242,13 +261,19 @@ func (s *Store) Apply(ctx context.Context, d ItemSync) error {
 	return tx.Commit()
 }
 
-func upsertAccounts(ctx context.Context, tx *sql.Tx, itemID string, accounts []plaid.Account, at time.Time) error {
+// upsertAccounts saves each account's latest balances, and keeps them as
+// the account's balance on day.
+func upsertAccounts(ctx context.Context, tx *sql.Tx, itemID string, accounts []plaid.Account, at time.Time, day string) error {
 	for _, a := range accounts {
 		b := a.Balances
 		if _, err := tx.ExecContext(ctx, `insert or replace into accounts values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			a.AccountID, itemID, a.Name, a.OfficialName, a.Mask, a.Type, a.Subtype,
 			b.Current, b.Available, b.Limit, b.IsoCurrencyCode, at); err != nil {
 			return fmt.Errorf("store: account %s: %w", a.AccountID, err)
+		}
+		if _, err := tx.ExecContext(ctx, `insert or replace into balances values (?::date, ?, ?, ?, ?, ?, ?)`,
+			day, a.AccountID, itemID, b.Current, b.Available, b.Limit, b.IsoCurrencyCode); err != nil {
+			return fmt.Errorf("store: balance %s: %w", a.AccountID, err)
 		}
 	}
 	return nil

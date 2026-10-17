@@ -336,6 +336,7 @@ and slot.
 | `fin costco [login\|sync\|categorize\|logout]` | Itemize Costco receipts and online orders (experimental) |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Investment transactions |
+| `fin ui` | Net worth, spending, portfolio and queries as pages on 127.0.0.1 (prototype; also `--ui` on accounts, transactions, holdings, sql) |
 
 `--account` matches an account ID, the last four digits, or the account name.
 `PLAID_ENV` overrides the environment set with `fin env` for one command or
