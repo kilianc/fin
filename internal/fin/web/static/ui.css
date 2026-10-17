@@ -248,9 +248,11 @@ button { font: inherit; color: inherit; }
 .cell:hover { outline: 1px solid var(--accent-2); outline-offset: -1px; }
 .cell[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--ink); }
 .cell.off { background: transparent; border-color: var(--line); color: var(--ink-4); }
+.cell.zero { background: transparent; border-color: var(--line-2); color: var(--ink-3); }
 .ramp { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; font: 10px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
 .ramp div { display: flex; gap: 2px; flex: 1; max-width: 180px; }
 .ramp i { flex: 1; height: 8px; }
+.ramp i.zero { box-shadow: inset 0 0 0 1px var(--line-2); }
 .day-card { margin-top: auto; padding-top: 18px; }
 .day-card > div { padding: 14px 16px; background: var(--panel-2); border: 1px solid var(--line-2); border-left: 2px solid var(--accent); }
 .day-card .d { font: 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-2); }
@@ -279,7 +281,10 @@ button { font: inherit; color: inherit; }
 .c-main .m { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
 .c-main .m span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c-main .s { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
-.c-acct { width: 170px; flex: none; font: 12px var(--mono); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-acct { width: 170px; flex: none; display: flex; gap: 0.6em; font: 12px var(--mono); color: var(--ink-3); white-space: nowrap; }
+/* A long account name gives way before its mask, which tells cards apart. */
+.c-acct .an { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.c-acct .am { flex: none; }
 .c-amt { width: 104px; flex: none; text-align: right; font: 13px var(--mono); font-variant-numeric: tabular-nums; }
 .c-amt.in { color: var(--accent-2); }
 .c-amt.muted { color: var(--ink-3); }
@@ -361,7 +366,8 @@ button { font: inherit; color: inherit; }
 
 .q-panel { margin-top: 32px; }
 .editor { display: flex; overflow-x: auto; font: 14px/26px var(--mono); }
-.gutter { flex: none; padding: 18px 14px 18px 20px; text-align: right; color: var(--ink-5); border-right: 1px solid var(--line); background: var(--well); user-select: none; white-space: pre; }
+/* The gutter stays put while a long line scrolls the code sideways. */
+.gutter { flex: none; position: sticky; left: 0; z-index: 1; padding: 18px 14px 18px 20px; text-align: right; color: var(--ink-5); border-right: 1px solid var(--line); background: var(--well); user-select: none; white-space: pre; }
 .code { position: relative; flex: 1; min-width: max-content; }
 .code pre, .code textarea { margin: 0; padding: 18px 22px; font: inherit; white-space: pre; tab-size: 2; letter-spacing: 0; }
 .code pre { color: var(--ink); min-height: 100%; }
@@ -402,7 +408,8 @@ button { font: inherit; color: inherit; }
 .rrow > span { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rrow > span.idx, .rhead > span.idx { width: 40px; flex: none; color: var(--ink-4); }
 .rhead > span.idx small { color: var(--ink-4); }
-.col { flex: 1 0 140px; min-width: 0; }
+/* Columns share the width and shrink to fit before the table scrolls. */
+.col { flex: 1 1 140px; min-width: 0; }
 .col.r { text-align: right; }
 .rhead .col.r { align-items: flex-end; }
 .rrow .null { color: var(--ink-5); }

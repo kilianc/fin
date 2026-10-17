@@ -368,9 +368,12 @@
     setCommand(args);
 
     const cum = xs => { let s = 0; return xs.map(x => (s += x)); };
-    const co = cum(d.daily), cs = cum(d.compare_daily);
+    // When the history starts inside the period before, there is nothing
+    // fair to compare against, so the page shows no comparison at all.
+    const full = d.compare_complete;
+    const co = cum(d.daily), cs = full ? cum(d.compare_daily) : [];
     const A = Math.max(d.axis_days, C.days, P.days);
-    const delta = d.spent - d.compare_to_date;
+    const delta = full ? d.spent - d.compare_to_date : 0;
     const curName = mtd ? monthName(P.from) : 'This period';
     const cmpName = mtd ? monthName(C.from) : 'Before';
     const vsText = mtd ? 'vs. this day in ' + monthName(C.from) : 'vs. the ' + C.days + ' days before';
@@ -406,8 +409,8 @@
         const whole = change == null ? 0 : Math.round(Math.abs(change) * 100);
         return {
           name: c.label || catName(c.category), amount: money(c.spent), pct: (c.spent / maxC * 100).toFixed(1),
-          delta: change == null ? 'NEW' : whole === 0 ? '0%' : (change > 0 ? '+' : MINUS) + whole + '%',
-          cls: change == null ? 'new' : change > 0.005 ? 'up' : change < -0.005 ? 'down' : 'flat',
+          delta: !full ? '' : change == null ? 'NEW' : whole === 0 ? '0%' : (change > 0 ? '+' : MINUS) + whole + '%',
+          cls: !full ? '' : change == null ? 'new' : change > 0.005 ? 'up' : change < -0.005 ? 'down' : 'flat',
         };
       });
     })();
@@ -418,8 +421,8 @@
           <div class="kicker"><span class="sq">■</span> Spent · ${rangeLabel(P.from, P.to)}${mtd ? ' · month to date' : ''}${d.account ? ' · ' + d.account : ''}</div>
           ${figure(d.spent)}
           <div class="deltas">
-            ${Math.abs(delta) >= 0.5 ? chip(signed(delta), delta > 0, delta > 0) : ''}
-            <span class="caps">${Math.abs(delta) >= 0.5 ? vsText : vsText.replace('vs.', 'same as')}</span>
+            ${full && Math.abs(delta) >= 0.5 ? chip(signed(delta), delta > 0, delta > 0) : ''}
+            <span class="caps">${!full ? 'History starts ' + longDate(d.history_since) + ', so nothing to compare' : Math.abs(delta) >= 0.5 ? vsText : vsText.replace('vs.', 'same as')}</span>
           </div>
         </div>
         <nav class="seg" aria-label="Period">${PRESETS.map(presetLink)}</nav>
@@ -427,7 +430,7 @@
 
       <section class="row">
         <div class="panel hud grow-2">
-          ${head('01', 'Running total', html`<div class="legend"><span><i class="key" style="background: #4A96E8"></i>${curName}</span><span><i class="key" style="background: #66768A"></i>${cmpName}</span></div>`)}
+          ${head('01', 'Running total', html`<div class="legend"><span><i class="key" style="background: #4A96E8"></i>${curName}</span>${full ? html`<span><i class="key" style="background: #66768A"></i>${cmpName}</span>` : ''}</div>`)}
           <div class="plot-pad y-left"><div class="plot short" id="pace"></div><div id="pace-axis"></div></div>
         </div>
         <div class="panel hud grow-1">
@@ -435,7 +438,7 @@
           <div class="cal-wrap">
             <div class="cal dow" aria-hidden="true"><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span></div>
             <div class="cal days" id="cal"></div>
-            <div class="ramp" aria-hidden="true"><span>Less</span><div>${RAMP.map(c => html`<i style="background: ${c}"></i>`)}</div><span>More</span></div>
+            <div class="ramp" aria-hidden="true"><span>Less</span><div><i class="zero"></i>${RAMP.map(c => html`<i style="background: ${c}"></i>`)}</div><span>More</span></div>
             <div class="day-card" id="day-card"></div>
           </div>
         </div>
@@ -443,7 +446,7 @@
 
       <section class="row top mt">
         <div class="panel hud" style="flex: 1 1 360px">
-          ${head('03', 'Where it went', html`<span>vs. ${cmpRange}</span>`)}
+          ${head('03', 'Where it went', full ? html`<span>vs. ${cmpRange}</span>` : '')}
           <div class="cats">${cats.length ? cats.map(c => html`
             <div>
               <div class="cat-line"><span class="nm">${c.name}</span><span class="am">${c.amount}</span><span class="dl ${c.cls}">${c.delta}</span></div>
@@ -493,7 +496,7 @@
         <div class="tip" style="left: ${left}%; transform: translateX(${right ? '-100%' : '0%'}); margin-left: ${right ? '-12px' : '12px'}">
           <div class="t">${label}</div>
           <div class="r"><span><i class="sw" style="background: #4A96E8"></i>${curName}</span><span>${curV}</span></div>
-          <div class="r"><span><i class="sw" style="background: #66768A"></i>${cmpName}</span><span>${cmpV}</span></div>
+          ${full ? html`<div class="r"><span><i class="sw" style="background: #66768A"></i>${cmpName}</span><span>${cmpV}</span></div>` : ''}
         </div>`);
     };
     const hit = $('#pace-hit');
@@ -514,6 +517,11 @@
       const name = fmtDate(date, { weekday: 'long', month: 'long', day: 'numeric' });
       if (!v) {
         cells.push(html`<div class="cell off" aria-label="${name}: outside this period">${String(n).padStart(2, '0')}</div>`);
+        continue;
+      }
+      if (v.v <= 0) {
+        // Nothing spent is drawn hollow, apart from the least on the ramp.
+        cells.push(html`<button type="button" class="cell zero" data-date="${date}" aria-pressed="${date === sel}" aria-label="${name}: nothing spent">${String(n).padStart(2, '0')}</button>`);
         continue;
       }
       const b = bucket(v.v);
@@ -561,7 +569,7 @@
               <div class="m"><span>${t.merchant_name || t.name}</span>${t.pending ? html`<span class="tag">Pending</span>` : ''}</div>
               <div class="s">${sub}</div>
             </div>
-            <span class="c-acct">${t.account_name} ${maskOf(t.account_mask)}</span>
+            <span class="c-acct" title="${t.account_name} ${maskOf(t.account_mask)}"><span class="an">${t.account_name}</span><span class="am">${maskOf(t.account_mask)}</span></span>
             <span class="c-amt ${cls}">${amt}</span>
             <span class="c-btn">${items.length ? html`<button type="button" class="toggle" data-tx="${id}" aria-expanded="${isOpen}" aria-label="${(isOpen ? 'Hide' : 'Show') + ' items in this ' + (t.merchant_name || t.name) + ' charge'}">${CHEVRON}</button>` : ''}</span>
           </div>
@@ -719,7 +727,7 @@
           ${hs.map(h => html`
             <div class="hrow" role="option" tabindex="0" data-key="${h.key}" aria-selected="${h.key === sel}">
               <div class="h-main"><i class="sw" style="background: ${classOf(h.class)[2]}" aria-hidden="true"></i><span class="tk">${h.label}</span><span class="nm">${h.security_name || ''}</span></div>
-              <span class="h-acct">${h.account_name} · ${h.item}</span>
+              <span class="h-acct">${h.account_name} · ${h.institution || h.item}</span>
               <span class="h-n">${qty(h.quantity)}</span>
               <span class="h-n">${money2(h.price)}</span>
               <span class="h-v">${money2(h.value)}</span>
@@ -885,7 +893,10 @@ order by 1, 2`;
     const label = i => xLabel(a.xs[i], a.time, multiYear, monthly) + (partial && i === n - 1 ? '*' : '');
     const totals = a.xs.map((_, i) => a.series.reduce((s, x) => s + x.v[i], 0));
     if (mode === 'table') {
-      put(el, html`<div class="scroll" style="padding-top: 18px; padding-bottom: 20px"><div class="grid-table" style="min-width: ${Math.max(600, 140 * (a.series.length + 2))}px">
+      // The x column, one per series and a total; past 96px each and their
+      // 16px gaps, the table scrolls sideways.
+      const cols = 1 + a.series.length + (a.series.length > 1 ? 1 : 0);
+      put(el, html`<div class="scroll" style="padding-top: 18px; padding-bottom: 20px"><div class="grid-table" style="min-width: ${Math.max(600, 112 * cols - 16)}px">
         <div class="rhead"><span class="col"><small>${a.x.toUpperCase()}</small></span>${a.series.map(s => html`<span class="col r"><small>${s.name}</small></span>`)}${a.series.length > 1 ? html`<span class="col r"><small>TOTAL</small></span>` : ''}</div>
         ${a.xs.map((k, i) => html`<div class="rrow"><span class="col">${a.time ? label(i) : k}</span>${a.series.map(s => html`<span class="col r${s.v[i] ? '' : ' null'}">${s.v[i] ? s.v[i].toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}</span>`)}${a.series.length > 1 ? html`<span class="col r">${totals[i].toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>` : ''}</div>`)}
       </div></div>`);
@@ -1025,7 +1036,9 @@ order by 1, 2`;
       const el = $('#chart');
       if (!analysis) {
         put($('#pills'), '');
-        put(el, empty('Nothing to chart', 'A chart needs a number column, and a date or text column to group it by. The rows are below.'));
+        put(el, result
+          ? empty('Nothing to chart', 'A chart needs a number column, and a date or text column to group it by. The rows are below.')
+          : empty('Nothing to chart', 'The query did not run; fix the error above and run it again.'));
         return;
       }
       put($('#pills'), html`<span>X <b>${analysis.x}</b></span>${analysis.color ? html`<span>Color <b>${analysis.color}</b></span>` : ''}<span>Y <b>${analysis.y}</b></span>`);

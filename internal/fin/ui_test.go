@@ -250,6 +250,8 @@ func TestUIServesTheLocalDatabase(t *testing.T) {
 		CompareSpent  float64      `json:"compare_spent"`
 		AxisDays      int          `json:"axis_days"`
 		Compare       uiPeriod     `json:"compare"`
+		Complete      bool         `json:"compare_complete"`
+		HistorySince  string       `json:"history_since"`
 		Categories    []uiCategory `json:"categories"`
 		Transactions  []struct {
 			ID       string `json:"transaction_id"`
@@ -268,6 +270,16 @@ func TestUIServesTheLocalDatabase(t *testing.T) {
 	}
 	if len(sp.Transactions) != 3 || sp.Transactions[0].ID != "pay" || sp.Transactions[0].Spending {
 		t.Errorf("transactions = %+v, want October's three, the card payment not counted", sp.Transactions)
+	}
+	// The history starts on September 4, three days into September: still a
+	// fair comparison for October so far.
+	if !sp.Complete || sp.HistorySince != "2026-09-04" {
+		t.Errorf("October against September: complete %v, history since %q", sp.Complete, sp.HistorySince)
+	}
+	// From September 1 the period before is late July and August, which
+	// the store has nothing for.
+	if code := uiGet(t, base+"api/spending?since=2026-09-01", &sp); code != http.StatusOK || sp.Complete || sp.HistorySince != "2026-09-04" {
+		t.Errorf("September on: %d, complete %v, history since %q; want no comparison", code, sp.Complete, sp.HistorySince)
 	}
 	if code := uiGet(t, base+"api/spending?since=yesterday", nil); code != http.StatusBadRequest {
 		t.Errorf("bad since: %d", code)

@@ -359,6 +359,23 @@ func (s *Store) Transactions(ctx context.Context, f Filter) ([]Transaction, erro
 	return out, rows.Err()
 }
 
+// FirstTransactionDate is the date of the oldest transaction matching f's
+// Items and account, whatever its dates, or "" when there is none.
+func (s *Store) FirstTransactionDate(ctx context.Context, f Filter) (string, error) {
+	if len(f.ItemIDs) == 0 {
+		return "", nil
+	}
+	var first sql.NullString
+	err := s.db.QueryRowContext(ctx, `
+		select min(t.date)::varchar
+		from transactions t
+		left join accounts a using (account_id)
+		where t.item_id in (select unnest(?::varchar[]))
+			and (? = '' or t.account_id = ? or a.mask = ? or lower(a.name) = lower(?))`,
+		f.ItemIDs, f.Account, f.Account, f.Account, f.Account).Scan(&first)
+	return first.String, err
+}
+
 // Account is one stored account with its latest balances.
 type Account struct {
 	Item            string   `json:"item"`

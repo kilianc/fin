@@ -623,6 +623,14 @@ func (a *App) uiSpending(ctx context.Context, q url.Values, s *store.Store, ids 
 	if err != nil {
 		return nil, err
 	}
+	// A comparison needs history for the whole period before. Plaid's
+	// history starts wherever the bank's records do, so a first transaction
+	// a few days into the window still counts.
+	first, err := s.FirstTransactionDate(ctx, store.Filter{ItemIDs: ids, Account: account})
+	if err != nil {
+		return nil, err
+	}
+	complete := first == "" || first <= cmpFrom.AddDate(0, 0, 3).Format(dateLayout)
 
 	daily, counts, cmpDaily := make([]float64, period.Days), make([]int, period.Days), make([]float64, compare.Days)
 	cats := map[string]*uiCategory{}
@@ -700,6 +708,7 @@ func (a *App) uiSpending(ctx context.Context, q url.Values, s *store.Store, ids 
 	return map[string]any{
 		"env": a.Env, "today": today.Format(dateLayout), "account": account,
 		"period": period, "compare": compare, "axis_days": axis, "month_to_date": monthToDate,
+		"compare_complete": complete, "history_since": first,
 		"spent": cents(spent), "compare_spent": cents(cmpSpent), "compare_to_date": cents(cmpToDate),
 		"daily": daily, "daily_count": counts, "compare_daily": cmpDaily,
 		"categories": categories, "transactions": shown,
