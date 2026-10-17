@@ -18,24 +18,26 @@ type DayValue struct {
 
 // BalanceHistory lists the daily balances kept for the given Items' accounts,
 // oldest first. Credit and loan balances are what is owed, so they come out
-// negative: each value is what the account adds to net worth.
+// negative: each value is what the account adds to net worth. A day Plaid
+// reported no current balance comes out NaN, so the account stops counting
+// from that day, as it does in the accounts table.
 func (s *Store) BalanceHistory(ctx context.Context, itemIDs []string) ([]DayValue, error) {
 	if ok, err := s.hasTable(ctx, "balances"); err != nil || !ok || len(itemIDs) == 0 {
 		return []DayValue{}, err
 	}
 	return s.dayValues(ctx, `
 		select b.date::varchar, b.account_id,
-			case when a.type in ('credit', 'loan') then -b.current else b.current end::double
+			coalesce(case when a.type in ('credit', 'loan') then -b.current else b.current end::double, 'nan'::double)
 		from balances b left join accounts a using (account_id)
-		where b.item_id in (select unnest(?::varchar[])) and b.current is not null
+		where b.item_id in (select unnest(?::varchar[]))
 		order by b.date, b.account_id`, itemIDs)
 }
 
 // HoldingsHistory is the value of each Item's holdings on every day a
 // snapshot was kept, oldest first.
 func (s *Store) HoldingsHistory(ctx context.Context, itemIDs []string, account string) ([]DayValue, error) {
-	if len(itemIDs) == 0 {
-		return []DayValue{}, nil
+	if ok, err := s.hasTable(ctx, "holdings"); err != nil || !ok || len(itemIDs) == 0 {
+		return []DayValue{}, err
 	}
 	return s.dayValues(ctx, `
 		select h.date::varchar, h.item_id, sum(h.value)
@@ -66,6 +68,9 @@ func (s *Store) dayValues(ctx context.Context, query string, args ...any) ([]Day
 // CashEquivalents reports which securities the institution calls cash
 // equivalents, such as money market funds.
 func (s *Store) CashEquivalents(ctx context.Context) (map[string]bool, error) {
+	if ok, err := s.hasTable(ctx, "securities"); err != nil || !ok {
+		return map[string]bool{}, err
+	}
 	rows, err := s.db.QueryContext(ctx, `select security_id from securities where is_cash_equivalent`)
 	if err != nil {
 		return nil, err

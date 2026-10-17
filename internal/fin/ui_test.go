@@ -3,6 +3,7 @@ package fin
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -22,6 +23,8 @@ func TestUIRejectsOtherOutputsAndCommands(t *testing.T) {
 	for _, args := range [][]string{
 		{"accounts", "--ui", "--json"},
 		{"transactions", "--table", "--ui"},
+		{"ui", "--json"},
+		{"ui", "--table"},
 		{"items", "--ui"},
 		{"accounts", "--live", "--ui"},
 		{"transactions", "--since", "2026-13-01", "--ui"},
@@ -201,7 +204,11 @@ func TestUIServesTheLocalDatabase(t *testing.T) {
 	if resp.StatusCode != http.StatusOK || !strings.Contains(string(page), `data-page="spending"`) || !strings.Contains(resp.Header.Get("Content-Security-Policy"), "connect-src 'self'") {
 		t.Errorf("page: %d %s", resp.StatusCode, page)
 	}
-	for _, static := range []string{"static/ui.js", "static/ui.css", "static/mascot.png"} {
+	// Nothing on the page may reach the internet, the fonts included.
+	if csp := resp.Header.Get("Content-Security-Policy"); strings.Contains(csp, "http") || strings.Contains(string(page), "https://") {
+		t.Errorf("the page loads from the internet: CSP %q", csp)
+	}
+	for _, static := range []string{"static/ui.js", "static/ui.css", "static/mascot.png", "static/fonts/Geist-latin.woff2", "static/fonts/GeistMono-latin.woff2"} {
 		if code := uiGet(t, base+static, nil); code != http.StatusOK {
 			t.Errorf("%s: %d", static, code)
 		}
@@ -292,6 +299,16 @@ func TestUIServesTheLocalDatabase(t *testing.T) {
 	if code, _ := uiPost(t, base+"api/query", "https://evil.example", `{"sql": "select 1"}`); code != http.StatusForbidden {
 		t.Errorf("cross-origin query: %d", code)
 	}
+	// A huge result stops at the cap instead of filling memory.
+	code, out = uiPost(t, base+"api/query", origin, `{"sql": "select * from range(100000000)"}`)
+	if code != http.StatusOK || len(out["rows"].([]any)) != uiQueryRows || out["truncated"] != true {
+		t.Errorf("huge query: %d, %d rows, truncated %v", code, len(out["rows"].([]any)), out["truncated"])
+	}
+	// NaN has no JSON number, even inside a list.
+	code, out = uiPost(t, base+"api/query", origin, `{"sql": "select ['nan'::double, 1.5] as x"}`)
+	if code != http.StatusOK || fmt.Sprint(out["rows"]) != "[[[NaN 1.5]]]" {
+		t.Errorf("NaN in a list: %d %v", code, out)
+	}
 
 	wrong := origin + "/not-the-token/api/overview"
 	if code := uiGet(t, wrong, nil); code != http.StatusNotFound {
@@ -303,6 +320,19 @@ func TestUIServesTheLocalDatabase(t *testing.T) {
 		t.Errorf("wrong Host: %v %v", resp, err)
 	}
 
+	// Without a terminal, the URL comes as one line of JSON for an agent.
+	var printed struct {
+		URL    string `json:"url"`
+		Page   string `json:"page"`
+		Opened bool   `json:"opened"`
+	}
+	if err := json.Unmarshal([]byte(stop()), &printed); err != nil || printed.URL != u.String() || printed.Page != "spending" || !printed.Opened {
+		t.Errorf("stdout = %+v, %v; want the URL as JSON", printed, err)
+	}
+
+	// In a terminal, a person gets the URL and how to stop.
+	ta.StdoutIsTerminal = func() bool { return true }
+	u, stop = uiSession(t, ta, "ui")
 	if out := stop(); !strings.Contains(out, u.String()) || !strings.Contains(out, "Opened in your browser") || !strings.Contains(out, "Ctrl-C") {
 		t.Errorf("stdout = %q, want the URL and how to stop", out)
 	}

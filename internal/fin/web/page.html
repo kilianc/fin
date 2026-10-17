@@ -6,9 +6,8 @@
 <meta name="color-scheme" content="dark">
 <title>fin · {{.Title}}</title>
 <link rel="icon" href="./static/mascot.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="preload" href="./static/fonts/Geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./static/fonts/GeistMono-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="./static/ui.css?v={{.Version}}">
 <script type="application/json" id="fin-config">{{.Config}}</script>
 <script src="./static/ui.js?v={{.Version}}" defer></script>

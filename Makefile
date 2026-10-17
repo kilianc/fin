@@ -31,6 +31,11 @@ docs:
 gallery:
 	./scripts/gallery.sh
 
+# Re-render the fin ui screenshots from scripts/uidemo's illustrative data.
+.PHONY: ui-shots
+ui-shots:
+	./scripts/ui-shots.sh
+
 # Rebuild terminal artwork from the approved circular logo (Python 3 + Pillow).
 .PHONY: mascot
 mascot:

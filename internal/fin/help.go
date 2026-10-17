@@ -252,7 +252,12 @@ The page keeps the command's own flags; fin transactions --ui without
 
 The pages read the local database as of the last sync (fin sync refreshes
 it) from a server bound to 127.0.0.1, on a random port, with a random token
-in the URL. Nothing is uploaded. Press Ctrl-C to stop it.`,
+in the URL. Nothing is uploaded, and the pages load nothing from the
+internet. Press Ctrl-C to stop it.
+
+Without a terminal, fin prints {"url": ...} as one line of JSON and keeps
+serving until it is interrupted: an agent should start it in the
+background, or ask you to run it.`,
 		examples: []string{"fin ui", "fin transactions --since 2026-10-01 --ui",
 			"fin sql \"select category, sum(amount) from transactions group by 1\" --ui"},
 	},

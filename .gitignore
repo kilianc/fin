@@ -48,6 +48,8 @@
 !/internal/fin/web/static/*.css
 !/internal/fin/web/static/*.js
 !/internal/fin/web/static/*.png
+!/internal/fin/web/static/fonts/*.woff2
+!/internal/fin/web/static/fonts/OFL.txt
 
 !*/
 

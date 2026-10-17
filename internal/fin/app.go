@@ -161,6 +161,9 @@ func (a *App) Run(ctx context.Context, args []string) int {
 		}
 	}
 	if asUI || spec.name == "ui" {
+		if table || asJSON {
+			return a.fail(usageErr("fin ui cannot be combined with --json or --table"))
+		}
 		return a.runUI(ctx, spec.name, args[1:])
 	}
 	if a.Env == "" {

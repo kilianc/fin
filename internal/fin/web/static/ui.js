@@ -95,6 +95,8 @@
 
   let copyText = '';
   const shq = s => '"' + s.replace(/(["\\$`])/g, '\\$1') + '"';
+  // A flag value as the shell needs it: as is when it is one plain word.
+  const arg = s => /^[\w.@%+:\/-]+$/.test(s) ? s : shq(s);
   function setCommand(args, full) {
     copyText = 'fin ' + (full || args) + ' --ui';
     put($('#cmd'), html`<span class="p">› </span><span class="f">fin</span> ${args} <span class="flag">--ui</span>`);
@@ -263,7 +265,9 @@
     const hero = idx => {
       const has = pts.length >= 2;
       const i = idx == null ? pts.length - 1 : idx;
-      const v = has ? pts[i].value : d.net_worth;
+      // Today is the accounts' own total, the one the cards and the list add
+      // up to; the history only answers for the days you hover.
+      const v = has && idx != null ? pts[i].value : d.net_worth;
       const when = idx == null ? 'Today, ' + shortDate(d.today) : longDate(pts[i].date);
       let deltas;
       if (has) {
@@ -299,10 +303,10 @@
       const line = path(vals, X, Y);
       const ticks = dayTicks(pts.map(p => p.date)).map(t => ({ left: (t.i / (n - 1) * 100).toFixed(2), label: t.label }));
       put(el, html`
-        <div class="plot-pad">
+        <div class="plot-pad y-left">
           <div class="plot" id="nw-plot">
             ${ticks.map(t => html`<div class="vgrid" style="left: ${t.left}%"></div>`)}
-            ${ax.ticks.map((v, k) => html`<div class="hrule${k ? '' : ' base'}" style="top: ${(Y(v) / 3).toFixed(2)}%"></div><div class="ylab in" style="top: ${(Y(v) / 3).toFixed(2)}%">${compact(v)}</div>`)}
+            ${ax.ticks.map((v, k) => html`<div class="hrule${k ? '' : ' base'}" style="top: ${(Y(v) / 3).toFixed(2)}%"></div><div class="ylab out" style="top: ${(Y(v) / 3).toFixed(2)}%">${compact(v)}</div>`)}
             <svg class="lines" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
               <defs><linearGradient id="nwWash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4A96E8" stop-opacity="0.26"></stop><stop offset="1" stop-color="#4A96E8" stop-opacity="0"></stop></linearGradient></defs>
               <path d="${line + 'L1000,300L0,300Z'}" fill="url(#nwWash)"></path>
@@ -360,7 +364,7 @@
     const q = new URLSearchParams(location.search);
     const d = await api('./api/spending?' + q);
     const P = d.period, C = d.compare, mtd = d.month_to_date;
-    const args = 'transactions --since ' + P.from + (q.get('until') ? ' --until ' + P.to : '') + (d.account ? ' --account ' + d.account : '');
+    const args = 'transactions --since ' + P.from + (q.get('until') ? ' --until ' + P.to : '') + (d.account ? ' --account ' + arg(d.account) : '');
     setCommand(args);
 
     const cum = xs => { let s = 0; return xs.map(x => (s += x)); };
@@ -642,7 +646,7 @@
   async function portfolio() {
     const q = new URLSearchParams(location.search);
     const d = await api('./api/portfolio?' + q);
-    setCommand('holdings' + (d.account ? ' --account ' + d.account : ''));
+    setCommand('holdings' + (d.account ? ' --account ' + arg(d.account) : ''));
     if (!d.holdings.length) {
       put(main, html`<section class="hero"><div><div class="kicker"><span class="sq">■</span> Invested</div>${figure(0)}</div></section>
         <section class="panel hud">${head('01', 'Holdings')}${empty('No holdings yet', html`Connect a brokerage with <code>fin link</code>, then run <code>fin holdings</code> or <code>fin sync</code>.`)}</section>`);
@@ -709,7 +713,7 @@
       </section>
 
       <section class="panel hud mt" aria-label="Holdings">
-        ${head('03', 'Holdings', html`<code>fin holdings${d.account ? ' --account ' + d.account : ''} --json</code>`)}
+        ${head('03', 'Holdings', html`<code>fin holdings${d.account ? ' --account ' + arg(d.account) : ''} --json</code>`)}
         <div class="scroll" style="padding-bottom: 8px"><div style="min-width: 900px" id="hrows" role="listbox" aria-label="Holdings">
           <div class="thead"><span class="h-main" style="padding-left: 8px">Holding</span><span class="h-acct">Account</span><span class="h-n">Shares</span><span class="h-n">Price</span><span class="h-v">Value</span><span class="h-w">Weight</span><span class="h-g">Gain</span></div>
           ${hs.map(h => html`
@@ -1047,9 +1051,10 @@ order by 1, 2`;
       if (isTime(t) && typeof v === 'string' && /T00:00:00(\.0+)?Z$/.test(v)) return v.slice(0, 10);
       return String(v);
     };
+    const rowsLabel = r => r.row_count.toLocaleString('en-US') + (r.truncated ? '+ rows' : r.row_count === 1 ? ' row' : ' rows');
     const renderResult = () => {
       const r = result;
-      put($('#dims'), r ? r.row_count + (r.row_count === 1 ? ' row' : ' rows') + ' × ' + r.columns.length + (r.columns.length === 1 ? ' column' : ' columns') : '');
+      put($('#dims'), r ? rowsLabel(r) + ' × ' + r.columns.length + (r.columns.length === 1 ? ' column' : ' columns') : '');
       if (!r) { put($('#result'), ''); return; }
       const rows = r.rows.slice(0, shown);
       put($('#result'), html`
@@ -1058,7 +1063,7 @@ order by 1, 2`;
           ${rows.map((row, k) => html`<div class="rrow"><span class="idx">${k + 1}</span>${row.map((v, i) => html`<span class="col${isNum(r.types[i]) ? ' r' : ''}" title="${v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v)}">${cell(v, r.types[i])}</span>`)}</div>`)}
         </div></div>
         <div class="panel-foot">
-          <span class="caps">Showing ${rows.length} of ${r.row_count}${r.truncated ? ' · the page gets the first ' + r.rows.length.toLocaleString('en-US') : ''}</span>
+          <span class="caps">Showing ${rows.length} of ${r.truncated ? 'the first ' + r.rows.length.toLocaleString('en-US') + '; fin sql has the rest' : r.row_count}</span>
           ${rows.length < r.rows.length ? html`<button type="button" class="btn" id="more-rows">Show ${Math.min(500, r.rows.length - rows.length)} more</button>` : ''}
           <span class="caps">Same rows as fin sql … --json</span>
         </div>`);
@@ -1080,7 +1085,7 @@ order by 1, 2`;
         analysis = analyze(r);
         mode = analysis ? analysis.mode : null;
         put($('#q-err'), '');
-        put($('#q-stat'), html`<span class="ok"><i></i>OK</span><span>${r.row_count} ${r.row_count === 1 ? 'row' : 'rows'}</span><span>${r.elapsed_ms} ms</span><span>${r.columns.length} ${r.columns.length === 1 ? 'column' : 'columns'}</span>`);
+        put($('#q-stat'), html`<span class="ok"><i></i>OK</span><span>${rowsLabel(r)}</span><span>${r.elapsed_ms} ms</span><span>${r.columns.length} ${r.columns.length === 1 ? 'column' : 'columns'}</span>`);
         const u = new URL(location.href);
         if (text === DEFAULT_SQL) u.searchParams.delete('q'); else u.searchParams.set('q', text);
         history.replaceState(null, '', u);

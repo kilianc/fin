@@ -53,10 +53,11 @@ var uiTitles = map[string]string{
 	"query":     "Query",
 }
 
-// uiCSP lets a page load only fin's own files and the Geist fonts, and talk
-// only to the server that served it.
-const uiCSP = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-	"font-src https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+// uiCSP lets a page load only fin's own files, the Geist fonts included, and
+// talk only to the server that served it: nothing on the page reaches the
+// internet.
+const uiCSP = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+	"font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 
 // uiQueryRows caps the rows a query sends to the page.
 const uiQueryRows = 10000
@@ -175,12 +176,22 @@ func (a *App) serveUI(ctx context.Context, target uiTarget) int {
 
 	link := "http://" + host + "/" + token + target.path()
 	opened := a.OpenURL != nil && a.OpenURL(link) == nil
-	how := "Open it in your browser."
-	if opened {
-		how = "Opened in your browser."
+	if a.human {
+		how := "Open it in your browser."
+		if opened {
+			how = "Opened in your browser."
+		}
+		ui.Print(a.Stdout, fmt.Sprintf("  %s %s  %s\n    %s Bound to 127.0.0.1; nothing is uploaded.\n    %s\n",
+			ui.Good.Style().Render("■"), ui.Bold.Render("fin ui"), ui.Link(link, link), how, ui.Muted.Render("Press Ctrl-C to stop.")))
+	} else {
+		// An agent or a script gets the URL as one line of JSON right away;
+		// the server keeps running until it is stopped, so start it in the
+		// background.
+		_ = json.NewEncoder(a.Stdout).Encode(map[string]any{
+			"url": link, "page": target.page, "opened": opened,
+			"stop": "fin serves this page until it is interrupted (SIGINT or SIGTERM)",
+		})
 	}
-	ui.Print(a.Stdout, fmt.Sprintf("  %s %s  %s\n    %s Bound to 127.0.0.1; nothing is uploaded.\n    %s\n",
-		ui.Good.Style().Render("■"), ui.Bold.Render("fin ui"), ui.Link(link, link), how, ui.Muted.Render("Press Ctrl-C to stop.")))
 
 	select {
 	case <-ctx.Done():
@@ -316,10 +327,17 @@ func (a *App) uiRead(read uiReader) http.HandlerFunc {
 	}
 }
 
+// uiJSON encodes body before it sends a status, so a value JSON cannot hold
+// answers with an error rather than a 200 and an empty body.
 func uiJSON(w http.ResponseWriter, status int, body any) {
+	b, err := json.Marshal(body)
+	if err != nil {
+		status = http.StatusInternalServerError
+		b, _ = json.Marshal(map[string]any{"error": newErr("INTERNAL", "encode the response: %v", err)})
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
+	_, _ = w.Write(append(b, '\n'))
 }
 
 func uiError(w http.ResponseWriter, err error) {
@@ -785,14 +803,15 @@ func (a *App) uiPortfolio(ctx context.Context, q url.Values, s *store.Store, ids
 // --- query ---
 
 // querySQL runs one query the way fin sql does: on a connection that cannot
-// write the database or read or write any other file.
-func (a *App) querySQL(ctx context.Context, query string) (*store.QueryResult, []store.SyncInfo, error) {
+// write the database or read or write any other file. It reads at most limit
+// rows; zero means all of them.
+func (a *App) querySQL(ctx context.Context, query string, limit int) (*store.QueryResult, []store.SyncInfo, error) {
 	s, err := store.OpenReadOnly(ctx, a.storePath())
 	if err != nil {
 		return nil, nil, storeErr(err)
 	}
 	defer s.Close()
-	res, err := s.Query(ctx, query)
+	res, err := s.QueryLimit(ctx, query, limit)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return nil, nil, err
@@ -831,26 +850,42 @@ func (a *App) uiQuery(host string) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Minute)
 		defer cancel()
 		start := time.Now()
-		res, synced, err := a.querySQL(ctx, query)
+		res, synced, err := a.querySQL(ctx, query, uiQueryRows)
 		if err != nil {
 			uiError(w, err)
 			return
 		}
-		rows := res.Rows
-		if len(rows) > uiQueryRows {
-			rows = rows[:uiQueryRows]
-		}
-		for _, row := range rows {
+		for _, row := range res.Rows {
 			for i, v := range row {
-				if f, ok := v.(float64); ok && (math.IsNaN(f) || math.IsInf(f, 0)) {
-					row[i] = fmt.Sprint(f)
-				}
+				row[i] = jsonSafe(v)
 			}
 		}
 		uiJSON(w, http.StatusOK, map[string]any{
-			"columns": uniqueNames(res.Columns), "types": res.Types, "rows": rows,
-			"row_count": len(res.Rows), "truncated": len(res.Rows) > len(rows),
+			"columns": uniqueNames(res.Columns), "types": res.Types, "rows": res.Rows,
+			"row_count": len(res.Rows), "truncated": res.Truncated,
 			"elapsed_ms": time.Since(start).Milliseconds(), "synced": synced,
 		})
 	}
+}
+
+// jsonSafe writes the floats JSON has no number for (NaN and the
+// infinities) as text, inside lists and structs too.
+func jsonSafe(v any) any {
+	switch x := v.(type) {
+	case float64:
+		if math.IsNaN(x) || math.IsInf(x, 0) {
+			return fmt.Sprint(x)
+		}
+	case float32:
+		return jsonSafe(float64(x))
+	case []any:
+		for i := range x {
+			x[i] = jsonSafe(x[i])
+		}
+	case map[string]any:
+		for k := range x {
+			x[k] = jsonSafe(x[k])
+		}
+	}
+	return v
 }

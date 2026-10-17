@@ -159,8 +159,9 @@ type Holding struct {
 // Holdings returns each Item's most recent snapshot, largest positions first.
 func (s *Store) Holdings(ctx context.Context, itemIDs []string, account string) ([]Holding, error) {
 	out := []Holding{}
-	if len(itemIDs) == 0 {
-		return out, nil
+	// A store last written by a fin older than investments has no holdings.
+	if ok, err := s.hasTable(ctx, "holdings"); err != nil || !ok || len(itemIDs) == 0 {
+		return out, err
 	}
 	rows, err := s.db.QueryContext(ctx, `
 		select h.date::varchar, i.item, coalesce(i.institution, ''), h.account_id, coalesce(a.name, ''), h.security_id,

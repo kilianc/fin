@@ -135,9 +135,27 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
+	hadBalances, err := s.hasTable(ctx, "balances")
+	if err != nil {
+		s.Close()
+		return nil, fmt.Errorf("store: create schema: %w", err)
+	}
 	if _, err := s.db.ExecContext(ctx, schema+investmentsSchema+retailerSchema+amazonSchema+costcoSchema+retailerItemsView()); err != nil {
 		s.Close()
 		return nil, fmt.Errorf("store: create schema: %w", err)
+	}
+	// A store from before balance history starts it with each account's last
+	// synced balance, so net worth over time agrees with the accounts table
+	// from the first day, even for an Item that is not syncing.
+	if !hadBalances {
+		if _, err := s.db.ExecContext(ctx, `
+			insert into balances
+			select updated_at::date, account_id, item_id, current, available, "limit", iso_currency_code
+			from accounts
+			on conflict do nothing`); err != nil {
+			s.Close()
+			return nil, fmt.Errorf("store: start balance history: %w", err)
+		}
 	}
 	if err := os.Chmod(path, 0o600); err != nil {
 		s.Close()
@@ -418,10 +436,18 @@ type QueryResult struct {
 	Columns []string
 	Types   []string
 	Rows    [][]any
+	// Truncated is set when the query had more rows than the limit.
+	Truncated bool
 }
 
 // Query runs one SQL statement and converts the values for JSON output.
 func (s *Store) Query(ctx context.Context, query string) (*QueryResult, error) {
+	return s.QueryLimit(ctx, query, 0)
+}
+
+// QueryLimit is Query that stops reading after limit rows, so a huge result
+// never has to fit in memory. Zero means no limit.
+func (s *Store) QueryLimit(ctx context.Context, query string, limit int) (*QueryResult, error) {
 	rows, err := s.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -437,6 +463,10 @@ func (s *Store) Query(ctx context.Context, query string) (*QueryResult, error) {
 		res.Types = append(res.Types, c.DatabaseTypeName())
 	}
 	for rows.Next() {
+		if limit > 0 && len(res.Rows) == limit {
+			res.Truncated = true
+			break
+		}
 		vals := make([]any, len(cols))
 		ptrs := make([]any, len(cols))
 		for i := range vals {
