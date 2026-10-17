@@ -71,17 +71,29 @@ create table if not exists transactions (
 	category_detailed varchar,
 	payment_channel   varchar
 );
+-- One balance per account per day: the last sync of the day replaces that
+-- day's row, and earlier days stay as history for net worth over time.
+create table if not exists balances (
+	date              date not null,
+	account_id        varchar not null,
+	item_id           varchar not null,
+	current           decimal(18, 4),
+	available         decimal(18, 4),
+	"limit"           decimal(18, 4),
+	iso_currency_code varchar,
+	primary key (date, account_id)
+);
 `
 
 // DeleteItem forgets an Item's transactions, holdings, investment
-// transactions, accounts and sync cursor.
+// transactions, accounts, balance history and sync cursor.
 func (s *Store) DeleteItem(ctx context.Context, itemID string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	for _, table := range []string{"transactions", "holdings", "investment_transactions", "accounts", "items"} {
+	for _, table := range []string{"transactions", "holdings", "investment_transactions", "balances", "accounts", "items"} {
 		if _, err := tx.ExecContext(ctx, `delete from `+table+` where item_id = ?`, itemID); err != nil {
 			return err
 		}
@@ -123,9 +135,27 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
+	hadBalances, err := s.hasTable(ctx, "balances")
+	if err != nil {
+		s.Close()
+		return nil, fmt.Errorf("store: create schema: %w", err)
+	}
 	if _, err := s.db.ExecContext(ctx, schema+investmentsSchema+retailerSchema+amazonSchema+costcoSchema+retailerItemsView()); err != nil {
 		s.Close()
 		return nil, fmt.Errorf("store: create schema: %w", err)
+	}
+	// A store from before balance history starts it with each account's last
+	// synced balance, so net worth over time agrees with the accounts table
+	// from the first day, even for an Item that is not syncing.
+	if !hadBalances {
+		if _, err := s.db.ExecContext(ctx, `
+			insert into balances
+			select updated_at::date, account_id, item_id, current, available, "limit", iso_currency_code
+			from accounts
+			on conflict do nothing`); err != nil {
+			s.Close()
+			return nil, fmt.Errorf("store: start balance history: %w", err)
+		}
 	}
 	if err := os.Chmod(path, 0o600); err != nil {
 		s.Close()
@@ -189,9 +219,12 @@ type ItemSync struct {
 	Cursor      string
 	Status      string
 	SyncedAt    time.Time
-	Accounts    []plaid.Account
-	Upserts     []plaid.Transaction
-	Removed     []string
+	// Day is the date the balances snapshot is kept under, YYYY-MM-DD;
+	// empty means SyncedAt's date.
+	Day      string
+	Accounts []plaid.Account
+	Upserts  []plaid.Transaction
+	Removed  []string
 }
 
 // Apply writes a delta and its cursor in one transaction, so a failed write
@@ -203,7 +236,11 @@ func (s *Store) Apply(ctx context.Context, d ItemSync) error {
 	}
 	defer tx.Rollback()
 
-	if err := upsertAccounts(ctx, tx, d.ItemID, d.Accounts, d.SyncedAt); err != nil {
+	day := d.Day
+	if day == "" {
+		day = d.SyncedAt.Format("2006-01-02")
+	}
+	if err := upsertAccounts(ctx, tx, d.ItemID, d.Accounts, d.SyncedAt, day); err != nil {
 		return err
 	}
 
@@ -242,13 +279,19 @@ func (s *Store) Apply(ctx context.Context, d ItemSync) error {
 	return tx.Commit()
 }
 
-func upsertAccounts(ctx context.Context, tx *sql.Tx, itemID string, accounts []plaid.Account, at time.Time) error {
+// upsertAccounts saves each account's latest balances, and keeps them as
+// the account's balance on day.
+func upsertAccounts(ctx context.Context, tx *sql.Tx, itemID string, accounts []plaid.Account, at time.Time, day string) error {
 	for _, a := range accounts {
 		b := a.Balances
 		if _, err := tx.ExecContext(ctx, `insert or replace into accounts values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			a.AccountID, itemID, a.Name, a.OfficialName, a.Mask, a.Type, a.Subtype,
 			b.Current, b.Available, b.Limit, b.IsoCurrencyCode, at); err != nil {
 			return fmt.Errorf("store: account %s: %w", a.AccountID, err)
+		}
+		if _, err := tx.ExecContext(ctx, `insert or replace into balances values (?::date, ?, ?, ?, ?, ?, ?)`,
+			day, a.AccountID, itemID, b.Current, b.Available, b.Limit, b.IsoCurrencyCode); err != nil {
+			return fmt.Errorf("store: balance %s: %w", a.AccountID, err)
 		}
 	}
 	return nil
@@ -314,6 +357,23 @@ func (s *Store) Transactions(ctx context.Context, f Filter) ([]Transaction, erro
 		out = append(out, t)
 	}
 	return out, rows.Err()
+}
+
+// FirstTransactionDate is the date of the oldest transaction matching f's
+// Items and account, whatever its dates, or "" when there is none.
+func (s *Store) FirstTransactionDate(ctx context.Context, f Filter) (string, error) {
+	if len(f.ItemIDs) == 0 {
+		return "", nil
+	}
+	var first sql.NullString
+	err := s.db.QueryRowContext(ctx, `
+		select min(t.date)::varchar
+		from transactions t
+		left join accounts a using (account_id)
+		where t.item_id in (select unnest(?::varchar[]))
+			and (? = '' or t.account_id = ? or a.mask = ? or lower(a.name) = lower(?))`,
+		f.ItemIDs, f.Account, f.Account, f.Account, f.Account).Scan(&first)
+	return first.String, err
 }
 
 // Account is one stored account with its latest balances.
@@ -393,10 +453,18 @@ type QueryResult struct {
 	Columns []string
 	Types   []string
 	Rows    [][]any
+	// Truncated is set when the query had more rows than the limit.
+	Truncated bool
 }
 
 // Query runs one SQL statement and converts the values for JSON output.
 func (s *Store) Query(ctx context.Context, query string) (*QueryResult, error) {
+	return s.QueryLimit(ctx, query, 0)
+}
+
+// QueryLimit is Query that stops reading after limit rows, so a huge result
+// never has to fit in memory. Zero means no limit.
+func (s *Store) QueryLimit(ctx context.Context, query string, limit int) (*QueryResult, error) {
 	rows, err := s.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -412,6 +480,10 @@ func (s *Store) Query(ctx context.Context, query string) (*QueryResult, error) {
 		res.Types = append(res.Types, c.DatabaseTypeName())
 	}
 	for rows.Next() {
+		if limit > 0 && len(res.Rows) == limit {
+			res.Truncated = true
+			break
+		}
 		vals := make([]any, len(cols))
 		ptrs := make([]any, len(cols))
 		for i := range vals {

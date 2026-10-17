@@ -104,6 +104,14 @@ br.lg { display: block; }
 .try .arr { transition: transform .15s; }
 .try:hover .arr { transform: translateX(3px); }
 
+/* fin ui screenshots */
+.shot { width: 100%; height: auto; display: block; border: 1px solid var(--term-rule); border-radius: 8px; background: #05080C; box-shadow: var(--lift); }
+.ui-main { margin: 0; }
+.shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 28px; align-items: start; }
+.shots figure { margin: 0; }
+.shots .shot { aspect-ratio: 16 / 10; object-fit: cover; object-position: top; }
+.ui-main figcaption, .shots figcaption { margin-top: 10px; font-size: 14px; color: var(--muted); }
+
 /* example switcher and prev/next on the try pages */
 .ex-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; padding: 0; list-style: none; font: 13px/1.6 var(--mono); }
 .ex-nav a { display: block; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); color: var(--ink2); text-decoration: none; }
@@ -127,7 +135,7 @@ br.lg { display: block; }
   br.lg { display: none; }
   .hero { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .hero-logo { order: -1; width: 96px; height: 96px; }
-  .gal, .help { grid-template-columns: minmax(0, 1fr); }
+  .gal, .help, .shots { grid-template-columns: minmax(0, 1fr); }
   .help { row-gap: 2px; }
   .help dd { margin-bottom: 12px; }
   .insts { grid-template-columns: repeat(3, minmax(0, 1fr)); }

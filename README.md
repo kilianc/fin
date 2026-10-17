@@ -20,9 +20,10 @@ Accounts · 18 across 6 Items
 ╰──────────────────┴──────────────────────┴──────┴──────────────────┴──────────┴───────────┴───────────╯
 ```
 
-There is no server, no account with anyone but Plaid, and nothing to deploy.
-fin talks to Plaid's API from your laptop and prints the answer. In a terminal
-you get tables; when an agent such as Claude runs it, it gets JSON.
+There is no hosted service, no account with anyone but Plaid, and nothing to
+deploy. fin talks to Plaid's API from your laptop and prints the answer. In a
+terminal you get tables; when an agent such as Claude runs it, it gets JSON;
+with `fin ui` you get pages in your browser.
 
 ## What you can ask
 
@@ -63,10 +64,40 @@ the prompt in Claude Code or Codex.
 </tr>
 </table>
 
+## See it in your browser
+
+`fin ui` opens your net worth, spending and portfolio as pages in your
+browser, drawn from the local file as of the last sync. The Query page runs
+read-only SQL and charts the result. fin serves the pages from 127.0.0.1 on
+your Mac, behind a random token in the URL, and they load nothing from the
+internet. Press Ctrl-C to stop it.
+
+```text
+$ fin ui
+  ■ fin ui  http://127.0.0.1:52045/-cYZ0xyRFC365HhD8d5m6E9A/
+    Opened in your browser. Bound to 127.0.0.1; nothing is uploaded.
+    Press Ctrl-C to stop.
+```
+
+<a href="docs/ui/overview.png"><img src="docs/ui/overview.png" alt="fin ui overview with illustrative data: $347,019 net worth, a year-to-date chart, assets, liabilities and every account"></a>
+
+<table>
+<tr>
+<td width="33%" valign="top"><a href="docs/ui/spending.png"><img src="docs/ui/spending.png" alt="fin ui spending page with illustrative data: $4,519 spent in October so far, against September, by day and by category"></a></td>
+<td width="33%" valign="top"><a href="docs/ui/portfolio.png"><img src="docs/ui/portfolio.png" alt="fin ui portfolio page with illustrative data: $310,739 invested, allocation by asset class and a treemap of positions"></a></td>
+<td width="33%" valign="top"><a href="docs/ui/query.png"><img src="docs/ui/query.png" alt="fin ui query page with illustrative data: a SQL query and its result as stacked monthly columns by category"></a></td>
+</tr>
+</table>
+
+`fin accounts`, `fin transactions`, `fin holdings` and `fin sql` take `--ui`
+to open their own page, with the same flags. The screenshots use illustrative
+data.
+
 ## No agent? Use SQL or a spreadsheet
 
 fin keeps your transactions, balances and investments in a DuckDB file on
-your Mac, with a snapshot of your holdings for every day you sync. `fin sync`
+your Mac, with every account's balance and a snapshot of your holdings for
+every day you sync. `fin sync`
 brings it up to date and `fin sql` queries it, read-only:
 
 ```text
@@ -299,12 +330,14 @@ and slot.
   `security -i` on stdin, so they never appear in a process listing.
 - **No middleman.** Your data goes from Plaid's API to your machine and
   nowhere else, unless you run `fin sheet`, which writes it to a spreadsheet
-  in your own Google Drive. fin has no server and no telemetry. Once a day it
+  in your own Google Drive. fin has no hosted service and no telemetry, and
+  `fin ui` serves its pages only on 127.0.0.1, to a URL with a random token,
+  with fonts and scripts built into fin. Once a day it
   asks github.com which release is latest, sending nothing about you
   (`FIN_NO_UPDATE_CHECK=1` turns it off).
 - **Local data is private.** `~/.config/fin/state.json` holds only names,
-  institution IDs and sync times. Synced transactions and account balances
-  live in a DuckDB file in `~/.local/share/fin`, one per environment
+  institution IDs and sync times. Synced transactions, account balances
+  (one per account for each day you sync) and holdings live in a DuckDB file in `~/.local/share/fin`, one per environment
   (`production.duckdb`, `sandbox.duckdb`), kept out of `~/.config` so it
   never ends up in a dotfiles repo. Both are mode 0600; delete the
   `.duckdb` file to forget the history, and `fin sync` rebuilds it.
@@ -336,6 +369,7 @@ and slot.
 | `fin costco [login\|sync\|categorize\|logout]` | Itemize Costco receipts and online orders (experimental) |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Investment transactions |
+| `fin ui` | Net worth, spending, portfolio and SQL as pages in your browser, served on 127.0.0.1 (`--ui` on accounts, transactions, holdings and sql opens their page) |
 
 `--account` matches an account ID, the last four digits, or the account name.
 `PLAID_ENV` overrides the environment set with `fin env` for one command or
@@ -363,6 +397,9 @@ DuckDB files (default `$XDG_DATA_HOME/fin`, or `~/.local/share/fin`).
 - `fin transactions` and `fin sync` ask Plaid only for what changed since the
   last sync and keep the result in a local DuckDB file. For anything beyond a
   date range, run `fin sync` once, then as many `fin sql` queries as you need.
+- `fin ui` and `--ui` serve until they are interrupted. Without a terminal,
+  fin prints the page's URL as one line of JSON and keeps serving: start it
+  in the background and hand the user the URL, or ask them to run it.
 
 ### `fin items`
 
@@ -500,8 +537,9 @@ linked Item's history. Try again in a few minutes.
 Runs one query against the data `fin sync` saved. The database is opened
 read-only with DuckDB's external access turned off, so a query can't change
 it or read or write other files. Tables: `transactions`, `accounts` (latest
-balances) and `items` (sync time per connection); `fin help sql` lists the
-columns.
+balances), `balances` (one per account per day synced), `holdings`,
+`securities` and `items` (sync time per connection); `fin help sql` lists
+them all with their columns.
 
 ```bash
 fin sql "select category, sum(amount) as spent from transactions
@@ -613,6 +651,21 @@ not report lots.
 }
 ```
 
+### `fin ui`
+
+Opens the overview; `fin accounts --ui`, `fin transactions --ui`,
+`fin holdings --ui` and `fin sql "<query>" --ui` open their own page. Without
+a terminal, fin opens the browser, prints one line and serves until it gets
+SIGINT or SIGTERM:
+
+```json
+{"opened": true, "page": "overview", "stop": "fin serves this page until it is interrupted (SIGINT or SIGTERM)", "url": "http://127.0.0.1:52045/-cYZ0xyRFC365HhD8d5m6E9A/"}
+```
+
+The URL is the only way in: anyone with it can read the pages until fin
+stops, so treat it like the data. `--ui` cannot be combined with `--json` or
+`--table`.
+
 ### Errors
 
 ```json
@@ -657,6 +710,7 @@ make test        # unit tests against a fake Plaid client
 make e2e         # end-to-end run against the real Plaid sandbox
 make docs        # regenerate setup, try, and privacy pages from their source
 make gallery     # re-render the six AI-generated report previews
+make ui-shots    # re-render the fin ui screenshots from illustrative data
 ```
 
 The report artwork lives in `docs/examples/index.html` and
@@ -664,6 +718,11 @@ The report artwork lives in `docs/examples/index.html` and
 page, all six try pages, social previews, and this README share the resulting
 `docs/examples/1.png` through `6.png` files. Try-page prompts and descriptions
 live in `internal/fin/examples.go`; run `make docs` after changing them.
+
+The `fin ui` pages live in `internal/fin/web` and are built into the binary.
+`make ui-shots` seeds a year of illustrative accounts with `scripts/uidemo`,
+serves them, and renders `docs/ui/*.png` with headless Chrome; the README
+and the landing page use those files.
 
 The end-to-end script needs sandbox keys (`PLAID_ENV=sandbox fin setup`). It
 uses a temporary state directory, links two sandbox Items without the Link UI,

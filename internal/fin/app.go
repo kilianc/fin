@@ -129,8 +129,15 @@ type command func(ctx context.Context, args []string) (*result, error)
 func (a *App) Run(ctx context.Context, args []string) int {
 	args, table := extractBool(args, "table")
 	args, asJSON := extractBool(args, "json")
+	args, asUI := extractBool(args, "ui")
 	a.human = table || (!asJSON && a.StdoutIsTerminal != nil && a.StdoutIsTerminal())
+	if asUI && (table || asJSON) {
+		return a.fail(usageErr("--ui cannot be combined with --json or --table"))
+	}
 	if len(args) == 0 {
+		if asUI {
+			return a.runUI(ctx, "ui", nil)
+		}
 		a.printUsage()
 		return exitUsage
 	}
@@ -153,6 +160,12 @@ func (a *App) Run(ctx context.Context, args []string) int {
 			return a.printCommandHelp(spec.name)
 		}
 	}
+	if asUI || spec.name == "ui" {
+		if table || asJSON {
+			return a.fail(usageErr("fin ui cannot be combined with --json or --table"))
+		}
+		return a.runUI(ctx, spec.name, args[1:])
+	}
 	if a.Env == "" {
 		if err := a.resolveEnv(); err != nil {
 			return a.fail(err)
@@ -163,6 +176,21 @@ func (a *App) Run(ctx context.Context, args []string) int {
 		return a.fail(err)
 	}
 	return a.emit(res)
+}
+
+// runUI serves the page for a command run with --ui, or for fin ui, until
+// Ctrl-C.
+func (a *App) runUI(ctx context.Context, name string, args []string) int {
+	target, err := a.uiRoute(name, args)
+	if err != nil {
+		return a.fail(err)
+	}
+	if a.Env == "" {
+		if err := a.resolveEnv(); err != nil {
+			return a.fail(err)
+		}
+	}
+	return a.serveUI(ctx, target)
 }
 
 // showSpinner reports whether a person is watching a full terminal, so

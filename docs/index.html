@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./site.css?v=2a9c21148b">
+<link rel="stylesheet" href="./site.css?v=afc1601e44">
 <title>fin · a CLI for your financial data, built for the AI era</title>
 <meta name="description" content="A CLI for your financial data, built for the AI era: fin connects your banks, cards and brokerages through Plaid and brings in your Amazon and Costco purchases, locally and for free.">
 <meta property="og:type" content="website">
@@ -35,7 +35,7 @@
 <section class="section first wrap hero">
 <div>
 <h1 class="display">A CLI for your financial<br class="lg"> data, built for the AI era.</h1>
-<p class="lede"><b><span class="fin">fin</span></b> connects your banks, cards and brokerages through <a href="https://plaid.com/docs/">Plaid</a> and brings in your <b>Amazon and Costco</b> purchases. It <b>runs locally on your laptop</b>, keeps its keys in your Keychain, and <b>costs nothing</b> on Plaid's free Trial plan. Ask your agent, query your transactions with <b>SQL</b>, or keep them in a <b>Google Sheet</b>.</p>
+<p class="lede"><b><span class="fin">fin</span></b> connects your banks, cards and brokerages through <a href="https://plaid.com/docs/">Plaid</a> and brings in your <b>Amazon and Costco</b> purchases. It <b>runs locally on your laptop</b>, keeps its keys in your Keychain, and <b>costs nothing</b> on Plaid's free Trial plan. Ask your agent, open it all as pages in your <b>browser</b>, query your transactions with <b>SQL</b>, or keep them in a <b>Google Sheet</b>.</p>
 <div class="buttons">
 <a href="claude/"><img src="setup-with-claude.svg?v=flat2" alt="Set up with Claude"></a>
 <a href="codex/"><img src="setup-with-codex.svg?v=flat2" alt="Set up with Codex"></a>
@@ -322,6 +322,21 @@ Steps:
 <p class="note">Made-up numbers in <span class="fin">fin</span>'s real output format. In a terminal <span class="fin">fin</span> prints tables; when an agent runs it, JSON.</p>
 </section>
 
+<section id="ui" class="section wrap">
+<p class="kicker">// fin ui · illustrative data</p>
+<h2 class="title">Or open it in your browser.</h2>
+<p class="lede"><code>fin ui</code> turns the local file into pages: net worth day by day, spending against last month, your portfolio, and a SQL editor that charts what it returns. <span class="fin">fin</span> serves them from 127.0.0.1 behind a random token, and they load nothing from the internet.</p>
+<figure class="ui-main">
+<img class="shot" src="ui/overview.png" alt="fin ui overview with illustrative data: $347,019 net worth, a year-to-date chart, assets, liabilities and what was kept in September" width="2880" height="2016" loading="lazy">
+<figcaption><code>fin ui</code></figcaption>
+</figure>
+<div class="shots">
+<figure><img class="shot" src="ui/spending.png" alt="fin ui spending page with illustrative data: $4,519 spent in October so far, a running total against September and a calendar of every day" width="2880" height="1684" loading="lazy"><figcaption><code>fin transactions --ui</code></figcaption></figure>
+<figure><img class="shot" src="ui/portfolio.png" alt="fin ui portfolio page with illustrative data: $310,739 invested, allocation by asset class and a treemap of positions" width="2880" height="2400" loading="lazy"><figcaption><code>fin holdings --ui</code></figcaption></figure>
+<figure><img class="shot" src="ui/query.png" alt="fin ui query page with illustrative data: a SQL query and its result as stacked monthly columns by category" width="2880" height="2260" loading="lazy"><figcaption><code>fin sql "…" --ui</code></figcaption></figure>
+</div>
+</section>
+
 <section class="section wrap">
 <p class="kicker">// works with the banks, cards and brokerages Plaid connects to</p>
 <div class="insts">
@@ -381,10 +396,10 @@ Steps:
 <dt>reads</dt><dd>Balances, transactions, holdings with tax lots, investment activity.</dd>
 <dt>never requests</dt><dd>Plaid Auth or Identity: no account numbers, no personal details. Cannot move money.</dd>
 <dt>secrets</dt><dd>macOS Keychain, service <code>fin</code>. State in <code>~/.config/fin/state.json</code>, mode 0600.</dd>
-<dt>data</dt><dd>Transactions and balances in a DuckDB file in <code>~/.local/share/fin</code>; query it with <code>fin sql</code>. <code>fin sheet</code> copies them to a spreadsheet in your Google Drive, the only file there <span class="fin">fin</span> can see.</dd>
+<dt>data</dt><dd>Transactions, a balance per account for each day you sync, and holdings in a DuckDB file in <code>~/.local/share/fin</code>; query it with <code>fin sql</code> or browse it with <code>fin ui</code>. <code>fin sheet</code> copies them to a spreadsheet in your Google Drive, the only file there <span class="fin">fin</span> can see.</dd>
 <dt>amazon</dt><dd>Experimental and off until you run <code>fin amazon login</code>: it reads your Amazon payments and order pages with your Chrome sign-in, so each charge opens into its items.</dd>
 <dt>costco</dt><dd>Experimental and off until you run <code>fin costco login</code>: it reads your warehouse and gas receipts and costco.com orders with your Chrome sign-in, so each trip opens into its items.</dd>
-<dt>servers</dt><dd>None. <span class="fin">fin</span> calls Plaid's API from your laptop and prints the answer.</dd>
+<dt>servers</dt><dd>No hosted service. <span class="fin">fin</span> calls Plaid's API from your laptop and prints the answer. <code>fin ui</code> serves its pages on 127.0.0.1 only, behind a random token, with every font and script built into <span class="fin">fin</span>.</dd>
 <dt>cost</dt><dd>Free on Plaid's Trial plan, up to 10 institutions. MIT licensed.</dd>
 </dl>
 <div class="install"><span class="p">$</span> curl -fsSL https://github.com/kilianc/fin/releases/latest/download/fin-darwin-universal.tar.gz <span class="p">|</span> tar -xz -C ~/.local/bin <span class="p">&amp;&amp;</span> fin init</div>

@@ -197,6 +197,8 @@ Tables:
                 current, available, limit, iso_currency_code, updated_at
   items         item_id, item, institution, cursor, status, last_sync
   settings      key, value: the epoch set with fin epoch, under 'epoch'
+  balances      date, account_id, item_id, current, available, limit,
+                iso_currency_code: one per account per day synced
   holdings      date, item_id, account_id, security_id, quantity, price,
                 price_as_of, value, cost_basis, iso_currency_code, tax_lots:
                 one snapshot per connection per day synced
@@ -230,6 +232,34 @@ Amounts use Plaid's sign: positive is money out, negative is money in.`,
 			"fin sql \"select a.name, t.date, t.merchant_name, t.amount from transactions t join accounts a using (account_id) limit 20\"",
 		},
 		run: func(a *App) command { return a.cmdSQL },
+	},
+	{
+		name: "ui", usage: "fin ui", group: groupRead,
+		summary: "Open your accounts, spending and portfolio as pages in your browser",
+		detail: `fin accounts, transactions, holdings and sql take --ui: fin serves the
+same data as a page on this Mac and opens it in your browser, instead of a
+table.
+
+  fin ui                      the overview
+  fin accounts --ui           net worth and every account
+  fin transactions --ui       spending, pace, every day, items
+  fin holdings --ui           allocation, positions, gains
+  fin sql "<query>" --ui      your query, charted
+
+The page keeps the command's own flags; fin transactions --ui without
+--since shows this month so far. --ui cannot be combined with --json or
+--table.
+
+The pages read the local database as of the last sync (fin sync refreshes
+it) from a server bound to 127.0.0.1, on a random port, with a random token
+in the URL. Nothing is uploaded, and the pages load nothing from the
+internet. Press Ctrl-C to stop it.
+
+Without a terminal, fin prints {"url": ...} as one line of JSON and keeps
+serving until it is interrupted: an agent should start it in the
+background, or ask you to run it.`,
+		examples: []string{"fin ui", "fin transactions --since 2026-10-01 --ui",
+			"fin sql \"select category, sum(amount) from transactions group by 1\" --ui"},
 	},
 	{
 		name: "update", usage: "fin update [--check]", group: groupStart,
@@ -465,6 +495,7 @@ const outputHelp = `  In a terminal, fin prints tables for people. When piped, o
   runs it, it prints JSON: one object per command with stable field names.
   --json      force JSON (for agents and scripts)
   --table     force the human-readable view
+  --ui        open the same data as a page in your browser (fin help ui)
   Errors go to stderr ({"error": {"code", "message"}} in JSON) with exit code 1,
   or 2 for bad arguments. Exit 3 means some connections failed: stdout still
   has everything that worked, plus an "errors" array saying what to run.`

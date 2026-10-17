@@ -42,9 +42,10 @@ items and Costco receipt and online order items, using the user's own sign-in.
 | `fin amazon categorize [--set]` | Items without a category; `--set` saves them (see below) |
 | `fin costco` | Costco accounts connected for receipts, online orders and items (experimental) |
 | `fin costco categorize [--set]` | Uncategorized Costco items; the same category workflow as Amazon |
-| `fin holdings [--account X]` | Latest positions with cost basis and tax lots; `holdings` in `fin sql` has one snapshot per day synced, for history |
+| `fin holdings [--account X]` | Latest positions with cost basis and tax lots; `holdings` in `fin sql` has one snapshot per day synced, for history, and `balances` one balance per account per day |
 | `fin investments --since DATE [--until DATE] [--account X]` | Buys, sells, dividends, fees |
 | `fin epoch [DATE]` | The first day of the finances the user wants reported |
+| `fin ui` | The user's net worth, spending, portfolio and a SQL editor as pages in their browser (see below) |
 | `fin institutions <name>` | Whether Plaid supports a bank, before using a slot |
 | `fin help [command]` | Everything else |
 
@@ -75,6 +76,25 @@ unless the user asks about earlier; older rows are history, not deleted.
   objects under `rows`; `synced` says how fresh the data is.
 - Transfers between the user's own accounts and credit card payments show up
   on both sides. Leave them out of spending totals.
+
+## Showing it in the browser
+
+When the user wants to see their data rather than read an answer, or asks
+for a dashboard or chart, offer `fin ui`. `fin accounts --ui`,
+`fin transactions --since DATE --ui`, `fin holdings --ui` and
+`fin sql "<query>" --ui` open their own page with the same flags; `--ui`
+cannot be combined with `--json` or `--table`.
+
+- fin serves the pages from 127.0.0.1 until it is interrupted, so the
+  command never returns on its own. Run it in the background, or ask the
+  user to run it in their terminal.
+- Without a terminal it opens the browser and prints one line of JSON,
+  `{"url": ..., "page": ..., "opened": true, ...}`. Give the user the `url`
+  if `opened` is false. The token in it is the only way in: don't post it
+  anywhere but this chat.
+- Stop it (SIGINT or SIGTERM) when the user is done, or leave it to them.
+- The pages read the same local file as `fin sql`, as of the last sync. Run
+  `fin sync` first when the data may be stale.
 
 ## Amazon orders (experimental)
 
