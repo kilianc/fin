@@ -43,6 +43,11 @@
 !/docs/try/*/index.html
 !/internal/*/testdata/
 !/internal/*/testdata/*.html
+# The pages fin --ui serves, embedded in the binary.
+!/internal/fin/web/*.html
+!/internal/fin/web/static/*.css
+!/internal/fin/web/static/*.js
+!/internal/fin/web/static/*.png
 
 !*/
 

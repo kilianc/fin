@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>fin · {{.Title}}</title>
+<link rel="icon" href="./static/mascot.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="./static/ui.css?v={{.Version}}">
+<script type="application/json" id="fin-config">{{.Config}}</script>
+<script src="./static/ui.js?v={{.Version}}" defer></script>
+</head>
+<body data-page="{{.Page}}">
+<div class="wrap">
+
+<div class="strip label">
+<span class="strip-live"><span class="live" aria-hidden="true"></span>Local server · {{.Host}} · read-only</span>
+<span>Last sync {{.LastSync}}</span>
+</div>
+
+<header class="bar">
+<a class="brand" href="./"><img src="./static/mascot.png" alt=""><span>FIN</span></a>
+<nav class="nav" aria-label="Reports">
+<a href="./"{{if eq .Page "overview"}} aria-current="page"{{end}}>Overview</a>
+<a href="./spending"{{if eq .Page "spending"}} aria-current="page"{{end}}>Spending</a>
+<a href="./portfolio"{{if eq .Page "portfolio"}} aria-current="page"{{end}}>Portfolio</a>
+<a href="./query"{{if eq .Page "query"}} aria-current="page"{{end}}>Query</a>
+</nav>
+<div class="bar-fill"></div>
+<div class="cmd">
+<code id="cmd"><span class="p">› </span><span class="f">fin</span></code>
+<button type="button" class="icon-btn" id="copy-cmd" aria-label="Copy command" title="Copy command">
+<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" class="ico"><rect x="9" y="9" width="12" height="12"></rect><path d="M5 15H3V3h12v2"></path></svg>
+</button>
+</div>
+</header>
+
+<main id="main" aria-live="polite">
+<p class="loading label">Reading {{.DB}}…</p>
+</main>
+
+<footer class="foot label">
+<span>Served from {{.DB}} on this Mac. Nothing was uploaded.</span>
+<span>{{.Env}}</span>
+</footer>
+
+</div>
+</body>
+</html>

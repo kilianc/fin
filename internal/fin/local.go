@@ -126,7 +126,7 @@ func (a *App) syncStore(ctx context.Context, s *store.Store, st *state.State, it
 		now := a.Now().UTC()
 		d := store.ItemSync{
 			ItemID: it.ItemID, Item: it.Name, Institution: it.InstitutionName,
-			Cursor: res.cursor, Status: res.status, SyncedAt: now,
+			Cursor: res.cursor, Status: res.status, SyncedAt: now, Day: a.Now().Format(dateLayout),
 		}
 		for _, acc := range res.accounts {
 			d.Accounts = append(d.Accounts, acc)
@@ -265,21 +265,9 @@ func (a *App) cmdSQL(ctx context.Context, args []string) (*result, error) {
 	if query == "" {
 		return nil, usageErr(`usage: fin sql "select ..."`)
 	}
-	s, err := store.OpenReadOnly(ctx, a.storePath())
+	res, synced, err := a.querySQL(ctx, query)
 	if err != nil {
-		return nil, storeErr(err)
-	}
-	defer s.Close()
-	res, err := s.Query(ctx, query)
-	if err != nil {
-		if errors.Is(err, context.Canceled) {
-			return nil, err
-		}
-		return nil, newErr("SQL_ERROR", "%v", err)
-	}
-	synced, err := s.Syncs(ctx)
-	if err != nil {
-		return nil, storeErr(err)
+		return nil, err
 	}
 
 	columns := uniqueNames(res.Columns)

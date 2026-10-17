@@ -85,7 +85,7 @@ func (s *Store) ApplyInvestments(ctx context.Context, d InvestmentSync) error {
 		return err
 	}
 	defer tx.Rollback()
-	if err := upsertAccounts(ctx, tx, d.ItemID, d.Accounts, d.SyncedAt); err != nil {
+	if err := upsertAccounts(ctx, tx, d.ItemID, d.Accounts, d.SyncedAt, d.Day); err != nil {
 		return err
 	}
 	for _, sec := range d.Securities {
