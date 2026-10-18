@@ -204,8 +204,19 @@ Tables:
                 one snapshot per connection per day synced
   investment_transactions  investment_transaction_id, item_id, account_id,
                 security_id, date, name, type, subtype, quantity, price,
-                amount, fees, iso_currency_code, source (plaid, or the
-                import a row came from, such as robinhood)
+                amount, fees, iso_currency_code, source (plaid or
+                robinhood): every source with overlaps resolved; a view
+  plaid_investment_transactions  what Plaid sent, every row kept, plus
+                first_seen, last_seen and removed_at (set when Plaid stops
+                sending a row)
+  robinhood_activity  every imported report row: Robinhood's text
+                (description, trans_code, quantity_text, price_text,
+                amount_text, process_date, settle_date) and fin's reading
+  robinhood_reports   report_id, account_id, file, rows, first_date,
+                last_date: each report imported
+  investment_matches  plaid_id, account_id, date, name, amount, reason,
+                report_id, robinhood_key: the Plaid rows a Robinhood report
+                speaks for, left out of investment_transactions
   securities    security_id, ticker, name, type, is_cash_equivalent,
                 close_price, iso_currency_code, updated_at
 
@@ -320,11 +331,14 @@ Flags:
 		summary: "Bring in investment history older than Plaid keeps",
 		detail: `Reads Robinhood's account activity reports (Account → Reports and
 statements → Reports, one CSV per account) into the investment
-transactions of a Robinhood account fin already syncs. Rows from the day
-Plaid's history for that account starts on are left to Plaid, so nothing
-counts twice. Importing an account again replaces what was imported for it,
-so pass every report for one account together. The reports do not include
-Robinhood Crypto. Imported rows have source 'robinhood' in fin sql.
+transactions of a Robinhood account fin already syncs. Every row is kept in
+robinhood_activity, and importing a report again adds only rows fin lacks.
+
+A report is the fuller record: one row per fill, and the payouts Plaid
+leaves out (Gold boosts, crypto bonuses, stock lending). So for the dates a
+report's rows span, investment_transactions reads the report; Plaid's rows
+on those dates stay in plaid_investment_transactions, listed with the reason
+in investment_matches. The reports do not include Robinhood Crypto.
 
 Flags:
   --account X     the account: "individual", "joint", "roth", its last four

@@ -33,6 +33,11 @@ type Activity struct {
 	Quantity    float64
 	Price       float64
 	Amount      float64
+
+	// The row as Robinhood wrote it.
+	ProcessDate, SettleDate             string // YYYY-MM-DD, "" when blank
+	RawDescription                      string // every line, CUSIP included
+	QuantityText, PriceText, AmountText string
 }
 
 // kinds maps Robinhood's codes to Plaid's types and subtypes. Codes not
@@ -104,7 +109,17 @@ func parseRow(r []string) (Activity, error) {
 	if err != nil {
 		return Activity{}, fmt.Errorf("activity date %q", r[0])
 	}
-	a := Activity{Date: day.Format("2006-01-02"), Ticker: strings.TrimSpace(r[3]), Code: strings.TrimSpace(r[5])}
+	a := Activity{Date: day.Format("2006-01-02"), Ticker: strings.TrimSpace(r[3]), Code: strings.TrimSpace(r[5]),
+		RawDescription: r[4], QuantityText: r[6], PriceText: r[7], AmountText: r[8]}
+	for i, d := range []*string{&a.ProcessDate, &a.SettleDate} {
+		if v := strings.TrimSpace(r[1+i]); v != "" {
+			t, err := time.Parse("1/2/2006", v)
+			if err != nil {
+				return Activity{}, fmt.Errorf("%s %q", header[1+i], v)
+			}
+			*d = t.Format("2006-01-02")
+		}
+	}
 	lines := strings.Split(strings.TrimSpace(r[4]), "\n")
 	a.Description = strings.TrimSpace(lines[0])
 	for _, l := range lines[1:] {

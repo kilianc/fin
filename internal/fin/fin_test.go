@@ -1102,7 +1102,7 @@ func TestCryptoDepositsGetTheirCoinAndQuantity(t *testing.T) {
 	}
 }
 
-func TestImportRobinhoodFillsInBeforePlaid(t *testing.T) {
+func TestImportRobinhoodKeepsEveryRowAndReadsReportsFirst(t *testing.T) {
 	hood := state.Item{Name: "robinhood", ItemID: "item-hood", Kind: "bank", Products: []string{"investments"}, InstitutionName: "Robinhood"}
 	ta := newTestApp(t, hood)
 	ta.fake.holdings["tok-item-hood"] = &plaid.HoldingsResponse{
@@ -1126,10 +1126,14 @@ func TestImportRobinhoodFillsInBeforePlaid(t *testing.T) {
 		t.Fatalf("ambiguous account: exit = %d stderr %s", code, ta.stderr)
 	}
 	code, body := ta.run(t, "import", "robinhood", "--account", "individual", old, again)
-	if code != exitOK || body["imported"] != 2.0 || body["covered_by_plaid"] != 1.0 || body["rows"] != 3.0 || body["plaid_since"] != "2025-10-10" {
+	// All three rows are kept, the one on a day Plaid has too; Plaid's row for
+	// that day stays stored but is read from the report instead.
+	if code != exitOK || body["new"] != 3.0 || body["already_imported"] != 0.0 || body["rows"] != 3.0 || body["plaid_rows_replaced"] != 1.0 {
 		t.Fatalf("import exit = %d body = %v stderr %s", code, body, ta.stderr)
 	}
-	ta.run(t, "import", "robinhood", "--account", "1234", old)
+	if _, body := ta.run(t, "import", "robinhood", "--account", "1234", old); body["new"] != 0.0 || body["already_imported"] != 3.0 {
+		t.Errorf("importing again = %v; want every row already imported", body)
+	}
 	_, body = ta.run(t, "investments", "--since", "2025-01-01")
 	txs := body["investment_transactions"].([]any)
 	if len(txs) != 3 {
@@ -1146,8 +1150,12 @@ func TestImportRobinhoodFillsInBeforePlaid(t *testing.T) {
 			t.Errorf("a ticker fin did not know = %v", m)
 		}
 	}
-	if bySource["robinhood"] != 2 || bySource["plaid"] != 1 {
-		t.Errorf("sources = %v; importing again must replace, not add", bySource)
+	if bySource["robinhood"] != 3 || bySource["plaid"] != 0 {
+		t.Errorf("sources = %v; importing again must not add rows, and the report speaks for 2025-10-10", bySource)
+	}
+	_, body = ta.run(t, "sql", "select count(*) as n from plaid_investment_transactions")
+	if n := body["rows"].([]any)[0].(map[string]any)["n"]; n != 1.0 {
+		t.Errorf("Plaid rows stored = %v; want the replaced one kept", n)
 	}
 	// A later Plaid sync of the whole window leaves imported rows alone.
 	ta.Now = func() time.Time { return testNow.AddDate(0, 0, 1) }
