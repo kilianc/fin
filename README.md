@@ -369,6 +369,7 @@ and slot.
 | `fin costco [login\|sync\|categorize\|logout]` | Itemize Costco receipts and online orders (experimental) |
 | `fin holdings [--account X]` | Positions with cost basis and tax lots |
 | `fin investments --since DATE [--until DATE] [--account X]` | Investment transactions |
+| `fin import robinhood --account X FILE...` | Load Robinhood account activity reports (CSV) for history older than Plaid keeps; rows from the day Plaid's history starts are left to Plaid |
 | `fin ui` | Net worth, spending, portfolio and SQL as pages in your browser, served on 127.0.0.1 (`--ui` on accounts, transactions, holdings and sql opens their page) |
 
 `--account` matches an account ID, the last four digits, or the account name.

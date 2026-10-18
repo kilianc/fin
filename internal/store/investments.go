@@ -122,7 +122,8 @@ func (s *Store) ApplyInvestments(ctx context.Context, d InvestmentSync) error {
 		return err
 	}
 	for _, t := range d.Txs {
-		if _, err := tx.ExecContext(ctx, `insert or replace into investment_transactions values (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, 'plaid')`,
+		if _, err := tx.ExecContext(ctx, `insert or replace into investment_transactions (investment_transaction_id, item_id, account_id, security_id, date, name, type, subtype, quantity, price, amount, fees, iso_currency_code, source)
+			values (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, 'plaid')`,
 			t.InvestmentTransactionID, d.ItemID, t.AccountID, t.SecurityID, t.Date, t.Name, t.Type, t.Subtype,
 			t.Quantity, t.Price, t.Amount, t.Fees, t.IsoCurrencyCode); err != nil {
 			return fmt.Errorf("store: investment transaction %s: %w", t.InvestmentTransactionID, err)
@@ -332,7 +333,8 @@ func (s *Store) ImportInvestments(ctx context.Context, acct InvestmentAccount, s
 			res.Covered++
 			continue
 		}
-		if _, err := tx.ExecContext(ctx, `insert or replace into investment_transactions values (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		if _, err := tx.ExecContext(ctx, `insert or replace into investment_transactions (investment_transaction_id, item_id, account_id, security_id, date, name, type, subtype, quantity, price, amount, fees, iso_currency_code, source)
+			values (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			t.InvestmentTransactionID, acct.ItemID, acct.AccountID, t.SecurityID, t.Date, t.Name, t.Type, t.Subtype,
 			t.Quantity, t.Price, t.Amount, t.Fees, t.IsoCurrencyCode, source); err != nil {
 			return res, fmt.Errorf("store: imported row %s: %w", t.InvestmentTransactionID, err)

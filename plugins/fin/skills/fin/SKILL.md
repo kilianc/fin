@@ -44,6 +44,7 @@ items and Costco receipt and online order items, using the user's own sign-in.
 | `fin costco categorize [--set]` | Uncategorized Costco items; the same category workflow as Amazon |
 | `fin holdings [--account X]` | Latest positions with cost basis and tax lots; `holdings` in `fin sql` has one snapshot per day synced, for history, and `balances` one balance per account per day |
 | `fin investments --since DATE [--until DATE] [--account X]` | Buys, sells, dividends, fees |
+| `fin import robinhood --account X FILE...` | Load Robinhood account activity CSVs (one account per report) for older history; `source` in `fin sql` says `plaid` or `robinhood` |
 | `fin epoch [DATE]` | The first day of the finances the user wants reported |
 | `fin ui` | The user's net worth, spending, portfolio and a SQL editor as pages in their browser (see below) |
 | `fin institutions <name>` | Whether Plaid supports a bank, before using a slot |
