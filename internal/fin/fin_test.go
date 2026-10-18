@@ -1101,3 +1101,58 @@ func TestCryptoDepositsGetTheirCoinAndQuantity(t *testing.T) {
 		t.Errorf("cash deposit changed = %v", c)
 	}
 }
+
+func TestImportRobinhoodFillsInBeforePlaid(t *testing.T) {
+	hood := state.Item{Name: "robinhood", ItemID: "item-hood", Kind: "bank", Products: []string{"investments"}, InstitutionName: "Robinhood"}
+	ta := newTestApp(t, hood)
+	ta.fake.holdings["tok-item-hood"] = &plaid.HoldingsResponse{
+		Accounts:   []plaid.Account{{AccountID: "acc-ind", Name: "Robinhood individual", Mask: ptr("1234"), Type: "investment"}, {AccountID: "acc-roth", Name: "Robinhood Roth IRA", Type: "investment"}},
+		Securities: []plaid.Security{{SecurityID: "s-vti", TickerSymbol: ptr("VTI")}},
+	}
+	ta.fake.invTxs["tok-item-hood"] = []plaid.InvestmentTransaction{{InvestmentTransactionID: "p1", AccountID: "acc-ind", Date: "2025-10-10", Type: "cash", Amount: -1}}
+	if code, _ := ta.run(t, "sync"); code != exitOK {
+		t.Fatalf("sync: %s", ta.stderr)
+	}
+	dir := t.TempDir()
+	head := `"Activity Date","Process Date","Settle Date","Instrument","Description","Trans Code","Quantity","Price","Amount"` + "\n"
+	old := filepath.Join(dir, "2025.csv")
+	os.WriteFile(old, []byte(head+`"9/2/2025","9/2/2025","9/3/2025","VTI","Vanguard Total Stock Market ETF","Buy","2","$300.00","($600.00)"`+"\n"+
+		`"9/5/2025","9/5/2025","9/8/2025","NEWCO","New Co","Buy","1","$10.00","($10.00)"`+"\n"+
+		`"10/10/2025","10/10/2025","10/10/2025","","Interest","INT","","","$1.00"`+"\n"), 0o600)
+	again := filepath.Join(dir, "lifetime.csv")
+	os.WriteFile(again, []byte(head+`"9/2/2025","9/2/2025","9/3/2025","VTI","Vanguard Total Stock Market ETF","Buy","2","$300.00","($600.00)"`+"\n"), 0o600)
+
+	if code, _ := ta.run(t, "import", "robinhood", "--account", "robinhood", old); code != exitUsage || ta.stderrJSON(t)["code"] != "NO_SUCH_ACCOUNT" {
+		t.Fatalf("ambiguous account: exit = %d stderr %s", code, ta.stderr)
+	}
+	code, body := ta.run(t, "import", "robinhood", "--account", "individual", old, again)
+	if code != exitOK || body["imported"] != 2.0 || body["covered_by_plaid"] != 1.0 || body["rows"] != 3.0 || body["plaid_since"] != "2025-10-10" {
+		t.Fatalf("import exit = %d body = %v stderr %s", code, body, ta.stderr)
+	}
+	ta.run(t, "import", "robinhood", "--account", "1234", old)
+	_, body = ta.run(t, "investments", "--since", "2025-01-01")
+	txs := body["investment_transactions"].([]any)
+	if len(txs) != 3 {
+		t.Fatalf("investment transactions = %v", txs)
+	}
+	bySource := map[string]int{}
+	for _, v := range txs {
+		m := v.(map[string]any)
+		bySource[m["source"].(string)]++
+		if m["investment_transaction_id"] != "p1" && m["date"] == "2025-09-02" && (m["ticker"] != "VTI" || m["amount"] != 600.0 || m["quantity"] != 2.0) {
+			t.Errorf("imported buy = %v", m)
+		}
+		if m["date"] == "2025-09-05" && m["ticker"] != "NEWCO" {
+			t.Errorf("a ticker fin did not know = %v", m)
+		}
+	}
+	if bySource["robinhood"] != 2 || bySource["plaid"] != 1 {
+		t.Errorf("sources = %v; importing again must replace, not add", bySource)
+	}
+	// A later Plaid sync of the whole window leaves imported rows alone.
+	ta.Now = func() time.Time { return testNow.AddDate(0, 0, 1) }
+	ta.run(t, "sync")
+	if _, body := ta.run(t, "investments", "--since", "2025-01-01"); len(body["investment_transactions"].([]any)) != 3 {
+		t.Errorf("after sync = %v", body["investment_transactions"])
+	}
+}
