@@ -24,6 +24,11 @@ func init() {
 	amazonRetailer.Sync = func(a *App, ctx context.Context, s *store.Store, st *state.State, acct state.RetailerAccount, p syncProgress) (any, error) {
 		return a.syncAmazon(ctx, s, st, acct, amazonSync{}, p)
 	}
+	amazonRetailer.Steps = []string{"payments", "orders"}
+	amazonRetailer.Summarize = func(v any) []string {
+		view := v.(*amazonSyncView)
+		return []string{fmt.Sprintf("%d new", view.Payments), fmt.Sprintf("%d read", view.Orders)}
+	}
 	amazonRetailer.Forget = func(ctx context.Context, s *store.Store, account string) error {
 		return s.DeleteAmazonAccount(ctx, account)
 	}
@@ -283,14 +288,10 @@ func (a *App) cmdAmazonSync(ctx context.Context, args []string) (*result, error)
 		accts = []state.RetailerAccount{acct}
 	}
 	opts := amazonSync{Full: *full, Orders: orders}
-	views, errs, err := a.runSync(ctx, st, amazonRetailer, accts, []string{"payments", "orders"},
+	views, errs, err := a.runSync(ctx, st, amazonRetailer, accts, amazonRetailer.Steps,
 		func(acct state.RetailerAccount, p syncProgress) (any, error) {
 			return a.syncAmazon(ctx, s, st, acct, opts, p)
-		},
-		func(v any) []string {
-			view := v.(*amazonSyncView)
-			return []string{fmt.Sprintf("%d new", view.Payments), fmt.Sprintf("%d read", view.Orders)}
-		})
+		}, amazonRetailer.Summarize, false)
 	if err != nil {
 		return nil, err
 	}

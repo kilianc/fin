@@ -44,6 +44,10 @@ type retailer struct {
 	SignIn error
 	// Sync reads what is new for one account, as fin sync does.
 	Sync func(a *App, ctx context.Context, s *store.Store, st *state.State, acct state.RetailerAccount, progress syncProgress) (any, error)
+	// Steps are what the sync screen shows for each account, and Summarize
+	// says what each step of a finished account read.
+	Steps     []string
+	Summarize func(view any) []string
 	// Forget deletes an account's rows, the shared ones included.
 	Forget func(ctx context.Context, s *store.Store, account string) error
 }
@@ -314,9 +318,11 @@ func (a *App) syncAccounts(ctx context.Context, st *state.State, r retailer, acc
 
 // runSync syncs accts with sync. In a terminal it shows the sync screen:
 // each account's steps, how far each is, and a feed of what it finds;
-// summarize says what each step of a finished account read.
+// summarize says what each step of a finished account read. closeWhenDone
+// leaves the screen as soon as the sync ends, for fin sync, which goes on to
+// other retailers and prints its own table.
 func (a *App) runSync(ctx context.Context, st *state.State, r retailer, accts []state.RetailerAccount, steps []string,
-	sync func(acct state.RetailerAccount, p syncProgress) (any, error), summarize func(view any) []string) ([]any, []ItemError, error) {
+	sync func(acct state.RetailerAccount, p syncProgress) (any, error), summarize func(view any) []string, closeWhenDone bool) ([]any, []ItemError, error) {
 	if !a.showSpinner() {
 		return a.syncAccounts(ctx, st, r, accts, sync, nil)
 	}
@@ -329,7 +335,7 @@ func (a *App) runSync(ctx context.Context, st *state.State, r retailer, accts []
 	var views []any
 	var errs []ItemError
 	a.onScreen = true
-	_, err := ui.Flow(ctx, a.Stdin, a.Stderr, ui.FlowOptions{Title: "fin → " + r.Name, Steps: labels}, func(ctx context.Context, rep ui.Reporter) (ui.FlowResult, error) {
+	_, err := ui.Flow(ctx, a.Stdin, a.Stderr, ui.FlowOptions{Title: "fin → " + r.Name, Steps: labels, CloseWhenDone: closeWhenDone}, func(ctx context.Context, rep ui.Reporter) (ui.FlowResult, error) {
 		k := 0
 		var err error
 		views, errs, err = a.syncAccounts(ctx, st, r, accts, func(acct state.RetailerAccount, p syncProgress) (any, error) {
@@ -366,7 +372,8 @@ func (a *App) runSync(ctx context.Context, st *state.State, r retailer, accts []
 	return views, errs, err
 }
 
-// syncRetailers syncs every connected retailer account, as fin sync does.
+// syncRetailers syncs every connected retailer account, as fin sync does,
+// on the same sync screen fin amazon sync and fin costco sync show.
 // The views are keyed by retailer ID.
 func (a *App) syncRetailers(ctx context.Context, s *store.Store, st *state.State) (map[string][]any, []ItemError, error) {
 	out, errs := map[string][]any{}, []ItemError{}
@@ -375,9 +382,9 @@ func (a *App) syncRetailers(ctx context.Context, s *store.Store, st *state.State
 		if len(accts) == 0 {
 			continue
 		}
-		views, e, err := a.syncAccounts(ctx, st, r, accts, func(acct state.RetailerAccount, p syncProgress) (any, error) {
+		views, e, err := a.runSync(ctx, st, r, accts, r.Steps, func(acct state.RetailerAccount, p syncProgress) (any, error) {
 			return r.Sync(a, ctx, s, st, acct, p)
-		}, nil)
+		}, r.Summarize, true)
 		if err != nil {
 			return nil, nil, err
 		}

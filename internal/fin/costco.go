@@ -23,6 +23,8 @@ func init() {
 	costcoRetailer.Sync = func(a *App, ctx context.Context, s *store.Store, st *state.State, acct state.RetailerAccount, p syncProgress) (any, error) {
 		return a.syncCostco(ctx, s, st, acct, p)
 	}
+	costcoRetailer.Steps = []string{"receipts and orders"}
+	costcoRetailer.Summarize = func(v any) []string { _, _, detail := v.(*costcoSyncView).summary(); return []string{detail} }
 	costcoRetailer.Forget = func(ctx context.Context, s *store.Store, account string) error {
 		return s.DeleteCostcoAccount(ctx, account)
 	}
@@ -273,11 +275,10 @@ func (a *App) cmdCostcoSync(ctx context.Context, args []string) (*result, error)
 		return nil, err
 	}
 	defer s.Close()
-	views, errs, err := a.runSync(ctx, st, costcoRetailer, accts, []string{"receipts and orders"},
+	views, errs, err := a.runSync(ctx, st, costcoRetailer, accts, costcoRetailer.Steps,
 		func(acct state.RetailerAccount, p syncProgress) (any, error) {
 			return a.syncCostco(ctx, s, st, acct, p)
-		},
-		func(v any) []string { _, _, detail := v.(*costcoSyncView).summary(); return []string{detail} })
+		}, costcoRetailer.Summarize, false)
 	if err != nil {
 		return nil, err
 	}
