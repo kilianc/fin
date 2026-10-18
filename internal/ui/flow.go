@@ -19,6 +19,8 @@ type Reporter interface {
 	Start(i int, detail string)
 	// Done marks step i as finished, with an optional detail.
 	Done(i int, detail string)
+	// Fail marks step i as failed, with an optional detail.
+	Fail(i int, detail string)
 	// Link shows a URL the user should open; o opens it.
 	Link(label, url string)
 	// Feed shows a line of what the work just found, under the steps; the
@@ -274,6 +276,7 @@ type flowReporter struct{ p *tea.Program }
 
 func (r flowReporter) Start(i int, detail string) { r.p.Send(stepMsg{i, stepRunning, detail}) }
 func (r flowReporter) Done(i int, detail string)  { r.p.Send(stepMsg{i, stepDone, detail}) }
+func (r flowReporter) Fail(i int, detail string)  { r.p.Send(stepMsg{i, stepFailed, detail}) }
 func (r flowReporter) Link(label, url string)     { r.p.Send(linkMsg{label, url}) }
 func (r flowReporter) Feed(line string)           { r.p.Send(feedMsg(line)) }
 
@@ -344,6 +347,14 @@ func (r PlainReporter) Done(i int, detail string) {
 		msg += Muted.Render("  " + detail)
 	}
 	Print(r.W, Line(Good, msg)+"\n")
+}
+
+func (r PlainReporter) Fail(i int, detail string) {
+	msg := r.Steps[i]
+	if detail != "" {
+		msg += Muted.Render("  " + detail)
+	}
+	Print(r.W, Line(Bad, msg)+"\n")
 }
 
 func (r PlainReporter) Feed(string) {}

@@ -318,11 +318,9 @@ func (a *App) syncAccounts(ctx context.Context, st *state.State, r retailer, acc
 
 // runSync syncs accts with sync. In a terminal it shows the sync screen:
 // each account's steps, how far each is, and a feed of what it finds;
-// summarize says what each step of a finished account read. closeWhenDone
-// leaves the screen as soon as the sync ends, for fin sync, which goes on to
-// other retailers and prints its own table.
+// summarize says what each step of a finished account read.
 func (a *App) runSync(ctx context.Context, st *state.State, r retailer, accts []state.RetailerAccount, steps []string,
-	sync func(acct state.RetailerAccount, p syncProgress) (any, error), summarize func(view any) []string, closeWhenDone bool) ([]any, []ItemError, error) {
+	sync func(acct state.RetailerAccount, p syncProgress) (any, error), summarize func(view any) []string) ([]any, []ItemError, error) {
 	if !a.showSpinner() {
 		return a.syncAccounts(ctx, st, r, accts, sync, nil)
 	}
@@ -335,27 +333,10 @@ func (a *App) runSync(ctx context.Context, st *state.State, r retailer, accts []
 	var views []any
 	var errs []ItemError
 	a.onScreen = true
-	_, err := ui.Flow(ctx, a.Stdin, a.Stderr, ui.FlowOptions{Title: "fin → " + r.Name, Steps: labels, CloseWhenDone: closeWhenDone}, func(ctx context.Context, rep ui.Reporter) (ui.FlowResult, error) {
-		k := 0
+	_, err := ui.Flow(ctx, a.Stdin, a.Stderr, ui.FlowOptions{Title: "fin → " + r.Name, Steps: labels}, func(ctx context.Context, rep ui.Reporter) (ui.FlowResult, error) {
+		shown, progress := onScreen(rep, 0, len(steps), sync, summarize)
 		var err error
-		views, errs, err = a.syncAccounts(ctx, st, r, accts, func(acct state.RetailerAccount, p syncProgress) (any, error) {
-			v, err := sync(acct, p)
-			if err == nil {
-				for i, detail := range summarize(v) {
-					rep.Done(k*len(steps)+i, detail)
-				}
-			}
-			k++
-			return v, err
-		}, func(k int) syncProgress {
-			at := 0
-			return syncProgress{Step: func(i int, detail string) {
-				for ; at < i; at++ {
-					rep.Done(k*len(steps)+at, "")
-				}
-				rep.Start(k*len(steps)+i, detail)
-			}, Feed: rep.Feed}
-		})
+		views, errs, err = a.syncAccounts(ctx, st, r, accts, shown, progress)
 		if err != nil {
 			return ui.FlowResult{}, err
 		}
@@ -372,19 +353,53 @@ func (a *App) runSync(ctx context.Context, st *state.State, r retailer, accts []
 	return views, errs, err
 }
 
+// onScreen shows sync's accounts on rep, each taking steps steps from step
+// base on: the step running, the ones before it done, summarize filling in
+// a finished account, and the running step failed when the account fails.
+func onScreen(rep ui.Reporter, base, steps int, sync func(acct state.RetailerAccount, p syncProgress) (any, error),
+	summarize func(view any) []string) (func(acct state.RetailerAccount, p syncProgress) (any, error), func(k int) syncProgress) {
+	k, at := 0, 0
+	shown := func(acct state.RetailerAccount, p syncProgress) (any, error) {
+		v, err := sync(acct, p)
+		if err == nil {
+			for i, detail := range summarize(v) {
+				rep.Done(base+k*steps+i, detail)
+			}
+		} else if !errors.Is(err, context.Canceled) {
+			rep.Fail(base+k*steps+at, "")
+		}
+		k++
+		return v, err
+	}
+	progress := func(k int) syncProgress {
+		at = 0
+		return syncProgress{Step: func(i int, detail string) {
+			for ; at < i; at++ {
+				rep.Done(base+k*steps+at, "")
+			}
+			rep.Start(base+k*steps+i, detail)
+		}, Feed: rep.Feed}
+	}
+	return shown, progress
+}
+
 // syncRetailers syncs every connected retailer account, as fin sync does,
-// on the same sync screen fin amazon sync and fin costco sync show.
-// The views are keyed by retailer ID.
-func (a *App) syncRetailers(ctx context.Context, s *store.Store, st *state.State) (map[string][]any, []ItemError, error) {
+// showing them on screen when it is set. The views are keyed by retailer ID.
+func (a *App) syncRetailers(ctx context.Context, s *store.Store, st *state.State, screen *syncScreen) (map[string][]any, []ItemError, error) {
 	out, errs := map[string][]any{}, []ItemError{}
 	for _, r := range retailers {
 		accts := st.RetailerAccounts(r.ID, string(a.Env))
 		if len(accts) == 0 {
 			continue
 		}
-		views, e, err := a.runSync(ctx, st, r, accts, r.Steps, func(acct state.RetailerAccount, p syncProgress) (any, error) {
+		sync := func(acct state.RetailerAccount, p syncProgress) (any, error) {
 			return r.Sync(a, ctx, s, st, acct, p)
-		}, r.Summarize, true)
+		}
+		var progress func(k int) syncProgress
+		if screen != nil {
+			sync, progress = onScreen(screen.rep, screen.shops[r.ID], len(r.Steps), sync, r.Summarize)
+		}
+		views, e, err := a.syncAccounts(ctx, st, r, accts, sync, progress)
 		if err != nil {
 			return nil, nil, err
 		}

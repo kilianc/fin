@@ -291,7 +291,7 @@ func (a *App) cmdAmazonSync(ctx context.Context, args []string) (*result, error)
 	views, errs, err := a.runSync(ctx, st, amazonRetailer, accts, amazonRetailer.Steps,
 		func(acct state.RetailerAccount, p syncProgress) (any, error) {
 			return a.syncAmazon(ctx, s, st, acct, opts, p)
-		}, amazonRetailer.Summarize, false)
+		}, amazonRetailer.Summarize)
 	if err != nil {
 		return nil, err
 	}

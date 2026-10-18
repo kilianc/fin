@@ -113,6 +113,7 @@ type linkOnlyReporter struct{ a *App }
 
 func (r linkOnlyReporter) Start(int, string) {}
 func (r linkOnlyReporter) Done(int, string)  {}
+func (r linkOnlyReporter) Fail(int, string)  {}
 func (r linkOnlyReporter) Feed(string)       {}
 func (r linkOnlyReporter) Link(label, url string) {
 	fmt.Fprintf(r.a.Stderr, "%s\n%s\n", label, url)
@@ -144,12 +145,12 @@ func (a *App) writeSheet(ctx context.Context, r ui.Reporter, st *state.State, it
 		defer s.Close()
 	}
 	if len(items) > 0 {
-		if body.Sync, body.Errors, err = a.syncStore(ctx, s, st, items, api); err != nil {
+		if body.Sync, body.Errors, err = a.syncStore(ctx, s, st, items, api, nil); err != nil {
 			return nil, err
 		}
 	}
 	if len(st.Retailers) > 0 {
-		_, shopErrs, err := a.syncRetailers(ctx, s, st)
+		_, shopErrs, err := a.syncRetailers(ctx, s, st, nil)
 		if err != nil {
 			return nil, err
 		}

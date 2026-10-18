@@ -94,8 +94,9 @@ type syncView struct {
 
 // syncStore pulls each Item's /transactions/sync delta since the cursor saved
 // in the store, then writes the deltas one Item at a time. Fetches run in
-// parallel; writes do not, so DuckDB never sees two writers.
-func (a *App) syncStore(ctx context.Context, s *store.Store, st *state.State, items []state.Item, api Plaid) ([]syncView, []ItemError, error) {
+// parallel; writes do not, so DuckDB never sees two writers. screen, when
+// set, shows each Item's fetch.
+func (a *App) syncStore(ctx context.Context, s *store.Store, st *state.State, items []state.Item, api Plaid, screen *syncScreen) ([]syncView, []ItemError, error) {
 	cursors := make([]string, len(items))
 	for i, it := range items {
 		c, err := s.Cursor(ctx, it.ItemID)
@@ -106,6 +107,7 @@ func (a *App) syncStore(ctx context.Context, s *store.Store, st *state.State, it
 	}
 	results := make([]*syncResult, len(items))
 	errs := a.forEachItem(ctx, items, func(ctx context.Context, i int, token string) error {
+		screen.start(txsPart, i)
 		res, err := syncTransactions(ctx, api, token, cursors[i])
 		if err != nil {
 			return err
@@ -114,8 +116,10 @@ func (a *App) syncStore(ctx context.Context, s *store.Store, st *state.State, it
 			return &itemIssue{"TRANSACTIONS_NOT_READY", "Plaid is still pulling this Item's transactions; try again in a few minutes"}
 		}
 		results[i] = res
+		screen.done(txsPart, i, changedDetail(len(res.transactions), len(res.removed)))
 		return nil
 	})
+	screen.failItems(txsPart, items, errs)
 
 	syncs := []syncView{}
 	for i, res := range results {
@@ -178,23 +182,38 @@ func (a *App) cmdSync(ctx context.Context, args []string) (*result, error) {
 			return nil, err
 		}
 		defer s.Close()
-		if len(items) > 0 {
-			if syncs, errs, err = a.syncStore(ctx, s, st, items, api); err != nil {
-				return nil, err
+		var screen *syncScreen
+		work := func(ctx context.Context) error {
+			var err error
+			if len(items) > 0 {
+				if syncs, errs, err = a.syncStore(ctx, s, st, items, api, screen); err != nil {
+					return err
+				}
 			}
-		}
-		if len(invItems) > 0 {
-			var invErrs []ItemError
-			if invs, invErrs, err = a.syncInvestments(ctx, s, invItems, api); err != nil {
-				return nil, err
+			if len(invItems) > 0 {
+				var invErrs []ItemError
+				if invs, invErrs, err = a.syncInvestments(ctx, s, invItems, api, screen); err != nil {
+					return err
+				}
+				errs = append(errs, invErrs...)
 			}
-			errs = append(errs, invErrs...)
+			var shopErrs []ItemError
+			if shops, shopErrs, err = a.syncRetailers(ctx, s, st, screen); err != nil {
+				return err
+			}
+			errs = append(errs, shopErrs...)
+			return nil
 		}
-		var shopErrs []ItemError
-		if shops, shopErrs, err = a.syncRetailers(ctx, s, st); err != nil {
+		// In a terminal, everything fin sync reads shows on one screen.
+		if a.showSpinner() {
+			screen = newSyncScreen(a, st, items, invItems)
+			err = screen.run(ctx, a, work)
+		} else {
+			err = work(ctx)
+		}
+		if err != nil {
 			return nil, err
 		}
-		errs = append(errs, shopErrs...)
 	}
 	t := &ui.Table{
 		Title:   fmt.Sprintf("Synced · %d of %d Items", len(syncs), len(items)),

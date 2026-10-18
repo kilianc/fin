@@ -278,7 +278,7 @@ func (a *App) cmdCostcoSync(ctx context.Context, args []string) (*result, error)
 	views, errs, err := a.runSync(ctx, st, costcoRetailer, accts, costcoRetailer.Steps,
 		func(acct state.RetailerAccount, p syncProgress) (any, error) {
 			return a.syncCostco(ctx, s, st, acct, p)
-		}, costcoRetailer.Summarize, false)
+		}, costcoRetailer.Summarize)
 	if err != nil {
 		return nil, err
 	}
