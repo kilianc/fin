@@ -38,7 +38,10 @@ create table if not exists holdings (
 	tax_lots          json,
 	primary key (date, account_id, security_id)
 );
-create table if not exists investment_transactions (
+-- What Plaid sent, as it sent it. Plaid has no removed list for investment
+-- transactions, so a row a later sync's window no longer has gets a
+-- removed_at instead of being deleted; it clears if the row comes back.
+create table if not exists plaid_investment_transactions (
 	investment_transaction_id varchar primary key,
 	item_id                   varchar not null,
 	account_id                varchar not null,
@@ -51,14 +54,148 @@ create table if not exists investment_transactions (
 	price                     double not null,
 	amount                    double not null,
 	fees                      double,
-	iso_currency_code         varchar
+	iso_currency_code         varchar,
+	first_seen                timestamptz,
+	last_seen                 timestamptz,
+	removed_at                timestamptz
 );
--- plaid, or the import a row came from, such as robinhood.
-alter table investment_transactions add column if not exists source varchar default 'plaid';
+-- Every row of every Robinhood account activity report imported, with its
+-- text as Robinhood wrote it and fin's reading of it beside, upserted by key.
+create table if not exists robinhood_activity (
+	key           varchar primary key,
+	item_id       varchar not null,
+	account_id    varchar not null,
+	activity_date date not null,
+	process_date  date,
+	settle_date   date,
+	instrument    varchar,
+	description   varchar,
+	trans_code    varchar,
+	quantity_text varchar,
+	price_text    varchar,
+	amount_text   varchar,
+	security_id   varchar,
+	name          varchar not null,
+	type          varchar not null,
+	subtype       varchar,
+	quantity      double not null,
+	price         double not null,
+	amount        double not null,
+	first_imported timestamptz not null,
+	last_imported  timestamptz not null
+);
+-- One row per report file imported: the dates its rows span are the dates
+-- the report speaks for.
+create table if not exists robinhood_reports (
+	report_id   varchar not null,
+	account_id  varchar not null,
+	item_id     varchar not null,
+	file        varchar,
+	rows        integer not null,
+	first_date  date,
+	last_date   date,
+	imported_at timestamptz not null,
+	primary key (report_id, account_id)
+);
 `
 
+// investmentsViews resolves overlapping sources when reading. A Robinhood
+// report is the fuller record (one row per fill, and payouts Plaid leaves
+// out), so it speaks for the dates its rows span; Plaid's rows on those dates
+// stay in plaid_investment_transactions but are left out. Just past a
+// report's last day, a Plaid row with the same amount as a report row within
+// a week is the same activity dated differently, and is left out too.
+const investmentsViews = `
+create or replace view investment_matches as
+with plaid as (
+	select * from plaid_investment_transactions where removed_at is null
+),
+covered as (
+	select p.investment_transaction_id, min(r.report_id) as report_id
+	from plaid p join robinhood_reports r
+		on r.account_id = p.account_id and p.date between r.first_date and r.last_date
+	group by p.investment_transaction_id
+),
+pairs as (
+	select p.investment_transaction_id, a.key, p.date, a.activity_date,
+		row_number() over (partition by p.investment_transaction_id order by abs(p.date - a.activity_date), a.key) as by_plaid,
+		row_number() over (partition by a.key order by abs(p.date - a.activity_date), p.investment_transaction_id) as by_report
+	from plaid p join robinhood_activity a
+		on a.account_id = p.account_id and round(a.amount, 2) = round(p.amount, 2)
+		and a.activity_date between p.date - 7 and p.date + 7
+	where p.investment_transaction_id not in (select investment_transaction_id from covered)
+)
+select p.investment_transaction_id as plaid_id, p.item_id, p.account_id, p.date, p.name, p.amount,
+	case when c.report_id is not null then 'robinhood report covers this date' else 'same amount in a robinhood report' end as reason,
+	c.report_id, m.key as robinhood_key
+from plaid p
+left join covered c using (investment_transaction_id)
+left join (select * from pairs where by_plaid = 1 and by_report = 1) m using (investment_transaction_id)
+where c.report_id is not null or m.key is not null;
+
+create or replace view investment_transactions as
+select investment_transaction_id, item_id, account_id, security_id, date, name, type, subtype,
+	quantity, price, amount, fees, iso_currency_code, 'plaid' as source
+from plaid_investment_transactions
+where removed_at is null and investment_transaction_id not in (select plaid_id from investment_matches)
+union all
+select key, item_id, account_id, security_id, activity_date, name, type, subtype,
+	quantity, price, amount, null, 'USD', 'robinhood'
+from robinhood_activity;
+`
+
+// migrateInvestmentTransactions moves a store whose investment_transactions
+// is a table, from before the raw tables, into them: Plaid's rows (all of
+// them when there is no source column) to plaid_investment_transactions, and
+// imported Robinhood rows to robinhood_activity, without the report text it
+// did not keep. Nothing is dropped until both copies are in.
+func migrateInvestmentTransactions(ctx context.Context, db *sql.DB) error {
+	var kind string
+	err := db.QueryRowContext(ctx, `select table_type from information_schema.tables where table_name = 'investment_transactions'`).Scan(&kind)
+	if errors.Is(err, sql.ErrNoRows) || kind != "BASE TABLE" {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var hasSource int
+	if err := db.QueryRowContext(ctx, `select count(*) from information_schema.columns
+		where table_name = 'investment_transactions' and column_name = 'source'`).Scan(&hasSource); err != nil {
+		return err
+	}
+	source := "'plaid'"
+	if hasSource > 0 {
+		source = "coalesce(source, 'plaid')"
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, q := range []string{
+		investmentsSchema,
+		`insert into plaid_investment_transactions
+			select investment_transaction_id, item_id, account_id, security_id, date, name, type, subtype,
+				quantity, price, amount, fees, iso_currency_code, null, null, null
+			from investment_transactions where ` + source + ` = 'plaid'
+			on conflict do nothing`,
+		`insert into robinhood_activity (key, item_id, account_id, activity_date, security_id, name, type, subtype,
+				quantity, price, amount, first_imported, last_imported)
+			select investment_transaction_id, item_id, account_id, date, security_id, name, type, subtype,
+				quantity, price, amount, now(), now()
+			from investment_transactions where ` + source + ` = 'robinhood'
+			on conflict do nothing`,
+		`drop table investment_transactions`,
+	} {
+		if _, err := tx.ExecContext(ctx, q); err != nil {
+			return fmt.Errorf("store: move investment transactions to their raw tables: %w", err)
+		}
+	}
+	return tx.Commit()
+}
+
 // InvestmentSync is one Item's holdings today and its investment
-// transactions from From on, which replace the stored ones in that window.
+// transactions from From on, Plaid's whole answer for that window.
 type InvestmentSync struct {
 	ItemID      string
 	Item        string
@@ -72,11 +209,11 @@ type InvestmentSync struct {
 	Txs         []plaid.InvestmentTransaction
 }
 
-// InvestmentsFrom returns the date an Item's last stored investment
-// transaction falls on, or "" when it has none.
+// InvestmentsFrom returns the date of the last investment transaction Plaid
+// sent for an Item, or "" when it has sent none.
 func (s *Store) InvestmentsFrom(ctx context.Context, itemID string) (string, error) {
 	var day sql.NullString
-	err := s.db.QueryRowContext(ctx, `select max(date)::varchar from investment_transactions where item_id = ? and source = 'plaid'`, itemID).Scan(&day)
+	err := s.db.QueryRowContext(ctx, `select max(date)::varchar from plaid_investment_transactions where item_id = ? and removed_at is null`, itemID).Scan(&day)
 	return day.String, err
 }
 
@@ -116,18 +253,28 @@ func (s *Store) ApplyInvestments(ctx context.Context, d InvestmentSync) error {
 			return fmt.Errorf("store: holding %s/%s: %w", h.AccountID, h.SecurityID, err)
 		}
 	}
-	// Plaid has no removed list for investment transactions, so the window
-	// is replaced whole: one Plaid dropped disappears here too.
-	if _, err := tx.ExecContext(ctx, `delete from investment_transactions where item_id = ? and date >= ?::date and source = 'plaid'`, d.ItemID, d.From); err != nil {
-		return err
-	}
 	for _, t := range d.Txs {
-		if _, err := tx.ExecContext(ctx, `insert or replace into investment_transactions (investment_transaction_id, item_id, account_id, security_id, date, name, type, subtype, quantity, price, amount, fees, iso_currency_code, source)
-			values (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, 'plaid')`,
+		if _, err := tx.ExecContext(ctx, `insert into plaid_investment_transactions values (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, null)
+			on conflict (investment_transaction_id) do update set item_id = excluded.item_id, account_id = excluded.account_id,
+				security_id = excluded.security_id, date = excluded.date, name = excluded.name, type = excluded.type,
+				subtype = excluded.subtype, quantity = excluded.quantity, price = excluded.price, amount = excluded.amount,
+				fees = excluded.fees, iso_currency_code = excluded.iso_currency_code, last_seen = excluded.last_seen, removed_at = null`,
 			t.InvestmentTransactionID, d.ItemID, t.AccountID, t.SecurityID, t.Date, t.Name, t.Type, t.Subtype,
-			t.Quantity, t.Price, t.Amount, t.Fees, t.IsoCurrencyCode); err != nil {
+			t.Quantity, t.Price, t.Amount, t.Fees, t.IsoCurrencyCode, d.SyncedAt, d.SyncedAt); err != nil {
 			return fmt.Errorf("store: investment transaction %s: %w", t.InvestmentTransactionID, err)
 		}
+	}
+	// Plaid has no removed list for investment transactions: one in the
+	// window that this answer no longer has is marked removed, and kept.
+	sent := make([]string, len(d.Txs))
+	for i, t := range d.Txs {
+		sent[i] = t.InvestmentTransactionID
+	}
+	if _, err := tx.ExecContext(ctx, `update plaid_investment_transactions set removed_at = ?
+		where item_id = ? and date >= ?::date and removed_at is null
+			and investment_transaction_id not in (select unnest(?::varchar[]))`,
+		d.SyncedAt, d.ItemID, d.From, sent); err != nil {
+		return err
 	}
 	// An Item linked for investments only has no transactions cursor; keep
 	// one it has, and note when it last synced.
@@ -296,50 +443,83 @@ func (s *Store) SecurityByTicker(ctx context.Context, ticker string) (string, er
 	return id, err
 }
 
-// ImportedInvestments is what ImportInvestments did.
-type ImportedInvestments struct {
-	Imported int    `json:"imported"`
-	Covered  int    `json:"covered_by_plaid"` // rows from the day Plaid's history starts on, left to Plaid
-	Since    string `json:"plaid_since"`      // that day, "" when Plaid has none for the account
+// RobinhoodReport is one account activity report file being imported.
+type RobinhoodReport struct {
+	ID    string // a hash of the file's bytes
+	File  string
+	Rows  int
+	First string // the dates its rows span, YYYY-MM-DD
+	Last  string
 }
 
-// ImportInvestments replaces an account's rows from source with txs, keeping
-// only those before the account's first Plaid row, so nothing is counted
-// twice. securities adds any the rows need that fin does not have yet.
-func (s *Store) ImportInvestments(ctx context.Context, acct InvestmentAccount, source string, txs []plaid.InvestmentTransaction, securities []plaid.Security, at time.Time) (ImportedInvestments, error) {
-	var res ImportedInvestments
+// RobinhoodRow is one report row: Robinhood's text, and fin's reading of it
+// with Plaid's signs (a positive Amount is money out).
+type RobinhoodRow struct {
+	Key                                 string
+	ActivityDate                        string
+	ProcessDate, SettleDate             string // "" when the report leaves them blank
+	Instrument, Description, TransCode  string
+	QuantityText, PriceText, AmountText string
+	SecurityID                          *string
+	Name, Type, Subtype                 string
+	Quantity, Price, Amount             float64
+}
+
+// RobinhoodImport is what ImportRobinhood did.
+type RobinhoodImport struct {
+	New   int `json:"new"`              // rows fin did not have
+	Known int `json:"already_imported"` // rows an earlier import brought in, refreshed
+	// PlaidReplaced is how many of the account's Plaid rows the account's
+	// reports now speak for; they stay in plaid_investment_transactions.
+	PlaidReplaced int `json:"plaid_rows_replaced"`
+}
+
+// ImportRobinhood upserts an account's report rows and records the reports.
+// It never removes a row: a report that lacks one an earlier report had says
+// nothing about it. securities adds any the rows need that fin lacks.
+func (s *Store) ImportRobinhood(ctx context.Context, acct InvestmentAccount, reports []RobinhoodReport, rows []RobinhoodRow, securities []plaid.Security, at time.Time) (RobinhoodImport, error) {
+	var res RobinhoodImport
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return res, err
 	}
 	defer tx.Rollback()
-	var since sql.NullString
-	if err := tx.QueryRowContext(ctx, `select min(date)::varchar from investment_transactions where account_id = ? and source = 'plaid'`,
-		acct.AccountID).Scan(&since); err != nil {
-		return res, err
-	}
-	res.Since = since.String
 	for _, sec := range securities {
 		if _, err := tx.ExecContext(ctx, `insert into securities values (?, ?, ?, ?, ?, ?, ?, ?) on conflict do nothing`,
 			sec.SecurityID, sec.TickerSymbol, sec.Name, sec.Type, sec.IsCashEquivalent, sec.ClosePrice, sec.IsoCurrencyCode, at); err != nil {
 			return res, fmt.Errorf("store: security %s: %w", sec.SecurityID, err)
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `delete from investment_transactions where account_id = ? and source = ?`, acct.AccountID, source); err != nil {
-		return res, err
+	for _, r := range reports {
+		if _, err := tx.ExecContext(ctx, `insert or replace into robinhood_reports values (?, ?, ?, ?, ?, ?::date, ?::date, ?)`,
+			r.ID, acct.AccountID, acct.ItemID, r.File, r.Rows, nullable(r.First), nullable(r.Last), at); err != nil {
+			return res, fmt.Errorf("store: report %s: %w", r.File, err)
+		}
 	}
-	for _, t := range txs {
-		if res.Since != "" && t.Date >= res.Since {
-			res.Covered++
-			continue
+	for _, r := range rows {
+		var known int
+		if err := tx.QueryRowContext(ctx, `select count(*) from robinhood_activity where key = ?`, r.Key).Scan(&known); err != nil {
+			return res, err
 		}
-		if _, err := tx.ExecContext(ctx, `insert or replace into investment_transactions (investment_transaction_id, item_id, account_id, security_id, date, name, type, subtype, quantity, price, amount, fees, iso_currency_code, source)
-			values (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			t.InvestmentTransactionID, acct.ItemID, acct.AccountID, t.SecurityID, t.Date, t.Name, t.Type, t.Subtype,
-			t.Quantity, t.Price, t.Amount, t.Fees, t.IsoCurrencyCode, source); err != nil {
-			return res, fmt.Errorf("store: imported row %s: %w", t.InvestmentTransactionID, err)
+		if _, err := tx.ExecContext(ctx, `insert into robinhood_activity values (?, ?, ?, ?::date, ?::date, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			on conflict (key) do update set process_date = excluded.process_date, settle_date = excluded.settle_date,
+				instrument = excluded.instrument, description = excluded.description, trans_code = excluded.trans_code,
+				quantity_text = excluded.quantity_text, price_text = excluded.price_text, amount_text = excluded.amount_text,
+				security_id = excluded.security_id, name = excluded.name, type = excluded.type, subtype = excluded.subtype,
+				quantity = excluded.quantity, price = excluded.price, amount = excluded.amount, last_imported = excluded.last_imported`,
+			r.Key, acct.ItemID, acct.AccountID, r.ActivityDate, nullable(r.ProcessDate), nullable(r.SettleDate),
+			r.Instrument, r.Description, r.TransCode, r.QuantityText, r.PriceText, r.AmountText,
+			r.SecurityID, r.Name, r.Type, r.Subtype, r.Quantity, r.Price, r.Amount, at, at); err != nil {
+			return res, fmt.Errorf("store: report row %s: %w", r.Key, err)
 		}
-		res.Imported++
+		if known > 0 {
+			res.Known++
+		} else {
+			res.New++
+		}
+	}
+	if err := tx.QueryRowContext(ctx, `select count(*) from investment_matches where account_id = ?`, acct.AccountID).Scan(&res.PlaidReplaced); err != nil {
+		return res, err
 	}
 	return res, tx.Commit()
 }

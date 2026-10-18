@@ -93,7 +93,7 @@ func (s *Store) DeleteItem(ctx context.Context, itemID string) error {
 		return err
 	}
 	defer tx.Rollback()
-	for _, table := range []string{"transactions", "holdings", "investment_transactions", "balances", "accounts", "items"} {
+	for _, table := range []string{"transactions", "holdings", "plaid_investment_transactions", "robinhood_activity", "robinhood_reports", "balances", "accounts", "items"} {
 		if _, err := tx.ExecContext(ctx, `delete from `+table+` where item_id = ?`, itemID); err != nil {
 			return err
 		}
@@ -140,7 +140,11 @@ func Open(ctx context.Context, path string) (*Store, error) {
 		s.Close()
 		return nil, fmt.Errorf("store: create schema: %w", err)
 	}
-	if _, err := s.db.ExecContext(ctx, schema+investmentsSchema+retailerSchema+amazonSchema+costcoSchema+retailerItemsView()); err != nil {
+	if err := migrateInvestmentTransactions(ctx, s.db); err != nil {
+		s.Close()
+		return nil, err
+	}
+	if _, err := s.db.ExecContext(ctx, schema+investmentsSchema+investmentsViews+retailerSchema+amazonSchema+costcoSchema+retailerItemsView()); err != nil {
 		s.Close()
 		return nil, fmt.Errorf("store: create schema: %w", err)
 	}

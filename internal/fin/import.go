@@ -1,10 +1,14 @@
 package fin
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/kilianc/fin/internal/plaid"
@@ -20,7 +24,7 @@ type importView struct {
 	Rows    int      `json:"rows"`
 	First   string   `json:"first"`
 	Last    string   `json:"last"`
-	store.ImportedInvestments
+	store.RobinhoodImport
 }
 
 // cmdImport brings in history Plaid does not reach, from a report the
@@ -53,22 +57,30 @@ func (a *App) cmdImport(ctx context.Context, args []string) (*result, error) {
 	}
 	view := importView{Account: acct.Name, Item: acct.Item, Files: files}
 	var rows []robinhood.Activity
+	var reports []store.RobinhoodReport
 	for _, path := range files {
-		f, err := os.Open(path)
+		b, err := os.ReadFile(path)
 		if err != nil {
 			return nil, newErr("IMPORT_ERROR", "%v", err)
 		}
-		got, err := robinhood.ParseActivity(acct.AccountID, f)
-		f.Close()
+		got, err := robinhood.ParseActivity(acct.AccountID, bytes.NewReader(b))
 		if err != nil {
 			return nil, newErr("IMPORT_ERROR", "%s: %v", path, err)
 		}
+		sum := sha256.Sum256(b)
+		rep := store.RobinhoodReport{ID: hex.EncodeToString(sum[:16]), File: filepath.Base(path), Rows: len(got)}
+		for _, r := range got {
+			if rep.First == "" || r.Date < rep.First {
+				rep.First = r.Date
+			}
+			rep.Last = max(rep.Last, r.Date)
+		}
+		reports = append(reports, rep)
 		rows = append(rows, got...)
 	}
-	txs, securities := []plaid.InvestmentTransaction{}, []plaid.Security{}
+	out, securities := []store.RobinhoodRow{}, []plaid.Security{}
 	known := map[string]string{}
 	keys := map[string]bool{}
-	usd := "USD"
 	for _, r := range rows {
 		// The same row in two overlapping reports has the same key.
 		if keys[r.Key] {
@@ -80,10 +92,12 @@ func (a *App) cmdImport(ctx context.Context, args []string) (*result, error) {
 			view.First = r.Date
 		}
 		view.Last = max(view.Last, r.Date)
-		t := plaid.InvestmentTransaction{
-			InvestmentTransactionID: r.Key, AccountID: acct.AccountID, Date: r.Date,
+		t := store.RobinhoodRow{
+			Key: r.Key, ActivityDate: r.Date, ProcessDate: r.ProcessDate, SettleDate: r.SettleDate,
+			Instrument: r.Ticker, Description: r.RawDescription, TransCode: r.Code,
+			QuantityText: r.QuantityText, PriceText: r.PriceText, AmountText: r.AmountText,
 			Name: r.Description + " · " + r.Code, Type: r.Type, Subtype: r.Subtype,
-			Quantity: r.Quantity, Price: r.Price, Amount: r.Amount, IsoCurrencyCode: &usd,
+			Quantity: r.Quantity, Price: r.Price, Amount: r.Amount,
 		}
 		if r.Ticker != "" {
 			id, ok := known[r.Ticker]
@@ -100,16 +114,16 @@ func (a *App) cmdImport(ctx context.Context, args []string) (*result, error) {
 			}
 			t.SecurityID = &id
 		}
-		txs = append(txs, t)
+		out = append(out, t)
 	}
-	res, err := s.ImportInvestments(ctx, acct, "robinhood", txs, securities, a.Now().UTC())
+	res, err := s.ImportRobinhood(ctx, acct, reports, out, securities, a.Now().UTC())
 	if err != nil {
 		return nil, storeErr(err)
 	}
-	view.ImportedInvestments = res
-	msg := ui.Line(ui.Good, fmt.Sprintf("Imported %d of %d rows into %s (%s)", res.Imported, view.Rows, acct.Name, acct.Item))
-	if res.Since != "" {
-		msg += "\n" + ui.Muted.Render(fmt.Sprintf("%d rows from %s on were left to Plaid, which has that period already", res.Covered, res.Since))
+	view.RobinhoodImport = res
+	msg := ui.Line(ui.Good, fmt.Sprintf("Imported %d rows into %s (%s): %d new, %d already imported", view.Rows, acct.Name, acct.Item, res.New, res.Known))
+	if res.PlaidReplaced > 0 {
+		msg += "\n" + ui.Muted.Render(fmt.Sprintf("%d of Plaid's rows for this account are now read from the reports instead; they stay in plaid_investment_transactions", res.PlaidReplaced))
 	}
 	return &result{body: view, message: msg}, nil
 }
