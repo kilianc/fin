@@ -2,6 +2,7 @@ package fin
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -32,8 +33,9 @@ type investmentsView struct {
 }
 
 // syncInvestments stores each Item's holdings snapshot and recent investment
-// transactions. Fetches run in parallel; writes do not.
-func (a *App) syncInvestments(ctx context.Context, s *store.Store, items []state.Item, api Plaid) ([]investmentsView, []ItemError, error) {
+// transactions. Fetches run in parallel; writes do not. screen, when set,
+// shows each Item's fetch.
+func (a *App) syncInvestments(ctx context.Context, s *store.Store, items []state.Item, api Plaid, screen *syncScreen) ([]investmentsView, []ItemError, error) {
 	today := a.Now()
 	version, err := s.Setting(ctx, "investments_version")
 	if err != nil {
@@ -53,6 +55,7 @@ func (a *App) syncInvestments(ctx context.Context, s *store.Store, items []state
 	}
 	syncs := make([]*store.InvestmentSync, len(items))
 	errs := a.forEachItem(ctx, items, func(ctx context.Context, i int, token string) error {
+		screen.start(invsPart, i)
 		h, err := api.InvestmentsHoldingsGet(ctx, token)
 		if err != nil {
 			return err
@@ -83,8 +86,10 @@ func (a *App) syncInvestments(ctx context.Context, s *store.Store, items []state
 		}
 		cryptoDeposits(d)
 		syncs[i] = d
+		screen.done(invsPart, i, fmt.Sprintf("%d transactions, %d holdings", len(d.Txs), len(d.Holdings)))
 		return nil
 	})
+	screen.failItems(invsPart, items, errs)
 	views := []investmentsView{}
 	for _, d := range syncs {
 		if d == nil {
@@ -117,7 +122,7 @@ func (a *App) readInvestments(ctx context.Context, read func(s *store.Store, ids
 		return nil, nil, err
 	}
 	defer s.Close()
-	views, errs, err := a.syncInvestments(ctx, s, items, api)
+	views, errs, err := a.syncInvestments(ctx, s, items, api, nil)
 	if err != nil {
 		return nil, nil, err
 	}

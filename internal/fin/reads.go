@@ -124,7 +124,7 @@ func (a *App) cmdTransactions(ctx context.Context, args []string) (*result, erro
 			return nil, err
 		}
 		defer s.Close()
-		if syncList, errs, err = a.syncStore(ctx, s, st, items, api); err != nil {
+		if syncList, errs, err = a.syncStore(ctx, s, st, items, api, nil); err != nil {
 			return nil, err
 		}
 		ids := make([]string, len(items))

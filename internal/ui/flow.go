@@ -19,6 +19,8 @@ type Reporter interface {
 	Start(i int, detail string)
 	// Done marks step i as finished, with an optional detail.
 	Done(i int, detail string)
+	// Fail marks step i as failed, with an optional detail.
+	Fail(i int, detail string)
 	// Link shows a URL the user should open; o opens it.
 	Link(label, url string)
 	// Feed shows a line of what the work just found, under the steps; the
@@ -42,6 +44,10 @@ type FlowOptions struct {
 	// Width is the text width; zero means 72. Set it to fit the result URL
 	// so the screen does not reflow when the URL arrives.
 	Width int
+	// CloseWhenDone closes the screen as soon as the work ends instead of
+	// waiting for a key, for a Flow that is one part of a longer command
+	// which reports the result itself.
+	CloseWhenDone bool
 }
 
 type stepState int
@@ -121,6 +127,9 @@ func (m flowModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		} else {
 			m.result = &msg.res
+		}
+		if m.opts.CloseWhenDone {
+			return m, tea.Quit
 		}
 	case tea.KeyPressMsg:
 		switch msg.String() {
@@ -236,6 +245,8 @@ func fullScreen(w, h, width int, body string) tea.View {
 
 func (m flowModel) keys() string {
 	switch {
+	case m.finished && m.opts.CloseWhenDone:
+		return ""
 	case m.finished && m.result != nil && m.result.URL != "":
 		return fmt.Sprintf("enter open %s and quit · o open · q quit", m.result.OpenAs)
 	case m.finished:
@@ -265,6 +276,7 @@ type flowReporter struct{ p *tea.Program }
 
 func (r flowReporter) Start(i int, detail string) { r.p.Send(stepMsg{i, stepRunning, detail}) }
 func (r flowReporter) Done(i int, detail string)  { r.p.Send(stepMsg{i, stepDone, detail}) }
+func (r flowReporter) Fail(i int, detail string)  { r.p.Send(stepMsg{i, stepFailed, detail}) }
 func (r flowReporter) Link(label, url string)     { r.p.Send(linkMsg{label, url}) }
 func (r flowReporter) Feed(line string)           { r.p.Send(feedMsg(line)) }
 
@@ -287,7 +299,8 @@ func truncate(s string, width int) string {
 
 // Flow runs fn on a full-screen view that shows each step's progress, any
 // URL the user needs to open, and the result, then waits for a key so the
-// user can read it. q cancels the context passed to fn while it runs.
+// user can read it, unless opts.CloseWhenDone. q cancels the context passed
+// to fn while it runs.
 func Flow(ctx context.Context, in io.Reader, out io.Writer, opts FlowOptions, fn func(ctx context.Context, r Reporter) (FlowResult, error)) (FlowResult, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -334,6 +347,14 @@ func (r PlainReporter) Done(i int, detail string) {
 		msg += Muted.Render("  " + detail)
 	}
 	Print(r.W, Line(Good, msg)+"\n")
+}
+
+func (r PlainReporter) Fail(i int, detail string) {
+	msg := r.Steps[i]
+	if detail != "" {
+		msg += Muted.Render("  " + detail)
+	}
+	Print(r.W, Line(Bad, msg)+"\n")
 }
 
 func (r PlainReporter) Feed(string) {}

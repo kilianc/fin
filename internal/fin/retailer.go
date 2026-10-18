@@ -44,6 +44,10 @@ type retailer struct {
 	SignIn error
 	// Sync reads what is new for one account, as fin sync does.
 	Sync func(a *App, ctx context.Context, s *store.Store, st *state.State, acct state.RetailerAccount, progress syncProgress) (any, error)
+	// Steps are what the sync screen shows for each account, and Summarize
+	// says what each step of a finished account read.
+	Steps     []string
+	Summarize func(view any) []string
 	// Forget deletes an account's rows, the shared ones included.
 	Forget func(ctx context.Context, s *store.Store, account string) error
 }
@@ -330,26 +334,9 @@ func (a *App) runSync(ctx context.Context, st *state.State, r retailer, accts []
 	var errs []ItemError
 	a.onScreen = true
 	_, err := ui.Flow(ctx, a.Stdin, a.Stderr, ui.FlowOptions{Title: "fin → " + r.Name, Steps: labels}, func(ctx context.Context, rep ui.Reporter) (ui.FlowResult, error) {
-		k := 0
+		shown, progress := onScreen(rep, 0, len(steps), sync, summarize)
 		var err error
-		views, errs, err = a.syncAccounts(ctx, st, r, accts, func(acct state.RetailerAccount, p syncProgress) (any, error) {
-			v, err := sync(acct, p)
-			if err == nil {
-				for i, detail := range summarize(v) {
-					rep.Done(k*len(steps)+i, detail)
-				}
-			}
-			k++
-			return v, err
-		}, func(k int) syncProgress {
-			at := 0
-			return syncProgress{Step: func(i int, detail string) {
-				for ; at < i; at++ {
-					rep.Done(k*len(steps)+at, "")
-				}
-				rep.Start(k*len(steps)+i, detail)
-			}, Feed: rep.Feed}
-		})
+		views, errs, err = a.syncAccounts(ctx, st, r, accts, shown, progress)
 		if err != nil {
 			return ui.FlowResult{}, err
 		}
@@ -366,18 +353,53 @@ func (a *App) runSync(ctx context.Context, st *state.State, r retailer, accts []
 	return views, errs, err
 }
 
-// syncRetailers syncs every connected retailer account, as fin sync does.
-// The views are keyed by retailer ID.
-func (a *App) syncRetailers(ctx context.Context, s *store.Store, st *state.State) (map[string][]any, []ItemError, error) {
+// onScreen shows sync's accounts on rep, each taking steps steps from step
+// base on: the step running, the ones before it done, summarize filling in
+// a finished account, and the running step failed when the account fails.
+func onScreen(rep ui.Reporter, base, steps int, sync func(acct state.RetailerAccount, p syncProgress) (any, error),
+	summarize func(view any) []string) (func(acct state.RetailerAccount, p syncProgress) (any, error), func(k int) syncProgress) {
+	k, at := 0, 0
+	shown := func(acct state.RetailerAccount, p syncProgress) (any, error) {
+		v, err := sync(acct, p)
+		if err == nil {
+			for i, detail := range summarize(v) {
+				rep.Done(base+k*steps+i, detail)
+			}
+		} else if !errors.Is(err, context.Canceled) {
+			rep.Fail(base+k*steps+at, "")
+		}
+		k++
+		return v, err
+	}
+	progress := func(k int) syncProgress {
+		at = 0
+		return syncProgress{Step: func(i int, detail string) {
+			for ; at < i; at++ {
+				rep.Done(base+k*steps+at, "")
+			}
+			rep.Start(base+k*steps+i, detail)
+		}, Feed: rep.Feed}
+	}
+	return shown, progress
+}
+
+// syncRetailers syncs every connected retailer account, as fin sync does,
+// showing them on screen when it is set. The views are keyed by retailer ID.
+func (a *App) syncRetailers(ctx context.Context, s *store.Store, st *state.State, screen *syncScreen) (map[string][]any, []ItemError, error) {
 	out, errs := map[string][]any{}, []ItemError{}
 	for _, r := range retailers {
 		accts := st.RetailerAccounts(r.ID, string(a.Env))
 		if len(accts) == 0 {
 			continue
 		}
-		views, e, err := a.syncAccounts(ctx, st, r, accts, func(acct state.RetailerAccount, p syncProgress) (any, error) {
+		sync := func(acct state.RetailerAccount, p syncProgress) (any, error) {
 			return r.Sync(a, ctx, s, st, acct, p)
-		}, nil)
+		}
+		var progress func(k int) syncProgress
+		if screen != nil {
+			sync, progress = onScreen(screen.rep, screen.shops[r.ID], len(r.Steps), sync, r.Summarize)
+		}
+		views, e, err := a.syncAccounts(ctx, st, r, accts, sync, progress)
 		if err != nil {
 			return nil, nil, err
 		}
