@@ -204,7 +204,8 @@ Tables:
                 one snapshot per connection per day synced
   investment_transactions  investment_transaction_id, item_id, account_id,
                 security_id, date, name, type, subtype, quantity, price,
-                amount, fees, iso_currency_code
+                amount, fees, iso_currency_code, source (plaid, or the
+                import a row came from, such as robinhood)
   securities    security_id, ticker, name, type, is_cash_equivalent,
                 close_price, iso_currency_code, updated_at
 
@@ -313,6 +314,23 @@ Flags:
   --account X     an account ID, last four digits, or account name`,
 		examples: []string{"fin investments --since 2026-01-01"},
 		run:      func(a *App) command { return a.cmdInvestments },
+	},
+	{
+		name: "import", usage: "fin import robinhood --account X FILE...", group: groupRead,
+		summary: "Bring in investment history older than Plaid keeps",
+		detail: `Reads Robinhood's account activity reports (Account → Reports and
+statements → Reports, one CSV per account) into the investment
+transactions of a Robinhood account fin already syncs. Rows from the day
+Plaid's history for that account starts on are left to Plaid, so nothing
+counts twice. Importing an account again replaces what was imported for it,
+so pass every report for one account together. The reports do not include
+Robinhood Crypto. Imported rows have source 'robinhood' in fin sql.
+
+Flags:
+  --account X     the account: "individual", "joint", "roth", its last four
+                  digits, or its ID`,
+		examples: []string{"fin import robinhood --account roth ~/Downloads/roth.csv"},
+		run:      func(a *App) command { return a.cmdImport },
 	},
 	{
 		name: "sheet", usage: "fin sheet [--open] [--new] [--login]", group: groupRead,

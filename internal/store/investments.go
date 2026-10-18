@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -52,6 +53,8 @@ create table if not exists investment_transactions (
 	fees                      double,
 	iso_currency_code         varchar
 );
+-- plaid, or the import a row came from, such as robinhood.
+alter table investment_transactions add column if not exists source varchar default 'plaid';
 `
 
 // InvestmentSync is one Item's holdings today and its investment
@@ -73,7 +76,7 @@ type InvestmentSync struct {
 // transaction falls on, or "" when it has none.
 func (s *Store) InvestmentsFrom(ctx context.Context, itemID string) (string, error) {
 	var day sql.NullString
-	err := s.db.QueryRowContext(ctx, `select max(date)::varchar from investment_transactions where item_id = ?`, itemID).Scan(&day)
+	err := s.db.QueryRowContext(ctx, `select max(date)::varchar from investment_transactions where item_id = ? and source = 'plaid'`, itemID).Scan(&day)
 	return day.String, err
 }
 
@@ -115,11 +118,12 @@ func (s *Store) ApplyInvestments(ctx context.Context, d InvestmentSync) error {
 	}
 	// Plaid has no removed list for investment transactions, so the window
 	// is replaced whole: one Plaid dropped disappears here too.
-	if _, err := tx.ExecContext(ctx, `delete from investment_transactions where item_id = ? and date >= ?::date`, d.ItemID, d.From); err != nil {
+	if _, err := tx.ExecContext(ctx, `delete from investment_transactions where item_id = ? and date >= ?::date and source = 'plaid'`, d.ItemID, d.From); err != nil {
 		return err
 	}
 	for _, t := range d.Txs {
-		if _, err := tx.ExecContext(ctx, `insert or replace into investment_transactions values (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		if _, err := tx.ExecContext(ctx, `insert or replace into investment_transactions (investment_transaction_id, item_id, account_id, security_id, date, name, type, subtype, quantity, price, amount, fees, iso_currency_code, source)
+			values (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, 'plaid')`,
 			t.InvestmentTransactionID, d.ItemID, t.AccountID, t.SecurityID, t.Date, t.Name, t.Type, t.Subtype,
 			t.Quantity, t.Price, t.Amount, t.Fees, t.IsoCurrencyCode); err != nil {
 			return fmt.Errorf("store: investment transaction %s: %w", t.InvestmentTransactionID, err)
@@ -212,6 +216,8 @@ type InvestmentTransaction struct {
 	Amount                  float64  `json:"amount"`
 	Fees                    *float64 `json:"fees"`
 	IsoCurrencyCode         *string  `json:"iso_currency_code"`
+	// Source is plaid, or the import the row came from, such as robinhood.
+	Source string `json:"source"`
 }
 
 // InvestmentTransactions returns matching investment transactions, newest first.
@@ -223,7 +229,7 @@ func (s *Store) InvestmentTransactions(ctx context.Context, f Filter) ([]Investm
 	rows, err := s.db.QueryContext(ctx, `
 		select t.investment_transaction_id, i.item, coalesce(i.institution, ''), t.account_id, coalesce(a.name, ''),
 			t.date::varchar, t.name, t.type, coalesce(t.subtype, ''), t.security_id, sec.ticker, sec.name,
-			t.quantity, t.price, t.amount, t.fees, t.iso_currency_code
+			t.quantity, t.price, t.amount, t.fees, t.iso_currency_code, t.source
 		from investment_transactions t
 		join items i using (item_id)
 		left join accounts a using (account_id)
@@ -241,10 +247,99 @@ func (s *Store) InvestmentTransactions(ctx context.Context, f Filter) ([]Investm
 		var t InvestmentTransaction
 		if err := rows.Scan(&t.InvestmentTransactionID, &t.Item, &t.Institution, &t.AccountID, &t.AccountName,
 			&t.Date, &t.Name, &t.Type, &t.Subtype, &t.SecurityID, &t.Ticker, &t.SecurityName,
-			&t.Quantity, &t.Price, &t.Amount, &t.Fees, &t.IsoCurrencyCode); err != nil {
+			&t.Quantity, &t.Price, &t.Amount, &t.Fees, &t.IsoCurrencyCode, &t.Source); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
 	}
 	return out, rows.Err()
+}
+
+// InvestmentAccount is an investment account fin has synced.
+type InvestmentAccount struct {
+	AccountID   string `json:"account_id"`
+	ItemID      string `json:"item_id"`
+	Item        string `json:"item"`
+	Institution string `json:"institution"`
+	Name        string `json:"name"`
+	Mask        string `json:"mask"`
+}
+
+// InvestmentAccounts lists the stored investment accounts.
+func (s *Store) InvestmentAccounts(ctx context.Context) ([]InvestmentAccount, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		select a.account_id, a.item_id, i.item, coalesce(i.institution, ''), a.name, coalesce(a.mask, '')
+		from accounts a join items i using (item_id)
+		where a.type = 'investment' order by i.item, a.name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []InvestmentAccount{}
+	for rows.Next() {
+		var a InvestmentAccount
+		if err := rows.Scan(&a.AccountID, &a.ItemID, &a.Item, &a.Institution, &a.Name, &a.Mask); err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+// SecurityByTicker returns the security_id stored for a ticker, or "".
+func (s *Store) SecurityByTicker(ctx context.Context, ticker string) (string, error) {
+	var id string
+	err := s.db.QueryRowContext(ctx, `select security_id from securities where upper(ticker) = upper(?) order by updated_at desc limit 1`, ticker).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return id, err
+}
+
+// ImportedInvestments is what ImportInvestments did.
+type ImportedInvestments struct {
+	Imported int    `json:"imported"`
+	Covered  int    `json:"covered_by_plaid"` // rows from the day Plaid's history starts on, left to Plaid
+	Since    string `json:"plaid_since"`      // that day, "" when Plaid has none for the account
+}
+
+// ImportInvestments replaces an account's rows from source with txs, keeping
+// only those before the account's first Plaid row, so nothing is counted
+// twice. securities adds any the rows need that fin does not have yet.
+func (s *Store) ImportInvestments(ctx context.Context, acct InvestmentAccount, source string, txs []plaid.InvestmentTransaction, securities []plaid.Security, at time.Time) (ImportedInvestments, error) {
+	var res ImportedInvestments
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return res, err
+	}
+	defer tx.Rollback()
+	var since sql.NullString
+	if err := tx.QueryRowContext(ctx, `select min(date)::varchar from investment_transactions where account_id = ? and source = 'plaid'`,
+		acct.AccountID).Scan(&since); err != nil {
+		return res, err
+	}
+	res.Since = since.String
+	for _, sec := range securities {
+		if _, err := tx.ExecContext(ctx, `insert into securities values (?, ?, ?, ?, ?, ?, ?, ?) on conflict do nothing`,
+			sec.SecurityID, sec.TickerSymbol, sec.Name, sec.Type, sec.IsCashEquivalent, sec.ClosePrice, sec.IsoCurrencyCode, at); err != nil {
+			return res, fmt.Errorf("store: security %s: %w", sec.SecurityID, err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `delete from investment_transactions where account_id = ? and source = ?`, acct.AccountID, source); err != nil {
+		return res, err
+	}
+	for _, t := range txs {
+		if res.Since != "" && t.Date >= res.Since {
+			res.Covered++
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, `insert or replace into investment_transactions (investment_transaction_id, item_id, account_id, security_id, date, name, type, subtype, quantity, price, amount, fees, iso_currency_code, source)
+			values (?, ?, ?, ?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			t.InvestmentTransactionID, acct.ItemID, acct.AccountID, t.SecurityID, t.Date, t.Name, t.Type, t.Subtype,
+			t.Quantity, t.Price, t.Amount, t.Fees, t.IsoCurrencyCode, source); err != nil {
+			return res, fmt.Errorf("store: imported row %s: %w", t.InvestmentTransactionID, err)
+		}
+		res.Imported++
+	}
+	return res, tx.Commit()
 }
